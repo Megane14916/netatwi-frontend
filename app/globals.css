@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+  }
+}
+
+@layer base {
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+.twemoji-emoji {
+  /* display: inline-block でサイズ指定を確実に適用 */
+  display: inline-block;
+  /* !important を付けて他のスタイルに上書きされないようにする */
+  height: 1.1em !important;
+  width: 1.1em !important;
+  margin: 0 0.05em 0 0.1em;
+  /* サイズ変更に合わせて垂直位置を微調整 */
+  vertical-align: -0.2em;
+}
+
+/* --- ▼▼▼ カレンダーアイコン ▼▼▼ --- */
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    /* display: none; を削除 */
+    /* -webkit-appearance: none; を削除 */
+    /* filterを使って色を変更 (黄色っぽく) */
+    filter: invert(75%) sepia(50%) saturate(500%) hue-rotate(350deg) brightness(1.1);
+    cursor: pointer;
+    /* アイコンと入力内容が重ならないように少し右に余白を追加 (任意) */
+    margin-right: 0.5rem; 
+}
