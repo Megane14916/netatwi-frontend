@@ -104,6 +104,7 @@ const JudgeLoginModal = ({ contestId, contestName, onClose }: JudgeLoginModalPro
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ password }),
+                credentials: 'include', 
             });
             const data = await response.json();
             if (!response.ok) {
@@ -190,7 +191,7 @@ export default function VenuePage() {
     useEffect(() => {
         const fetchContests = async () => {
             try {
-                const response = await fetch(`${API_URL}/api/contests`); // URL修正
+                const response = await fetch(`${API_URL}/api/contests`, { credentials: 'include' }); // URL修正
                 if (!response.ok) throw new Error('大会情報の取得に失敗しました。');
                 const data = await response.json();
 

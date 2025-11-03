@@ -107,7 +107,7 @@ export default function AdminPage() {
                 setManageLoading(true);
                 setManageError(null);
                 try {
-                    const response = await fetch(`${API_URL}/api/admin/contests/management`);
+                    const response = await fetch(`${API_URL}/api/admin/contests/management`, { credentials: 'include' });
                     if (!response.ok) {
                         const data = await response.json();
                         throw new Error(data.error || '大会リストの取得に失敗しました。');
@@ -143,6 +143,7 @@ export default function AdminPage() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
+                credentials: 'include',
             });
             const data = await response.json();
             if (response.ok) {
@@ -173,6 +174,7 @@ export default function AdminPage() {
         try {
             const response = await fetch(`${API_URL}/api/admin/contests/${showDeleteModal.id}`, {
                 method: 'DELETE',
+                credentials: 'include',
             });
             const data = await response.json();
             if (!response.ok) {

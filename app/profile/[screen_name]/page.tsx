@@ -57,7 +57,7 @@ export default function UserProfilePage() {
                 try {
                     setLoading(true);
                     const decodedScreenName = decodeURIComponent(screenName);
-                    const response = await fetch(`${API_URL}/api/profile/${decodedScreenName}`); // URL修正
+                    const response = await fetch(`${API_URL}/api/profile/${decodedScreenName}`, { credentials: 'include' }); // URL修正
                     if (!response.ok) {
                         const data = await response.json();
                         throw new Error(data.error || 'プロフィール情報の取得に失敗しました。');
