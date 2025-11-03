@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { History } from 'lucide-react';
 import dayjs from 'dayjs'; // 日付比較のためにdayjsをインポート
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+
 // Contestの型定義 (会場ページと同じ)
 interface Contest {
   id: number;
@@ -31,18 +33,13 @@ export default function PastLogsPage() {
   useEffect(() => {
     const fetchPastContests = async () => {
       try {
-        const response = await fetch('/api/contests');
+        const response = await fetch(`${API_URL}/api/contests`); // URL修正
         if (!response.ok) {
           throw new Error('大会情報の取得に失敗しました。');
         }
-        // --- ▼▼▼ APIレスポンスの型に合わせて修正 ▼▼▼ ---
         const data: ContestsApiResponse = await response.json();
-        const closedContests = data.closed || []; // data.closed を使用
-        // --- ▲▲▲ ここまで ▲▲▲ ---
-
-        // 開催日時の降順（新しい順）でソート (これはバックエンドで行われているので不要かも)
+        const closedContests = data.closed || [];
         closedContests.sort((a, b) => dayjs(b.startTime).unix() - dayjs(a.startTime).unix());
-
         setPastContests(closedContests);
       } catch (err) {
         setError(err instanceof Error ? err.message : '不明なエラーが発生しました。');
@@ -50,7 +47,6 @@ export default function PastLogsPage() {
         setLoading(false);
       }
     };
-
     fetchPastContests();
   }, []);
 

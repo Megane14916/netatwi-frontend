@@ -1,8 +1,9 @@
 "use client";
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 
-// Next.jsのプロキシを経由するため、URLを空の文字列（相対パス）に変更
-const API_URL = '';
+// Vercelの環境変数 NEXT_PUBLIC_API_URL を読み込む
+// ローカル開発時は http://localhost:5001 をフォールバックとして使用
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
 
 interface User {
   id: number;
@@ -10,14 +11,13 @@ interface User {
   profile_image_url: string;
 }
 
-
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  judgeContests: number[];
+  judgeContests: number[]; // 審査員としてログイン中の大会IDリスト
   login: () => void;
   logout: () => Promise<void>;
-  refetchUser: () => Promise<void>;
+  refetchUser: () => Promise<void>; // ユーザー情報を再取得する関数
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,10 +27,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [judgeContests, setJudgeContests] = useState<number[]>([]);
 
+  // ユーザー情報を(再)取得する関数
   const refetchUser = async () => {
     setLoading(true); // 再取得中はローディング表示
     try {
-      const res = await fetch(`${API_URL}/api/me`, { credentials: 'include' });
+      const res = await fetch(`${API_URL}/api/me`, {
+        credentials: 'include', // セッションクッキーをリクエストに含める
+      });
       if (res.ok) {
         const data = await res.json();
         if (data.logged_in) {
@@ -42,7 +45,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       }
     } catch (error) {
-      console.error("ユーザー情報の再取得に失敗:", error);
+      console.error("ユーザー情報の取得に失敗:", error);
       setUser(null);
       setJudgeContests([]);
     } finally {
@@ -57,10 +60,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/login/twitter`, { credentials: 'include' });
+      // ログインリクエストをバックエンド(Render)に送る
+      const res = await fetch(`${API_URL}/api/login/twitter`, {
+        credentials: 'include',
+      });
       if (res.ok) {
         const data = await res.json();
         if (data.authorization_url) {
+          // Xの認証ページにリダイレクト
           window.location.href = data.authorization_url;
         }
       }
@@ -70,17 +77,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async () => {
-    try {
-      await fetch(`${API_URL}/api/logout`, { credentials: 'include' });
-      setUser(null);
-      window.location.href = "/";
-    } catch (error) {
-      console.error("ログアウトに失敗しました:", error);
-    }
+    await fetch(`${API_URL}/api/logout`, {
+      credentials: 'include',
+    });
+    setUser(null);
+    setJudgeContests([]);
+    // ログアウト後にトップページに遷移
+    window.location.href = "/";
   };
 
   return (
-    // Contextのvalueに judgeContests と refetchUser を追加
     <AuthContext.Provider value={{ user, loading, judgeContests, login, logout, refetchUser }}>
       {children}
     </AuthContext.Provider>
@@ -94,4 +100,3 @@ export const useAuth = () => {
   }
   return context;
 };
-

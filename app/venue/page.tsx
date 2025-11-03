@@ -1,14 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-// CheckSquare, Trophy アイコンを追加, KeyRoundを追加
 import { Timer, Zap, Calendar, CheckSquare, Trophy, ExternalLink, KeyRound } from 'lucide-react';
 import Twemoji from '@/components/Twemoji';
-// AuthContextからユーザー情報とリフレッシュ関数を取得
 import { useAuth } from '@/context/AuthContext';
-// Next.jsのルーターを使用
 import { useRouter } from 'next/navigation';
-import dayjs from 'dayjs'; // dayjs をインポート
+import dayjs from 'dayjs';
+
+// --- ▼▼▼ API_URLを環境変数から取得 ▼▼▼ ---
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+// --- ▲▲▲ ここまで ▲▲▲ ---
 
 // --- ▼▼▼ Contestの型定義を更新 ▼▼▼ ---
 interface Contest {
@@ -99,7 +100,7 @@ const JudgeLoginModal = ({ contestId, contestName, onClose }: JudgeLoginModalPro
         setError('');
         setIsLoading(true);
         try {
-            const response = await fetch(`/api/contests/${contestId}/judge/login`, {
+            const response = await fetch(`${API_URL}/api/contests/${contestId}/judge/login`, { // URL修正
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ password }),
@@ -152,14 +153,18 @@ const JudgeLoginModal = ({ contestId, contestName, onClose }: JudgeLoginModalPro
 
 // --- ▼▼▼ 予選/決勝判定ヘルパー関数 ▼▼▼ ---
 // 戻り値の型アノテーション statusKey から ContestStatus を削除
-const getQualifierStatus = (contest: Contest): { phase: '予選' | '決勝' | null; statusKey: 'qualifier_ongoing' | 'qualifier_voting' | null; targetTime: string | null } => {
+const getQualifierStatus = (contest: Contest): { phase: '予選' | '決勝' | null; statusKey: 'upcoming' | 'qualifier_ongoing' | 'qualifier_voting' | null; targetTime: string | null } => {
     if (!contest.hasQualifier) return { phase: null, statusKey: null, targetTime: null }; // 予選なし
 
     const now = dayjs();
     const qStart = contest.qualifierStartTime ? dayjs(contest.qualifierStartTime) : null;
     const qEnd = contest.qualifierEndTime ? dayjs(contest.qualifierEndTime) : null;
     const qVoteEnd = contest.qualifierVotingEndTime ? dayjs(contest.qualifierVotingEndTime) : null;
-
+    
+    // 予選開始前
+    if (qStart && now.isBefore(qStart)) {
+         return { phase: '予選', statusKey: 'upcoming', targetTime: contest.qualifierStartTime };
+    }
     if (qStart && qEnd && now.isAfter(qStart) && now.isBefore(qEnd)) {
         return { phase: '予選', statusKey: 'qualifier_ongoing', targetTime: contest.qualifierEndTime }; // 予選投稿中
     }
@@ -181,16 +186,29 @@ export default function VenuePage() {
     const [error, setError] = useState<string | null>(null);
     const [showJudgeModal, setShowJudgeModal] = useState<number | null>(null);
 
+    // --- ▼▼▼ データ取得と分類ロジックを更新 ▼▼▼ ---
     useEffect(() => {
         const fetchContests = async () => {
             try {
-                const response = await fetch('/api/contests');
+                const response = await fetch(`${API_URL}/api/contests`); // URL修正
                 if (!response.ok) throw new Error('大会情報の取得に失敗しました。');
                 const data = await response.json();
-                setOngoingContests(data.ongoing || []);
-                setVotingContests(data.voting || []);
-                setUpcomingContests(data.upcoming || []);
+
+                const now = dayjs();
+                const ongoing: Contest[] = [];
+                const voting: Contest[] = [];
+                const upcoming: Contest[] = [];
+
+                // バックエンドから来たデータを分類 (より詳細なステータス判定はここで行う)
+                (data.ongoing || []).forEach((c: Contest) => ongoing.push(c));
+                (data.voting || []).forEach((c: Contest) => voting.push(c));
+                (data.upcoming || []).forEach((c: Contest) => upcoming.push(c));
+
+                setOngoingContests(ongoing);
+                setVotingContests(voting);
+                setUpcomingContests(upcoming);
                 setLatestResult(data.latestResult || null);
+
             } catch (err) {
                 setError(err instanceof Error ? err.message : '不明なエラーが発生しました。');
             } finally {
@@ -199,8 +217,9 @@ export default function VenuePage() {
         };
         fetchContests();
     }, []);
+    // --- ▲▲▲ ここまで ▲▲▲ ---
 
-    // ローディング表示
+
     if (loading) {
         return (
             <div className="container mx-auto px-4 py-8">
@@ -220,7 +239,6 @@ export default function VenuePage() {
             </div>
         );
      }
-    // エラー表示
     if (error) {
          return (
             <div className="container mx-auto px-4 py-8 text-center">
@@ -234,16 +252,14 @@ export default function VenuePage() {
         <div className="container mx-auto px-4 py-8">
             <h1 className="text-3xl font-bold mb-8 border-b border-gray-700 pb-2">会場</h1>
             {latestResult && (
-                 <section className="mb-12 bg-gray-900 border border-gray-700 rounded-lg p-6 shadow-lg">
+                <section className="mb-12 bg-gray-900 border border-gray-700 rounded-lg p-6 shadow-lg">
                     <h2 className="text-xl font-semibold mb-3 text-gray-300 flex items-center">
                         <Trophy className="h-5 w-5 mr-2 text-yellow-400" />
                         最新の結果：{latestResult.contest_name}
                     </h2>
-                    {/* --- ▼▼▼ お題表示を修正 ▼▼▼ --- */}
-                                        <p className="text-lg text-gray-300 mt-2">
-                                            { latestResult.theme ? `お題: 「${latestResult.theme}」` : "自由にネタツイしよう"}
-                                        </p>
-                                        {/* --- ▲▲▲ ここまで ▲▲▲ --- */}
+                     <p className="text-gray-400 mb-4 text-sm">
+                        お題: {latestResult.theme || 'お題なし'}
+                     </p>
                     <a href={`/venue/${latestResult.contest_id}`} className="inline-flex items-center text-sm text-yellow-400 hover:text-yellow-300 hover:underline">
                         詳細結果を見る <ExternalLink className="h-4 w-4 ml-1" />
                     </a>
@@ -264,17 +280,11 @@ export default function VenuePage() {
                                         <h3 className="text-xl font-bold text-yellow-300">{contest.name}</h3>
                                         {qualStatus.phase && <span className="text-xs font-semibold bg-yellow-900 text-yellow-300 px-2 py-0.5 rounded">{qualStatus.phase}</span>}
                                     </div>
-                                    {/* --- ▼▼▼ お題表示を修正 ▼▼▼ --- */}
-                                        <p className="text-lg text-gray-300 mt-2">
-                                            {contest.hasTheme && contest.theme ? `お題: 「${contest.theme}」` : "自由にネタツイしよう"}
-                                        </p>
-                                        {/* --- ▲▲▲ ここまで ▲▲▲ --- */}
+                                    <p className="text-gray-400 mt-2 line-clamp-2">お題: {contest.hasTheme && contest.theme ? contest.theme : '自由にネタツイしよう'}</p>
                                     <div className="text-sm text-red-400 mt-4 flex items-center font-semibold">
                                         <Timer className="h-4 w-4 mr-1.5" />
                                         {qualStatus.phase === '予選' ? '予選投稿終了まで残り ' : '投稿終了まで残り '}
-                                        {/* --- ▼▼▼ status の fallback を修正 ▼▼▼ --- */}
                                         <Countdown targetTime={qualStatus.phase === '予選' ? contest.qualifierEndTime : contest.endTime} status={qualStatus.statusKey || 'ongoing'} />
-                                        {/* --- ▲▲▲ ここまで ▲▲▲ --- */}
                                     </div>
                                 </a>
                             );
@@ -298,17 +308,11 @@ export default function VenuePage() {
                                             <h3 className="text-xl font-bold text-green-300">{contest.name}</h3>
                                             {qualStatus.phase && <span className="text-xs font-semibold bg-green-900 text-green-300 px-2 py-0.5 rounded">{qualStatus.phase}</span>}
                                         </div>
-                                        {/* --- ▼▼▼ お題表示を修正 ▼▼▼ --- */}
-                                        <p className="text-lg text-gray-300 mt-2">
-                                            {contest.hasTheme && contest.theme ? `お題: 「${contest.theme}」` : "自由にネタツイしよう"}
-                                        </p>
-                                        {/* --- ▲▲▲ ここまで ▲▲▲ --- */}
+                                        <p className="text-gray-400 mt-2 line-clamp-2">お題: {contest.hasTheme && contest.theme ? contest.theme : '自由にネタツイしよう'}</p>
                                         <div className="text-sm text-green-400 mt-4 flex items-center font-semibold">
                                             <Timer className="h-4 w-4 mr-1.5" />
                                              {qualStatus.phase === '予選' ? '予選投票終了まで残り ' : '投票終了まで残り '}
-                                             {/* --- ▼▼▼ status の fallback を修正 ▼▼▼ --- */}
                                             <Countdown targetTime={qualStatus.phase === '予選' ? contest.qualifierVotingEndTime : contest.votingEndTime} status={qualStatus.statusKey || 'voting'} />
-                                            {/* --- ▲▲▲ ここまで ▲▲▲ --- */}
                                         </div>
                                     </div>
                                     <div className="mt-4 pt-4 border-t border-gray-700 flex flex-col sm:flex-row gap-2">
@@ -336,17 +340,11 @@ export default function VenuePage() {
                                         <h3 className="text-xl font-bold">{contest.name}</h3>
                                          {qualStatus.phase && <span className="text-xs font-semibold bg-blue-900 text-blue-300 px-2 py-0.5 rounded">{qualStatus.phase}</span>}
                                     </div>
-                                    {/* --- ▼▼▼ お題表示を修正 ▼▼▼ --- */}
-                                        <p className="text-lg text-gray-300 mt-2">
-                                            {contest.hasTheme && contest.theme ? `お題: 「${contest.theme}」` : "自由にネタツイしよう"}
-                                        </p>
-                                        {/* --- ▲▲▲ ここまで ▲▲▲ --- */}
+                                     <p className="text-gray-400 mt-2 line-clamp-2">お題: {contest.hasTheme && contest.theme ? contest.theme : '自由にネタツイしよう'}</p>
                                     <div className="text-sm text-blue-400 mt-4 flex items-center font-semibold">
                                         <Timer className="h-4 w-4 mr-1.5" />
                                          {qualStatus.phase === '予選' ? '予選開始まで残り ' : '開催まで残り '}
-                                         {/* --- ▼▼▼ status の fallback を修正 ▼▼▼ --- */}
                                         <Countdown targetTime={qualStatus.phase === '予選' ? contest.qualifierStartTime : contest.startTime} status={'upcoming'} />
-                                         {/* --- ▲▲▲ ここまで ▲▲▲ --- */}
                                     </div>
                                 </div>
                             );
@@ -365,5 +363,3 @@ export default function VenuePage() {
     );
 }
 
-
-    

@@ -8,6 +8,8 @@ import Twemoji from '@/components/Twemoji';
 import { Heart, Trophy, ExternalLink, User as UserIcon, Bookmark, LayoutGrid } from 'lucide-react';
 import Link from 'next/link';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+
 // --- ▼▼▼ ProfilePost 型定義を更新 ▼▼▼ ---
 // 投稿者情報も含むようにする (ブックマークタブで必要)
 interface ProfilePost {
@@ -55,7 +57,7 @@ export default function UserProfilePage() {
                 try {
                     setLoading(true);
                     const decodedScreenName = decodeURIComponent(screenName);
-                    const response = await fetch(`/api/profile/${decodedScreenName}`);
+                    const response = await fetch(`${API_URL}/api/profile/${decodedScreenName}`); // URL修正
                     if (!response.ok) {
                         const data = await response.json();
                         throw new Error(data.error || 'プロフィール情報の取得に失敗しました。');
