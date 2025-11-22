@@ -13,33 +13,45 @@ export default function Header() {
   const mobileDropdownRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
 
+  // 追加: ページ遷移が発生したらメニューを確実に閉じる
+  useEffect(() => {
+    setIsDropdownOpen(false);
+  }, [pathname]);
+
   // ドロップダウンの外側をクリックしたら閉じる処理
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      // ボタン自体がクリックされた場合は、トグル処理に任せる
+      const target = event.target as Node;
+
+      // ボタン自体がクリックされた場合は何もしない（トグル処理に任せる）
       const pcButton = dropdownRef.current?.previousElementSibling;
-      if (pcButton && pcButton.contains(event.target as Node)) {
-        return;
-      }
       const mobileButton = mobileDropdownRef.current?.previousElementSibling;
-      if (mobileButton && mobileButton.contains(event.target as Node)) {
+
+      const isClickOnButton = 
+        (pcButton && pcButton.contains(target)) || 
+        (mobileButton && mobileButton.contains(target));
+
+      if (isClickOnButton) {
         return;
       }
       
-      // PC用ドロップダウンの外側
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-         setIsDropdownOpen(false);
+      // PCメニューまたはモバイルメニューの内側をクリックしたかどうかの判定
+      const isClickInsidePC = dropdownRef.current?.contains(target);
+      const isClickInsideMobile = mobileDropdownRef.current?.contains(target);
+
+      // どちらか一方でも内側なら閉じない（ここが修正ポイント）
+      if (isClickInsidePC || isClickInsideMobile) {
+        return;
       }
-      // モバイル用ドロップダウンの外側
-      if (mobileDropdownRef.current && !mobileDropdownRef.current.contains(event.target as Node)) {
-         setIsDropdownOpen(false);
-      }
+
+      // どちらの外側でもある場合のみ閉じる
+      setIsDropdownOpen(false);
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [dropdownRef, mobileDropdownRef]); // refを依存配列に追加
+  }, [dropdownRef, mobileDropdownRef]);
 
 
   return (
@@ -82,7 +94,6 @@ export default function Header() {
                 <div className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-md shadow-lg py-1 border border-gray-700 z-50">
                   <Link
                     href={`/profile/${encodeURIComponent(user.screen_name)}`}
-                    onClick={() => setIsDropdownOpen(false)} // PC版はonClickを残す
                     className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white w-full text-left"
                   >
                     マイページ
@@ -134,4 +145,3 @@ export default function Header() {
     </header>
   );
 }
-
