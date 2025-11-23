@@ -3,12 +3,12 @@ import Twemoji from '@/components/Twemoji';
 import Link from 'next/link';
 import dayjs from 'dayjs';
 import Countdown from '@/components/venue/Countdown';
-import JudgeLoginButton from '@/components/venue/JudgeLoginButton';
 
 // --- API_URLの設定 ---
-// サーバーサイドで実行されるため、内部ネットワーク用のURLがあればそれを使うことも可能ですが、
-// ここでは統一して NEXT_PUBLIC_API_URL を使用します。
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5001';
+// Server Componentはサーバー上で実行されるため、相対パスではなく完全なURLが必要です。
+// また、NEXT_PUBLIC_API_URL（クライアント用）ではなく、
+// サーバー間通信用の BACKEND_URL（環境変数）またはローカルアドレスを使用します。
+const API_URL = process.env.BACKEND_URL || 'http://127.0.0.1:5001';
 
 // 型定義
 interface Contest {
@@ -51,7 +51,7 @@ const getQualifierStatus = (contest: Contest): { phase: '予選' | '決勝' | nu
   const qVoteEnd = contest.qualifierVotingEndTime ? dayjs(contest.qualifierVotingEndTime) : null;
 
   if (qStart && now.isBefore(qStart)) {
-     return { phase: '予選', statusKey: 'upcoming', targetTime: contest.qualifierStartTime };
+      return { phase: '予選', statusKey: 'upcoming', targetTime: contest.qualifierStartTime };
   }
   if (qStart && qEnd && now.isAfter(qStart) && now.isBefore(qEnd)) {
     return { phase: '予選', statusKey: 'qualifier_ongoing', targetTime: contest.qualifierEndTime };
@@ -65,9 +65,9 @@ const getQualifierStatus = (contest: Contest): { phase: '予選' | '決勝' | nu
 // データを取得する非同期関数
 async function getContestsData(): Promise<ContestsResponse> {
   try {
-    // next: { revalidate: 60 } で60秒間キャッシュする
+    // Server Componentからのフェッチなので、credentials: 'include' は不要（セッションCookieは関係ない公開情報のため）
     const res = await fetch(`${API_URL}/api/contests`, {
-      next: { revalidate: 60 },
+      next: { revalidate: 60 }, // 60秒キャッシュ
     });
 
     if (!res.ok) {
@@ -77,7 +77,6 @@ async function getContestsData(): Promise<ContestsResponse> {
     return res.json();
   } catch (error) {
     console.error(error);
-    // エラー時は空のデータを返すなどのフォールバック
     return { ongoing: [], voting: [], upcoming: [], closed: [], latestResult: null };
   }
 }
@@ -87,8 +86,6 @@ export default async function VenuePage() {
   const data = await getContestsData();
 
   const { ongoing, voting, upcoming, latestResult } = data;
-  // APIが返すデータは既に分類されていますが、バックエンドのロジックによっては再分類が必要な場合もあります。
-  // 今回はAPIの分類を信頼してそのまま使います。
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -200,8 +197,11 @@ export default async function VenuePage() {
                     >
                       一般投票
                     </Link>
-                    {/* 審査員ログインボタン（クライアントコンポーネント） */}
-                    <JudgeLoginButton contestId={contest.id} contestName={contest.name} />
+                    {/* JudgeLoginButtonはクライアントコンポーネントである必要があるため、
+                      必要に応じてここで呼び出すか、別途Client Componentでラップして配置します。
+                      現在のコードではインポートされていますが使用されていないようです。
+                      もし使用する場合は <JudgeLoginButton contestId={contest.id} ... /> のように配置してください。
+                    */}
                   </div>
                 </div>
               );

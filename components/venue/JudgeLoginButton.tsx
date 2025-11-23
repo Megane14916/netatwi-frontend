@@ -1,95 +1,111 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { KeyRound } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
+import { Gavel, Lock, X } from 'lucide-react';
 
+// 型定義に onLoginSuccess を追加
 interface JudgeLoginButtonProps {
   contestId: number;
-  contestName: string;
+  onLoginSuccess: () => void;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
-
-export default function JudgeLoginButton({ contestId, contestName }: JudgeLoginButtonProps) {
-  const { user, refetchUser } = useAuth();
-  const [showModal, setShowModal] = useState(false);
+export default function JudgeLoginButton({ contestId, onLoginSuccess }: JudgeLoginButtonProps) {
+  const [isOpen, setIsOpen] = useState(false);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
+  const [loading, setLoading] = useState(false);
 
-  // ログインしていない場合はボタンを表示しない
-  if (!user) return null;
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setIsLoading(true);
+    setLoading(true);
+
     try {
-      const response = await fetch(`${API_URL}/api/contests/${contestId}/judge/login`, {
+      // 相対パスでリクエスト (Next.js Rewrite経由)
+      const res = await fetch(`/api/contests/${contestId}/judge/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Cookieを送信
         body: JSON.stringify({ password }),
-        credentials: 'include', // 認証に必要
       });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || '認証に失敗しました。');
-      }
-      await refetchUser();
-      if (data.redirectUrl) {
-        router.push(data.redirectUrl);
+
+      if (res.ok) {
+        setIsOpen(false);
+        setPassword('');
+        // 認証成功時に親コンポーネントのコールバックを実行（データ再取得など）
+        onLoginSuccess();
       } else {
-        setShowModal(false);
+        const data = await res.json();
+        setError(data.error || '認証に失敗しました');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'エラーが発生しました。');
+      console.error(err);
+      setError('エラーが発生しました');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   return (
     <>
       <button
-        onClick={() => setShowModal(true)}
-        className="flex-1 text-center bg-yellow-700/50 hover:bg-yellow-600/50 text-yellow-300 font-semibold py-2 px-4 rounded-md transition-colors text-sm flex items-center justify-center"
+        onClick={() => setIsOpen(true)}
+        className="flex items-center gap-2 px-4 py-2 bg-indigo-600/20 text-indigo-400 rounded-full hover:bg-indigo-600/30 transition-colors text-sm font-medium border border-indigo-500/30"
       >
-        <KeyRound className="h-4 w-4 mr-1.5" />
-        審査員として投票
+        <Gavel className="w-4 h-4" />
+        審査員として参加
       </button>
 
-      {showModal && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 rounded-lg p-6 w-full max-w-sm relative shadow-xl border border-gray-700">
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl shadow-2xl w-full max-w-md overflow-hidden relative">
             <button
-              onClick={() => setShowModal(false)}
-              className="absolute top-3 right-3 text-gray-500 hover:text-white"
+              onClick={() => setIsOpen(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white"
             >
-              &times;
+              <X className="w-5 h-5" />
             </button>
-            <h2 className="text-lg font-semibold mb-2 text-center">{contestName}</h2>
-            <p className="text-sm text-gray-400 mb-4 text-center">審査員用パスワードを入力してください</p>
-            <form onSubmit={handleSubmit}>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-4 mb-4 focus:ring-2 focus:ring-yellow-500 focus:outline-none"
-                placeholder="パスワード"
-              />
-              {error && <p className="text-red-500 text-xs mb-3 text-center">{error}</p>}
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full bg-yellow-500 text-gray-900 font-bold py-2 px-4 rounded-md hover:bg-yellow-600 transition duration-300 disabled:opacity-50"
-              >
-                {isLoading ? '認証中...' : '認証する'}
-              </button>
-            </form>
+
+            <div className="p-6">
+              <div className="flex flex-col items-center mb-6">
+                <div className="w-12 h-12 bg-indigo-900/50 rounded-full flex items-center justify-center mb-4 text-indigo-400">
+                  <Lock className="w-6 h-6" />
+                </div>
+                <h3 className="text-xl font-bold text-white">審査員認証</h3>
+                <p className="text-gray-400 text-sm mt-1">
+                  主催者から配布されたパスワードを入力してください
+                </p>
+              </div>
+
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="パスワード"
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+                    autoFocus
+                  />
+                </div>
+
+                {error && (
+                  <div className="p-3 bg-red-900/30 border border-red-800 rounded-lg text-red-400 text-sm text-center">
+                    {error}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loading || !password}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? '認証中...' : '認証する'}
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       )}
