@@ -5,12 +5,11 @@ import { useAuth } from '@/context/AuthContext';
 import { KeyRound, ToggleLeft, ToggleRight, Image as ImageIconLucide, Trophy as TrophyIcon, CalendarDays, Trash2, Edit3, Eye, EyeOff, PlusCircle, Settings } from 'lucide-react';
 import dayjs from 'dayjs';
 
-// --- ▼▼▼ API_URLを環境変数から取得 ▼▼▼ ---
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
-// --- ▲▲▲ ここまで ▲▲▲ ---
+// --- API_URLの設定 ---
+// Next.jsのRewrite機能(/api/...)を使用するため、プレフィックスは空にします
+const API_PREFIX = '';
 
-
-// --- ▼▼▼ トグルスイッチコンポーネント (構文修正) ▼▼▼ ---
+// --- トグルスイッチコンポーネント ---
 interface ToggleSwitchProps {
   label: string;
   enabled: boolean;
@@ -39,10 +38,9 @@ const ToggleSwitch = ({ label, enabled, setEnabled, icon: Icon }: ToggleSwitchPr
       />
     </button>
   </div>
-); // 末尾のセミコロンを削除
-// --- ▲▲▲ ここまで ▲▲▲ ---
+);
 
-// --- ▼▼▼ 削除確認モーダル (構文修正) ▼▼▼ ---
+// --- 削除確認モーダル ---
 interface ConfirmDeleteModalProps {
     contestName: string;
     onConfirm: () => void;
@@ -64,10 +62,9 @@ const ConfirmDeleteModal = ({ contestName, onConfirm, onCancel, isDeleting }: Co
             </div>
         </div>
     </div>
-); // 末尾のセミコロンを削除
-// --- ▲▲▲ ここまで ▲▲▲ ---
+);
 
-// --- ▼▼▼ 管理用大会リストの型 ▼▼▼ ---
+// --- 管理用大会リストの型 ---
 interface ManagedContest {
     id: number;
     name: string;
@@ -77,7 +74,6 @@ interface ManagedContest {
     votingEndTime: string;
     judgePassword?: string | null;
 }
-// --- ▲▲▲ ここまで ▲▲▲ ---
 
 export default function AdminPage() {
     const { user } = useAuth();
@@ -107,7 +103,8 @@ export default function AdminPage() {
                 setManageLoading(true);
                 setManageError(null);
                 try {
-                    const response = await fetch(`${API_URL}/api/admin/contests/management`, { credentials: 'include' });
+                    // 相対パスを使用
+                    const response = await fetch(`${API_PREFIX}/api/admin/contests/management`, { credentials: 'include' });
                     if (!response.ok) {
                         const data = await response.json();
                         throw new Error(data.error || '大会リストの取得に失敗しました。');
@@ -139,7 +136,8 @@ export default function AdminPage() {
         }
 
         try {
-            const response = await fetch(`${API_URL}/api/admin/contests`, {
+            // 相対パスを使用
+            const response = await fetch(`${API_PREFIX}/api/admin/contests`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
@@ -172,7 +170,8 @@ export default function AdminPage() {
         if (!showDeleteModal) return;
         setIsDeleting(true);
         try {
-            const response = await fetch(`${API_URL}/api/admin/contests/${showDeleteModal.id}`, {
+            // 相対パスを使用
+            const response = await fetch(`${API_PREFIX}/api/admin/contests/${showDeleteModal.id}`, {
                 method: 'DELETE',
                 credentials: 'include',
             });
@@ -269,4 +268,3 @@ export default function AdminPage() {
         </div>
     );
 }
-
