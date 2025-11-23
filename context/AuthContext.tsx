@@ -1,9 +1,10 @@
 "use client";
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 
-// Vercelの環境変数 NEXT_PUBLIC_API_URL を読み込む
-// ローカル開発時は http://localhost:5001 をフォールバックとして使用
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+// 【修正】API_URLの定義を削除または空文字にします。
+// Next.jsのRewrite機能を使うため、リクエスト先は相対パス ('/api/...') になります。
+// これにより、ブラウザは「同じオリジン」への通信とみなし、Cookieが正常に扱われます。
+const API_PREFIX = ''; 
 
 interface User {
   id: number;
@@ -31,8 +32,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const refetchUser = async () => {
     setLoading(true); // 再取得中はローディング表示
     try {
-      const res = await fetch(`${API_URL}/api/me`, {
-        credentials: 'include', // セッションクッキーをリクエストに含める
+      // 【修正】相対パスを使用 ('/api/me')
+      const res = await fetch(`${API_PREFIX}/api/me`, {
+        // credentials: 'include' は不要になる場合もありますが、
+        // Rewrite経由でもCookieを確実に送るため念のため残すか、ブラウザの挙動に任せます。
+        // 同一オリジン扱いになるため、デフォルトでCookieが送られることが多いです。
       });
       if (res.ok) {
         const data = await res.json();
@@ -60,14 +64,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async () => {
     try {
-      // ログインリクエストをバックエンド(Render)に送る
-      const res = await fetch(`${API_URL}/api/login/twitter`, {
-        credentials: 'include',
+      // 【修正】相対パスを使用 ('/api/login/twitter')
+      // Next.jsがこれをバックエンドへ転送します
+      const res = await fetch(`${API_PREFIX}/api/login/twitter`, {
+        // Rewrite経由の場合は通常不要ですが、明示しても問題ありません
       });
       if (res.ok) {
         const data = await res.json();
         if (data.authorization_url) {
           // Xの認証ページにリダイレクト
+          // ※これは外部URLなのでそのまま
           window.location.href = data.authorization_url;
         }
       }
@@ -77,8 +83,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async () => {
-    await fetch(`${API_URL}/api/logout`, {
-      credentials: 'include',
+    // 【修正】相対パスを使用 ('/api/logout')
+    await fetch(`${API_PREFIX}/api/logout`, {
     });
     setUser(null);
     setJudgeContests([]);
