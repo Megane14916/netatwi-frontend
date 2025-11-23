@@ -1,45 +1,89 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import { User as UserIcon } from 'lucide-react';
-import ProfileContent, { ProfileData } from '@/components/profile/ProfileContent';
+// 相対パスに変更してインポートエラーを回避
+import ProfileContent, { ProfileData } from '../../../components/profile/ProfileContent';
 
-// --- API_URLの設定 ---
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5001';
+// API_URLの定義を削除し、相対パスを使用
+const API_PREFIX = '';
 
-// データを取得する非同期関数
-async function getProfileData(screenName: string): Promise<ProfileData | null> {
-    try {
+export default function UserProfilePage({ params }: { params: { screen_name: string } }) {
+  // useParamsフックの代わりにpropsから取得
+  const screenName = params?.screen_name;
+
+  const [profileData, setProfileData] = useState<ProfileData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!screenName) return;
+
+    const fetchProfileData = async () => {
+      try {
+        setLoading(true);
         const decodedScreenName = decodeURIComponent(screenName);
-        // next: { revalidate: 60 } で60秒間キャッシュする
-        const res = await fetch(`${API_URL}/api/profile/${decodedScreenName}`, {
-            next: { revalidate: 60 },
+        
+        // Rewrite機能経由の相対パスでリクエスト (Cookieが自動的に送信される)
+        const res = await fetch(`${API_PREFIX}/api/profile/${decodedScreenName}`, {
+          cache: 'no-store',
+          credentials: 'include',
         });
 
         if (!res.ok) {
-            if (res.status === 404) return null; // ユーザーが見つからない場合
-            throw new Error('Failed to fetch profile');
+          if (res.status === 404) {
+            setProfileData(null);
+            setLoading(false);
+            return;
+          }
+          throw new Error('Failed to fetch profile');
         }
 
-        return res.json();
-    } catch (error) {
-        console.error(error);
-        return null;
-    }
-}
+        const data = await res.json();
+        setProfileData(data);
+      } catch (err) {
+        console.error(err);
+        setError('プロフィールの取得に失敗しました。');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-export default async function UserProfilePage({ params }: { params: { screen_name: string } }) {
-    // サーバー側でデータを取得
-    const profileData = await getProfileData(params.screen_name);
+    fetchProfileData();
+  }, [screenName]);
 
-    // データがない場合 (ユーザーが見つからないなど)
-    if (!profileData) {
-        return (
-            <div className="container mx-auto px-4 py-8 text-center">
-                <UserIcon className="h-16 w-16 mx-auto text-gray-600 mb-4" />
-                <h1 className="text-2xl font-bold">ユーザーが見つかりません</h1>
-                <p className="text-gray-400 mt-2">指定されたユーザー名のプロフィールは存在しません。</p>
-            </div>
-        );
-    }
+  // ローディング表示
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-950 text-gray-400">
+        <div className="animate-pulse flex flex-col items-center">
+          <div className="h-12 w-12 bg-gray-800 rounded-full mb-4"></div>
+          <div className="h-4 w-32 bg-gray-800 rounded"></div>
+        </div>
+      </div>
+    );
+  }
 
-    // クライアントコンポーネントにデータを渡して表示
-    return <ProfileContent profileData={profileData} />;
+  // エラー表示
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-950 text-red-400">
+        <p>{error}</p>
+      </div>
+    );
+  }
+
+  // データがない場合 (ユーザーが見つからないなど)
+  if (!profileData) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-950 text-gray-400 px-4">
+        <UserIcon className="h-16 w-16 text-gray-600 mb-4" />
+        <h1 className="text-2xl font-bold text-gray-200">ユーザーが見つかりません</h1>
+        <p className="mt-2 text-gray-500">指定されたユーザー名のプロフィールは存在しません。</p>
+      </div>
+    );
+  }
+
+  // データがある場合、コンテンツを表示
+  return <ProfileContent profileData={profileData} />;
 }

@@ -1,154 +1,334 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
-// エイリアスを使わず相対パスでインポート
-import TimeAgo from '../TimeAgo';
-import Twemoji from '../Twemoji';
-import { Heart, Trophy, ExternalLink, Bookmark, LayoutGrid, User as UserIcon } from 'lucide-react';
+import { useState, useEffect } from 'react';
+// Linkコンポーネントの代わりにaタグを使用 (プレビュー環境エラー回避のため)
+// import Link from 'next/link';
+import { Crown, Heart, Bookmark, Share2 } from 'lucide-react';
+// 相対パスでインポート
+import { useAuth } from '../../context/AuthContext';
 
-// 型定義 (APIレスポンスに合わせて定義)
-export interface ProfileUser {
-    id: number;
-    screen_name: string;
-    profile_image_url: string | null;
+// --- 型定義 ---
+export interface Contest {
+  id: number;
+  name: string;
+  theme: string | null;
 }
 
-export interface ProfilePost {
-    post_id: number;
-    content: string;
-    created_at: string;
-    contest: {
-        id: number;
-        name: string;
-        theme: string | null;
-    };
-    user: {
-        screen_name: string;
-        profile_image_url: string | null;
-    };
-    rank: number | null;
-    score: number | null;
+export interface UserInfo {
+  screen_name: string;
+  profile_image_url: string | null;
+}
+
+export interface Post {
+  post_id: number;
+  content: string;
+  created_at: string;
+  contest: Contest;
+  user: UserInfo;
+  rank: number | null;
+  score: number;
+  bookmarkCount: number;
+  isBookmarked: boolean;
 }
 
 export interface ProfileData {
-    user: ProfileUser;
-    posts: ProfilePost[];
-    bookmarks: ProfilePost[];
+  user: {
+    id: number;
+    screen_name: string;
+    profile_image_url: string | null;
+  };
+  posts: Post[];
+  bookmarks: Post[];
 }
 
-export default function ProfileContent({ profileData }: { profileData: ProfileData }) {
-    const [activeTab, setActiveTab] = useState<'posts' | 'bookmarks'>('posts');
-    const { user: profileUser, posts: userPosts, bookmarks: bookmarkedPosts } = profileData;
-    
-    const visiblePosts = activeTab === 'posts' ? userPosts : bookmarkedPosts;
+interface ProfileContentProps {
+  profileData: ProfileData;
+}
 
-    return (
-        <div className="container mx-auto max-w-3xl px-4 py-8">
-            {/* プロフィールヘッダー */}
-            <div className="flex items-center space-x-4 mb-8 pb-4 border-b border-gray-700">
+export default function ProfileContent({ profileData: initialData }: ProfileContentProps) {
+  const { user: currentUser } = useAuth();
+  
+  const [profileData, setProfileData] = useState<ProfileData>(initialData);
+  const [activeTab, setActiveTab] = useState<'posts' | 'bookmarks'>('posts');
+
+  useEffect(() => {
+    setProfileData(initialData);
+  }, [initialData]);
+
+  // ブックマークの切り替え処理
+  const handleToggleBookmark = async (post: Post) => {
+    if (!currentUser) {
+      alert('ブックマークするにはログインが必要です');
+      return;
+    }
+
+    const prevData = profileData;
+
+    // --- 1. 楽観的UI更新 ---
+    const newIsBookmarked = !post.isBookmarked;
+    const newBookmarkCount = post.bookmarkCount + (newIsBookmarked ? 1 : -1);
+    
+    const updatedPost = {
+        ...post,
+        isBookmarked: newIsBookmarked,
+        bookmarkCount: newBookmarkCount
+    };
+
+    const newPosts = prevData.posts.map(p => 
+        p.post_id === post.post_id ? updatedPost : p
+    );
+
+    let newBookmarks = prevData.bookmarks.map(p => 
+        p.post_id === post.post_id ? updatedPost : p
+    );
+
+    const isMyProfile = currentUser && String((currentUser as any).id) === String(prevData.user.id);
+
+    if (isMyProfile) {
+        if (newIsBookmarked) {
+            const exists = newBookmarks.some(p => p.post_id === post.post_id);
+            if (!exists) {
+                newBookmarks = [updatedPost, ...newBookmarks];
+            }
+        } else {
+            newBookmarks = newBookmarks.filter(p => p.post_id !== post.post_id);
+        }
+    }
+
+    setProfileData({
+        ...prevData,
+        posts: newPosts,
+        bookmarks: newBookmarks
+    });
+
+    // --- 2. API通信 ---
+    try {
+      // 【修正】相対パスを使用 (Rewrite経由)
+      const res = await fetch(`/api/posts/${post.post_id}/bookmark`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+
+      if (!res.ok) throw new Error('ブックマークの更新に失敗しました');
+      
+      const data = await res.json();
+      
+      const syncedPost = {
+          ...updatedPost,
+          isBookmarked: data.isBookmarked,
+          bookmarkCount: data.bookmarkCount
+      };
+
+      setProfileData(current => ({
+          ...current,
+          posts: current.posts.map(p => p.post_id === post.post_id ? syncedPost : p),
+          bookmarks: current.bookmarks.map(p => p.post_id === post.post_id ? syncedPost : p)
+      }));
+
+    } catch (err) {
+      console.error(err);
+      alert('エラーが発生しました。元に戻します。');
+      setProfileData(prevData); 
+    }
+  };
+
+  const displayPosts = activeTab === 'posts' ? profileData.posts : profileData.bookmarks;
+
+  return (
+    <div className="min-h-screen bg-gray-950 text-gray-100 pb-20">
+      {/* ユーザー情報ヘッダー */}
+      <div className="bg-gray-900/50 border-b border-gray-800">
+        <div className="max-w-3xl mx-auto px-4 pt-4 pb-2">
+          {/* カバー画像的なスペース */}
+          <div className="h-32 bg-gray-800 rounded-lg mb-[-40px] opacity-50"></div>
+          
+          <div className="flex justify-between items-end px-2">
+             <div className="relative">
                 <img
-                    src={profileUser.profile_image_url || `https://via.placeholder.com/64`}
-                    alt={profileUser.screen_name}
-                    className="w-16 h-16 rounded-full border-2 border-gray-600"
-                    onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/64')}
+                  src={profileData.user.profile_image_url || 'https://via.placeholder.com/96'}
+                  alt={profileData.user.screen_name}
+                  className="w-24 h-24 rounded-full border-4 border-gray-950 shadow-lg bg-gray-800"
+                  onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/96')}
                 />
-                <div>
-                    <h1 className="text-2xl font-bold">{profileUser.screen_name}</h1>
+             </div>
+          </div>
+
+          <div className="mt-3 px-2">
+             <h1 className="text-xl font-bold text-white">{profileData.user.screen_name}</h1>
+             <p className="text-gray-500 text-sm">@{profileData.user.screen_name}</p>
+          </div>
+
+          <div className="flex gap-6 mt-4 px-2 text-sm text-gray-400">
+             <div className="flex gap-1">
+                <span className="font-bold text-white">{profileData.posts.length}</span>
+                <span>Posts</span>
+             </div>
+             <div className="flex gap-1">
+                <span className="font-bold text-white">{profileData.bookmarks.length}</span>
+                <span>Bookmarks</span>
+             </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-3xl mx-auto">
+        {/* タブ切り替え */}
+        <div className="flex border-b border-gray-800">
+          <button
+            onClick={() => setActiveTab('posts')}
+            className={`flex-1 py-4 text-sm font-bold transition-colors relative hover:bg-white/5 ${
+              activeTab === 'posts' ? 'text-white' : 'text-gray-500'
+            }`}
+          >
+            ポスト
+            {activeTab === 'posts' && (
+              <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-12 h-1 bg-blue-500 rounded-full" />
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('bookmarks')}
+            className={`flex-1 py-4 text-sm font-bold transition-colors relative hover:bg-white/5 ${
+              activeTab === 'bookmarks' ? 'text-white' : 'text-gray-500'
+            }`}
+          >
+            ブックマーク
+            {activeTab === 'bookmarks' && (
+              <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-blue-500 rounded-full" />
+            )}
+          </button>
+        </div>
+
+        {/* 投稿リスト */}
+        <div className="">
+          {displayPosts.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              {activeTab === 'posts' 
+                ? '結果発表済みの投稿はありません' 
+                : 'ブックマークした投稿はありません'}
+            </div>
+          ) : (
+            displayPosts.map((post) => (
+              <ResultPostCard 
+                key={post.post_id} 
+                post={post} 
+                onToggleBookmark={() => handleToggleBookmark(post)}
+                currentUser={currentUser}
+              />
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- サブコンポーネント: X風 結果表示カード ---
+function ResultPostCard({ post, onToggleBookmark, currentUser }: { 
+  post: Post; 
+  onToggleBookmark: () => void;
+  currentUser: any;
+}) {
+  // 日付整形
+  const dateStr = new Date(post.created_at).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' });
+
+  // 順位表示コンポーネント
+  const getRankDisplay = (rank: number | null) => {
+    if (rank === 1) return <div className="flex flex-col items-center justify-center w-8"><Crown className="w-6 h-6 text-yellow-400 fill-yellow-400" /><span className="text-[10px] font-bold text-yellow-400 leading-none mt-0.5">1st</span></div>;
+    if (rank === 2) return <div className="flex flex-col items-center justify-center w-8"><Crown className="w-5 h-5 text-gray-300 fill-gray-300" /><span className="text-[10px] font-bold text-gray-300 leading-none mt-0.5">2nd</span></div>;
+    if (rank === 3) return <div className="flex flex-col items-center justify-center w-8"><Crown className="w-5 h-5 text-amber-600 fill-amber-600" /><span className="text-[10px] font-bold text-amber-600 leading-none mt-0.5">3rd</span></div>;
+    if (rank) return <div className="text-sm font-bold text-gray-500 flex flex-col items-center justify-center w-8"><span>#</span><span>{rank}</span></div>;
+    // 順位がない場合はスペースを空ける
+    return <div className="w-8"></div>;
+  };
+
+  return (
+    <div className="flex px-4 py-3 border-b border-gray-800 hover:bg-white/[0.02] transition-colors cursor-default">
+      
+      {/* 左端カラム: 順位 */}
+      <div className="flex-none pt-1 mr-2">
+        {getRankDisplay(post.rank)}
+      </div>
+
+      {/* コンテンツラッパー */}
+      <div className="flex flex-1 gap-3 min-w-0">
+        {/* アバター (コンテンツの左) */}
+        <div className="flex-none">
+            <a href={`/profile/${post.user.screen_name}`} className="hover:opacity-80 transition-opacity block">
+                <img
+                src={post.user.profile_image_url || 'https://via.placeholder.com/40'}
+                alt={post.user.screen_name}
+                className="w-10 h-10 rounded-full bg-gray-800 object-cover"
+                onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/40')}
+                />
+            </a>
+        </div>
+
+        {/* 右カラム: コンテンツ本体 */}
+        <div className="flex-1 min-w-0">
+            {/* ヘッダー: ユーザー名・ID・日付・大会名 */}
+            <div className="flex items-baseline justify-between text-sm mb-0.5">
+                <div className="flex items-center gap-1 overflow-hidden flex-wrap">
+                    <a href={`/profile/${post.user.screen_name}`} className="font-bold text-white hover:underline truncate">
+                        {post.user.screen_name}
+                    </a>
+                    <span className="text-gray-500 truncate text-xs sm:text-sm">@{post.user.screen_name}</span>
+                    <span className="text-gray-500">·</span>
+                    <span className="text-gray-500 hover:underline text-xs sm:text-sm">{dateStr}</span>
+                </div>
+                
+            </div>
+            {/* 大会タグ (少し控えめに配置) */}
+            <div className="mb-1">
+                <a href={`/venue/${post.contest.id}`} className="text-[10px] text-blue-400 hover:text-blue-300 bg-blue-900/20 px-1.5 py-0.5 rounded-full truncate inline-block max-w-full">
+                    {post.contest.name}
+                </a>
+            </div>
+
+            {/* 本文 */}
+            <div className="text-[15px] text-gray-100 whitespace-pre-wrap leading-relaxed mb-2">
+                {post.content}
+            </div>
+
+            {/* アクションバー (右寄せ) */}
+            <div className="flex items-center justify-end gap-4 sm:gap-6 text-gray-500 max-w-full">
+                {/* 得票数 (Heart) */}
+                <div className="flex items-center gap-1 group cursor-default" title="得票数">
+                    <div className="p-1.5 rounded-full group-hover:bg-pink-500/10 transition-colors">
+                        <Heart className={`w-4 h-4 group-hover:text-pink-500 ${post.score > 0 ? 'fill-pink-500/20 text-pink-500' : ''}`} />
+                    </div>
+                    <span className={`text-xs ${post.score > 0 ? 'text-pink-500' : 'group-hover:text-pink-500'}`}>
+                        {post.score}
+                    </span>
+                </div>
+
+                {/* ブックマーク */}
+                <button 
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleBookmark();
+                    }}
+                    disabled={!currentUser}
+                    className="flex items-center gap-1 group focus:outline-none"
+                    title={currentUser ? (post.isBookmarked ? 'ブックマークを外す' : 'ブックマーク') : 'ログインが必要です'}
+                >
+                    <div className="p-1.5 rounded-full group-hover:bg-blue-500/10 transition-colors">
+                        <Bookmark className={`w-4 h-4 ${post.isBookmarked ? 'fill-blue-500 text-blue-500' : 'group-hover:text-blue-500'}`} />
+                    </div>
+                    <span className={`text-xs ${post.isBookmarked ? 'text-blue-500' : 'group-hover:text-blue-500'}`}>
+                        {post.bookmarkCount}
+                    </span>
+                </button>
+
+                {/* シェアボタン */}
+                <div className="flex items-center gap-1 group cursor-pointer">
+                    <div className="p-1.5 rounded-full group-hover:bg-green-500/10 transition-colors">
+                        <Share2 className="w-4 h-4 group-hover:text-green-500" />
+                    </div>
                 </div>
             </div>
-
-            {/* タブ切り替えUI */}
-            <div className="mb-6 border-b border-gray-700">
-                <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-                    <button
-                        onClick={() => setActiveTab('posts')}
-                        className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm focus:outline-none ${
-                            activeTab === 'posts'
-                                ? 'border-yellow-500 text-yellow-400'
-                                : 'border-transparent text-gray-500 hover:text-gray-300 hover:border-gray-500'
-                        }`}
-                    >
-                         <LayoutGrid className="inline-block h-5 w-5 mr-1.5 align-text-bottom"/>
-                         投稿 ({userPosts.length})
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('bookmarks')}
-                        className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm focus:outline-none ${
-                            activeTab === 'bookmarks'
-                                ? 'border-yellow-500 text-yellow-400'
-                                : 'border-transparent text-gray-500 hover:text-gray-300 hover:border-gray-500'
-                        }`}
-                    >
-                        <Bookmark className="inline-block h-5 w-5 mr-1.5 align-text-bottom"/>
-                        ブックマーク ({bookmarkedPosts.length})
-                    </button>
-                </nav>
-            </div>
-
-            {/* 投稿履歴タイムライン */}
-            <div className="border border-gray-700 rounded-lg bg-gray-900">
-                {visiblePosts.length > 0 ? (
-                    visiblePosts.map((post, index) => (
-                        <div
-                            key={post.post_id}
-                            className={`p-4 ${index < visiblePosts.length - 1 ? 'border-b border-gray-700' : ''}`}
-                        >
-                            {/* 大会情報 */}
-                            <div className="mb-2">
-                                <Link href={`/venue/${post.contest.id}`} className="text-sm text-gray-500 hover:underline flex items-center">
-                                    {post.contest.name} -
-                                    {post.contest.theme ? ` お題: 「${post.contest.theme}」` : " 自由にネタツイ"}
-                                    <ExternalLink className="h-3 w-3 ml-1"/>
-                                </Link>
-                            </div>
-
-                            <div className="flex items-start">
-                                {/* 投稿者情報 */}
-                                <img
-                                    src={post.user.profile_image_url || `https://via.placeholder.com/40`}
-                                    alt={post.user.screen_name}
-                                    className="w-10 h-10 rounded-full flex-shrink-0 mr-4"
-                                    onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/40')}
-                                />
-                                <div className="flex-grow">
-                                    <div className="flex items-center justify-between">
-                                        <span className="font-bold">{post.user.screen_name}</span>
-                                        <TimeAgo timestamp={post.created_at} />
-                                    </div>
-                                    <Twemoji text={post.content} />
-                                </div>
-                            </div>
-
-                            {/* 結果表示 (順位とスコアがあれば) */}
-                            {(post.rank !== null || post.score !== null) && (
-                                <div className="flex justify-end items-center mt-3 space-x-4">
-                                    {post.rank !== null && (
-                                        <div className={`flex items-center text-sm ${
-                                            post.rank <= 3 ? 'text-yellow-400' : 'text-gray-400'
-                                        }`}>
-                                            {post.rank === 1 && <Trophy className="h-4 w-4 mr-1 text-yellow-400" />}
-                                            {post.rank === 2 && <Trophy className="h-4 w-4 mr-1 text-gray-400" />}
-                                            {post.rank === 3 && <Trophy className="h-4 w-4 mr-1 text-yellow-700" />}
-                                            <span className="font-semibold">{post.rank}位</span>
-                                        </div>
-                                    )}
-                                    {post.score !== null && (
-                                        <div className="flex items-center text-red-500 text-sm">
-                                            <Heart className="h-4 w-4 mr-1 fill-current" />
-                                            <span className="font-semibold">{post.score}</span>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    ))
-                ) : (
-                    <div className="text-center py-10 text-gray-500">
-                        <p>{activeTab === 'posts' ? 'このユーザーはまだ投稿がありません。' : 'ブックマークした投稿はありません。'}</p>
-                    </div>
-                )}
-            </div>
         </div>
-    );
+      </div>
+    </div>
+  );
 }
