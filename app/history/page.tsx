@@ -3,7 +3,9 @@ import Link from 'next/link';
 import dayjs from 'dayjs';
 
 // --- API_URLの設定 ---
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5001';
+// Server Componentなので、内部通信用のBACKEND_URLを使用
+// (クライアント用の NEXT_PUBLIC_API_URL は使用しない)
+const API_URL = process.env.BACKEND_URL || 'http://127.0.0.1:5001';
 
 // 型定義
 interface Contest {
