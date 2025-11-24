@@ -1,28 +1,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-// 相対パスに変更してインポートエラーを回避
-import { useAuth } from '../../../context/AuthContext';
-import { Trophy, PenTool, Loader2, Send, CheckCircle, AlertCircle, Clock, Heart, MessageCircle, Share2, Smile, Info, ShieldCheck, AlertTriangle, Check, X, Users, Bookmark } from 'lucide-react';
-// 相対パスに変更
-import JudgeLoginButton from '../../../components/venue/JudgeLoginButton';
+import { useParams } from 'next/navigation';
+import Link from 'next/link';
+import { Send, Smile, Heart, Info, Vote as VoteIcon, CheckCircle, Trophy, ShieldCheck, Clock, Check, X, Users, Bookmark, AlertTriangle,AlertCircle, Loader2, Share2 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import TimeAgo from '@/components/TimeAgo';
 import EmojiPicker, { EmojiClickData, Theme, EmojiStyle } from 'emoji-picker-react';
+import Twemoji from '@/components/Twemoji';
 import dayjs from 'dayjs';
+import JudgeLoginButton from '@/components/venue/JudgeLoginButton';
+import Countdown from '@/components/venue/Countdown';
 
-// プレビュー環境のエラー回避のため、外部コンポーネントを内部で簡易定義
-const TimeAgo = ({ timestamp }: { timestamp: string }) => {
-  try {
-    return <span className="text-xs text-gray-500">{dayjs(timestamp).fromNow()}</span>;
-  } catch (e) {
-    return <span className="text-xs text-gray-500">{new Date(timestamp).toLocaleString()}</span>;
-  }
-};
-
-const Twemoji = ({ text }: { text: string }) => (
-  <div className="text-base text-gray-100 whitespace-pre-wrap leading-relaxed mb-2">{text}</div>
-);
-
-// --- API_URL設定の削除 (相対パスを使用) ---
+// --- API_URLの設定 ---
+// Next.jsのRewrite機能(/api/...)を使用するため、プレフィックスは空にします
 const API_PREFIX = '';
 
 // --- 型定義 ---
@@ -70,64 +61,91 @@ interface ResultPost {
 
 type ContestStatus = 'upcoming' | 'ongoing' | 'voting' | 'closed';
 
-// 投票ハートUIコンポーネント
-interface VoteHeartsProps {
-  postId: number;
-  initialVotes: number;
-  maxVotes?: number;
-  onVoteChange: (postId: number, newCount: number) => void;
-  disabled?: boolean;
-}
-const VoteHearts = ({ postId, initialVotes, maxVotes = 3, onVoteChange, disabled = false }: VoteHeartsProps) => {
-  const [currentVotes, setCurrentVotes] = useState(initialVotes);
-  useEffect(() => { setCurrentVotes(initialVotes); }, [initialVotes]);
-  const handleClick = (index: number) => {
-    if (disabled) return;
-    const newCount = index + 1;
-    const finalCount = (currentVotes === maxVotes && newCount === maxVotes) ? 0 : newCount;
-    setCurrentVotes(finalCount);
-    onVoteChange(postId, finalCount);
-  };
+// --------------------------------------------------------------------
+// UIコンポーネント
+// --------------------------------------------------------------------
+
+// 1. 一般用: いいねボタン (ハートのトグル)
+const GeneralVoteButton = ({ postId, isLiked, onToggle, disabled }: { postId: number, isLiked: boolean, onToggle: (postId: number, val: number) => void, disabled: boolean }) => {
   return (
-    <div className="flex items-center space-x-1">
-      {[...Array(maxVotes)].map((_, index) => (
-        <button 
-          key={index} 
-          onClick={() => handleClick(index)} 
-          disabled={disabled} 
-          className={`p-1 rounded-full transition-colors ${!disabled ? 'hover:bg-red-900/50' : 'cursor-not-allowed opacity-50'}`}
-          aria-label={`Vote ${index + 1}`}
-        >
-          <Heart className={`h-5 w-5 ${index < currentVotes ? 'text-red-500 fill-red-500' : 'text-gray-500'} ${!disabled ? 'hover:text-red-400' : ''}`} />
-        </button>
-      ))}
+    <button
+      onClick={() => onToggle(postId, isLiked ? 0 : 1)} // ONなら1、OFFなら0
+      disabled={disabled}
+      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all group ${
+        isLiked 
+          ? 'text-pink-500 bg-pink-500/10 border border-pink-500/30' 
+          : 'text-gray-500 hover:bg-pink-500/10 hover:text-pink-500 border border-transparent hover:border-pink-500/30'
+      } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+    >
+      <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
+      <span className="text-sm font-bold">{isLiked ? 'いいね！' : 'いいね'}</span>
+    </button>
+  );
+};
+
+// 2. 審査員用: 0〜10点選択ボタン
+const JudgeVoteSelector = ({ postId, currentScore, onSelect, disabled }: { postId: number, currentScore: number, onSelect: (postId: number, val: number) => void, disabled: boolean }) => {
+  return (
+    <div className="mt-3 bg-gray-800/50 p-3 rounded-lg border border-gray-700">
+      <div className="flex justify-between items-center mb-2 px-1">
+        <span className="text-xs text-indigo-300 font-bold flex items-center gap-1">
+          <ShieldCheck className="w-3 h-3" /> 審査員評価
+        </span>
+        <span className="text-xs text-gray-500">
+          現在: <span className={`font-bold text-sm ${currentScore > 0 ? 'text-white' : 'text-gray-600'}`}>{currentScore}</span> 点
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-1 justify-center">
+        {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((score) => (
+          <button
+            key={score}
+            onClick={() => onSelect(postId, score)}
+            disabled={disabled}
+            className={`w-8 h-8 rounded flex items-center justify-center text-sm font-bold transition-all ${
+              currentScore === score
+                ? 'bg-indigo-600 text-white ring-2 ring-indigo-400 shadow-lg transform scale-110'
+                : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200'
+            } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            {score}
+          </button>
+        ))}
+      </div>
     </div>
   );
 };
 
-// 自分の投稿表示用コンポーネント
-interface MyPostDisplayProps {
-  post: Post;
-  isEditing: boolean;
-  setIsEditing: (isEditing: boolean) => void;
-  isDeadlinePassed: boolean;
-}
-const MyPostDisplay = ({ post, isEditing, setIsEditing, isDeadlinePassed }: MyPostDisplayProps) => {
+// 自分の投稿表示用
+const MyPostDisplay = ({ post, isEditing, setIsEditing, isDeadlinePassed, user }: any) => {
   return (
     <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-700">
-      <div className="flex items-start">
-        <div className="w-10 h-10 rounded-full bg-gray-700 flex-shrink-0 mr-4"></div>
-        <div className="flex-grow">
-          <div className="flex items-center justify-between">
-            <span className="font-bold">あなたの投稿</span>
+      <div className="flex items-start gap-3">
+        <div className="flex-none">
+           <img 
+             src={user?.profile_image_url || 'https://via.placeholder.com/40'} 
+             alt={user?.screen_name}
+             className="w-10 h-10 rounded-full bg-gray-700 object-cover"
+             onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/40')}
+           />
+        </div>
+        <div className="flex-grow min-w-0">
+          <div className="flex items-center justify-between mb-1">
+            <div>
+                <span className="font-bold text-white mr-2">{user?.screen_name}</span>
+                <span className="text-xs text-gray-500 border border-gray-600 px-1.5 py-0.5 rounded">あなた</span>
+            </div>
             <TimeAgo timestamp={post.created_at} />
           </div>
-          <Twemoji text={post.content} />
+          <div className="mt-1">
+             <Twemoji text={post.content} />
+          </div>
         </div>
       </div>
       {!isEditing && !isDeadlinePassed && (
         <div className="text-right mt-2">
-          <button onClick={() => setIsEditing(true)} className="text-sm text-yellow-400 hover:underline">編集する</button>
+          <button onClick={() => setIsEditing(true)} className="text-sm text-yellow-400 hover:underline flex items-center justify-end ml-auto gap-1">
+             <div className="w-4 h-4" /> 編集する
+          </button>
         </div>
       )}
       {!isEditing && isDeadlinePassed && (
@@ -139,9 +157,9 @@ const MyPostDisplay = ({ post, isEditing, setIsEditing, isDeadlinePassed }: MyPo
   );
 };
 
-export default function VenuePage({ params }: { params: { id: string } }) {
-  const contestId = parseInt(params.id);
-  // refetchUser を取得して、審査員ログイン後に権限情報を更新できるようにする
+export default function VenueDetailPage() {
+  const params = useParams();
+  const contestId = parseInt(params?.id as string, 10);
   const { user, judgeContests, refetchUser } = useAuth();
 
   const [contest, setContest] = useState<Contest | null>(null);
@@ -153,7 +171,6 @@ export default function VenuePage({ params }: { params: { id: string } }) {
   const [totalPosters, setTotalPosters] = useState<number | null>(null);
   const [totalVoters, setTotalVoters] = useState<number | null>(null);
   
-  // 投稿フォーム用
   const [newPostContent, setNewPostContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [postError, setPostError] = useState<string | null>(null);
@@ -161,14 +178,12 @@ export default function VenuePage({ params }: { params: { id: string } }) {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
-  // 投票用
   const [votes, setVotes] = useState<{ [postId: number]: number }>({});
   const [isSubmittingVotes, setIsSubmittingVotes] = useState(false);
   const [voteSubmitMessage, setVoteSubmitMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [userHasVoted, setUserHasVoted] = useState(false);
   const [totalVotes, setTotalVotes] = useState(0);
 
-  // リアルタイム監視用
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isPostDeadlineExceeded, setIsPostDeadlineExceeded] = useState(false);
   const [isVoteDeadlineExceeded, setIsVoteDeadlineExceeded] = useState(false);
@@ -181,14 +196,14 @@ export default function VenuePage({ params }: { params: { id: string } }) {
       setLoading(true);
       setError(''); setVoteSubmitMessage(null); setUserHasVoted(false);
       setPosts([]); setResults([]); setHasPosted(false); setIsEditing(false);
-      setTotalPosters(null); setTotalVoters(null);
+      setTotalPosters(null); setTotalVoters(null); 
 
-      // コンテスト情報の取得
-      const contestRes = await fetch(`${API_PREFIX}/api/contests/${contestId}`);
+      // 相対パスを使用
+      const contestRes = await fetch(`${API_PREFIX}/api/contests/${contestId}`, { credentials: 'include' });
       if (!contestRes.ok) throw new Error('大会情報の取得に失敗しました');
       const contestData = await contestRes.json();
       setContest(contestData);
-
+      
       const now = new Date();
       const startTime = new Date(contestData.startTime);
       const endTime = new Date(contestData.endTime);
@@ -210,11 +225,8 @@ export default function VenuePage({ params }: { params: { id: string } }) {
         setTotalPosters(resultsData.totalPosters);
         setTotalVoters(resultsData.totalVoters);
       } else {
-        // 投稿一覧の取得
-        const postsRes = await fetch(`${API_PREFIX}/api/contests/${contestId}/posts`, {
-            cache: 'no-store',
-            credentials: 'include',
-        });
+        // 投稿一覧の取得 (キャッシュしない)
+        const postsRes = await fetch(`${API_PREFIX}/api/contests/${contestId}/posts`, { credentials: 'include', cache: 'no-store' });
         if (!postsRes.ok) throw new Error('投稿一覧の取得に失敗しました');
         const postsData = await postsRes.json();
         const allPosts: Post[] = postsData.posts;
@@ -235,12 +247,13 @@ export default function VenuePage({ params }: { params: { id: string } }) {
                const initialVotes: { [key: number]: number } = {};
                let currentTotal = 0;
                allPosts.forEach(post => { 
-                   if (post.myVotes > 0) {
-                       initialVotes[post.id] = post.myVotes; 
-                       currentTotal += post.myVotes;
-                   }
+                   // myVotesはDBに保存された自分の投票数
+                   const voteVal = post.myVotes || 0;
+                   initialVotes[post.id] = voteVal;
+                   currentTotal += voteVal;
                });
-               setVotes(initialVotes); setTotalVotes(currentTotal);
+               setVotes(initialVotes); 
+               setTotalVotes(currentTotal);
             }
         } else {
             if (currentStatus === 'voting') { setPosts(allPosts); }
@@ -296,10 +309,10 @@ export default function VenuePage({ params }: { params: { id: string } }) {
         throw new Error(data.error || '投稿に失敗しました');
       }
       const data = await res.json();
-      const updatedPost = { ...data, user_id: user.id }; // レスポンスから構築
+      const updatedPost = { ...data, user_id: user.id };
       
       setNewPostContent('');
-      setPosts([updatedPost]); setHasPosted(true); setIsEditing(false);
+      setPosts([updatedPost]); setHasPosted(true); setIsEditing(false); setPostError(null);
       alert('投稿しました！');
     } catch (err: any) {
       setPostError(err.message);
@@ -307,44 +320,41 @@ export default function VenuePage({ params }: { params: { id: string } }) {
       setIsSubmitting(false);
     }
   };
-
+  
   const onEmojiClick = (emojiData: EmojiClickData) => { setNewPostContent(prevInput => prevInput + emojiData.emoji); setShowEmojiPicker(false); };
 
-  // 投票処理 (ローカルState更新)
-  const handleVoteChange = (postId: number, newCount: number) => {
-    if (userHasVoted && !isJudgeMode) {
+  // 投票値変更
+  const handleVoteChange = (postId: number, newCount: number) => { 
+      if (userHasVoted && !isJudgeMode) {
         alert("一般投票は一度送信すると変更できません。");
         return;
-    }
-    setVotes(prevVotes => { 
+      }
+      setVotes(prevVotes => { 
         const updatedVotes = { ...prevVotes, [postId]: newCount }; 
         const newTotal = Object.values(updatedVotes).reduce((sum, count) => sum + count, 0); 
         setTotalVotes(newTotal); 
         return updatedVotes; 
-    }); 
-    setVoteSubmitMessage(null); 
+      }); 
+      setVoteSubmitMessage(null); 
   };
-
   
-
   // 投票送信
-  const submitVotes = async () => {
+  const handleSubmitVotes = async () => {
     if (isVoteDeadlineExceeded) { alert('投票期間が終了しました。'); return; }
-    if (totalVotes < 10 && !isJudgeMode) { alert(`一般投票には合計10票以上の投票が必要です。(現在: ${totalVotes}票)`); return; }
-    if(!confirm('投票を確定しますか？(一般参加の場合、修正できません)')) return;
+    
+    if(!confirm('投票を確定しますか？(確定後は変更できません)')) return;
 
     setIsSubmittingVotes(true); setVoteSubmitMessage(null);
     try {
-      const res = await fetch(`${API_PREFIX}/api/contests/${contestId}/vote`, {
+      const response = await fetch(`${API_PREFIX}/api/contests/${contestId}/vote`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ votes }),
         credentials: 'include',
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || '投票に失敗しました');
-
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || '投票の送信に失敗しました。');
       setVoteSubmitMessage({ type: 'success', text: data.message || '投票を受け付けました！' });
       setUserHasVoted(true);
     } catch (err: any) {
@@ -354,24 +364,39 @@ export default function VenuePage({ params }: { params: { id: string } }) {
     }
   };
 
+  // ブックマーク処理
   const handleBookmarkToggle = async (postId: number) => {
     if (!user) { alert('ブックマークするにはログインが必要です。'); return; }
     // 楽観的更新
-    setResults(prevResults => prevResults.map(r => r.post_id === postId ? { ...r, isBookmarked: !r.isBookmarked, bookmarkCount: r.isBookmarked ? r.bookmarkCount - 1 : r.bookmarkCount + 1 } : r));
-    
+    setResults(prevResults => 
+      prevResults.map(result => {
+        if (result.post_id === postId) {
+          const newIsBookmarked = !result.isBookmarked;
+          const newBookmarkCount = newIsBookmarked ? result.bookmarkCount + 1 : result.bookmarkCount - 1;
+          return { ...result, isBookmarked: newIsBookmarked, bookmarkCount: newBookmarkCount };
+        }
+        return result;
+      })
+    );
     try {
-        const res = await fetch(`${API_PREFIX}/api/posts/${postId}/bookmark`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include'
-        });
-        const data = await res.json();
-        if(!res.ok) throw new Error(data.error);
-        // サーバーの値で補正
-        setResults(prevResults => prevResults.map(r => r.post_id === postId ? { ...r, isBookmarked: data.isBookmarked, bookmarkCount: data.bookmarkCount } : r));
-    } catch(e) {
-        console.error(e);
-        // エラー時ロールバック (省略)
+      const res = await fetch(`${API_PREFIX}/api/posts/${postId}/bookmark`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if(!res.ok) throw new Error(data.error);
+      // サーバーの値で補正
+      setResults(prevResults =>
+        prevResults.map(result =>
+          result.post_id === postId
+            ? { ...result, isBookmarked: data.isBookmarked, bookmarkCount: data.bookmarkCount }
+            : result
+        )
+      );
+    } catch (e) {
+      console.error(e);
+      // エラー時ロールバック
     }
   };
 
@@ -379,14 +404,12 @@ export default function VenuePage({ params }: { params: { id: string } }) {
   if (error) return <div className="min-h-screen flex items-center justify-center bg-gray-950 text-red-400"><AlertCircle className="mr-2" /> {error}</div>;
   if (!contest) return null;
 
-  // 期間判定
   const isPostPeriod = !isPostDeadlineExceeded && contestStatus === 'ongoing';
   const isVotePeriod = !isVoteDeadlineExceeded && contestStatus === 'voting';
-  const isClosed = contestStatus === 'closed';
-
+  
   const canVote = contestStatus === 'voting' && user && !userHasVoted;
-  const showVoteBar = canVote || (isJudgeMode && contestStatus === 'voting');
-  const isVoteSubmitDisabled = (totalVotes < 10 && !isJudgeMode) || isSubmittingVotes || (userHasVoted && !isJudgeMode) || isVoteDeadlineExceeded;
+  const showVoteUI = (contestStatus === 'voting' && user && !userHasVoted) || (isJudgeMode && contestStatus === 'voting');
+  const voteUIDisabled = userHasVoted && !isJudgeMode;
 
   return (
     <div className="container mx-auto max-w-2xl px-4 py-8 relative">
@@ -402,23 +425,22 @@ export default function VenuePage({ params }: { params: { id: string } }) {
           </div>
       )}
 
-      <div className={`border border-gray-700 rounded-lg bg-gray-900 ${showVoteBar ? 'pb-24' : 'pb-4'}`}>
+      <div className={`border border-gray-700 rounded-lg bg-gray-900 ${showVoteUI ? 'pb-8' : 'pb-4'}`}>
         <div className="p-4 border-b border-gray-700">
           <div className="flex justify-between items-start mb-2">
             <div>
-                {/* UI修正: 青いステータスバッジを削除しました */}
                 <h1 className="text-2xl font-bold text-yellow-400">{contest.name}</h1>
                 {contest.hasTheme && (
                     <div className="text-lg text-yellow-400 font-medium">お題: {contest.theme}</div>
                 )}
             </div>
-            {/* UI修正 & バグ修正: 投票期間中のみ表示 & ログイン後に権限更新 */}
+            
             {!isJudgeMode && isVotePeriod && (
                 <JudgeLoginButton 
                     contestId={contestId} 
                     onLoginSuccess={async () => {
-                        await refetchUser(); // 権限情報を更新
-                        await fetchData();   // ページデータを更新
+                        await refetchUser(); 
+                        await fetchData();
                     }} 
                 />
             )}
@@ -434,11 +456,10 @@ export default function VenuePage({ params }: { params: { id: string } }) {
           
           <div className="mt-2 text-sm text-gray-500 flex gap-3 flex-wrap">
                <span className="flex items-center"><Users className="w-3 h-3 mr-1"/>審査員倍率: {contest.judgeVoteRatio}倍</span>
-               <span className="flex items-center">{contest.hasQualifier ? <Check className="w-3 h-3 mr-1 text-green-500"/> : <X className="w-3 h-3 mr-1 text-red-500"/>}予選・決勝{contest.hasQualifier ? 'あり' : 'なし'}</span>
-               <span className="flex items-center">{contest.allowImages ? <Check className="w-3 h-3 mr-1 text-green-500"/> : <X className="w-3 h-3 mr-1 text-red-500"/>}画像投稿{contest.allowImages ? '可' : '不可'}</span>
           </div>
         </div>
         
+        {/* 投稿期間 */}
         {contestStatus === 'ongoing' && (
           <div className="p-4 space-y-4">
             {user ? (
@@ -452,7 +473,8 @@ export default function VenuePage({ params }: { params: { id: string } }) {
                     post={posts[0]} 
                     isEditing={isEditing} 
                     setIsEditing={setIsEditing} 
-                    isDeadlinePassed={isPostDeadlineExceeded} 
+                    isDeadlinePassed={isPostDeadlineExceeded}
+                    user={user}
                   />
                 </>
               ) : null
@@ -521,17 +543,11 @@ export default function VenuePage({ params }: { params: { id: string } }) {
           </div>
         )}
 
+        {/* 投票期間 */}
         {contestStatus === 'voting' && (
           <div>
-             {user && userHasVoted && (
-              <div className="p-4 border-b border-gray-700">
-                <div className="bg-blue-900/50 text-blue-300 p-3 rounded-lg flex items-center text-sm border border-blue-800">
-                  <CheckCircle className="h-5 w-5 mr-3 flex-shrink-0" />
-                  <p>この大会には投票済みです。{isJudgeMode && "（審査員として再投票可能です）"}</p>
-                </div>
-              </div>
-             )}
-             {/* 投票締切後のアラート */}
+             {user && userHasVoted && !isJudgeMode && ( <div className="p-4 text-blue-300 bg-blue-900/30 text-sm border-b border-blue-900/50">この大会には投票済みです。</div> )}
+             
              {isVoteDeadlineExceeded && (
                  <div className="p-4 border-b border-gray-700">
                     <div className="bg-red-900/50 text-red-300 p-3 rounded-lg flex items-center text-sm border border-red-800">
@@ -540,35 +556,20 @@ export default function VenuePage({ params }: { params: { id: string } }) {
                     </div>
                  </div>
              )}
+
             <div className="divide-y divide-gray-800">
             {posts.length > 0 ? (
               posts.map((post) => {
                 const isMyPost = user && post.user_id === user.id;
-                const showVoteUI = canVote || (isJudgeMode && contestStatus === 'voting');
-                const voteUIDisabled = userHasVoted && !isJudgeMode;
                 return (
                   <div key={post.id} className={`p-4 transition-colors hover:bg-gray-800/30 ${isMyPost ? 'bg-yellow-900/10' : ''}`}>
                     <div className="flex items-start gap-3">
-                      {/* 左側: 投票コントロール */}
-                      {showVoteUI ? (
-                          <div className="flex flex-col items-center min-w-[40px] pt-1 gap-1">
-                             <VoteHearts 
-                                postId={post.id} 
-                                initialVotes={votes[post.id] || 0} 
-                                onVoteChange={handleVoteChange} 
-                                disabled={voteUIDisabled || isVoteDeadlineExceeded} 
-                            />
-                            <span className={`text-sm font-bold ${votes[post.id] > 0 ? 'text-red-400' : 'text-gray-600'}`}>
-                                {votes[post.id] || 0}
-                            </span>
-                          </div>
-                      ) : (
-                          <div className="flex flex-col items-center min-w-[40px] pt-1 gap-1">
-                             <Heart className={`h-6 w-6 ${votes[post.id] > 0 ? 'text-red-600 fill-red-600' : 'text-gray-600'}`} />
-                             <span className="text-sm text-gray-500">{votes[post.id] || 0}</span>
-                          </div>
-                      )}
-
+                      {/* アバター */}
+                      <div className="flex-none">
+                         <div className="w-10 h-10 rounded-full bg-gray-700 overflow-hidden">
+                             {/* 匿名投票なのでアバターはプレースホルダー */}
+                         </div>
+                      </div>
                       <div className="flex-grow min-w-0">
                         <div className="flex items-center justify-between mb-1">
                           <span className="font-bold text-gray-300 text-sm">匿名さん</span>
@@ -579,6 +580,31 @@ export default function VenuePage({ params }: { params: { id: string } }) {
                         </div>
                       </div>
                     </div>
+                    
+                    {/* 投票UI (右寄せ) */}
+                    <div className="flex justify-end mt-2">
+                      {showVoteUI ? (
+                        isJudgeMode ? (
+                           <JudgeVoteSelector 
+                              postId={post.id} 
+                              currentScore={votes[post.id] || 0} 
+                              onSelect={handleVoteChange} 
+                              disabled={isVoteDeadlineExceeded} 
+                           />
+                        ) : (
+                           <GeneralVoteButton 
+                              postId={post.id} 
+                              isLiked={votes[post.id] === 1} 
+                              onToggle={handleVoteChange} 
+                              disabled={voteUIDisabled || isVoteDeadlineExceeded} 
+                           />
+                        )
+                      ) : (
+                        <div className="text-gray-500 text-sm flex items-center">
+                            {/* UIなし */}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 );
               })
@@ -587,6 +613,7 @@ export default function VenuePage({ params }: { params: { id: string } }) {
           </div>
         )}
 
+        {/* 結果発表 */}
         {contestStatus === 'closed' && (
           <div className="divide-y divide-gray-800">
             {results.length > 0 ? (
@@ -595,11 +622,11 @@ export default function VenuePage({ params }: { params: { id: string } }) {
                 return (
                 <div
                   key={result.post_id}
-                  className={`p-4 transition-colors ${index < results.length - 1 ? 'border-b border-gray-700' : ''} ${isMyPost ? 'bg-yellow-900/20' : ''}`}
+                  className={`p-4 transition-colors hover:bg-gray-800/30 ${isMyPost ? 'bg-yellow-900/10' : ''}`}
                 >
                   <div className="flex items-start gap-3">
-                    {/* 順位 */}
-                    <div className="w-12 text-center pt-1 flex-shrink-0 flex flex-col items-center">
+                    {/* 順位 (左端) */}
+                    <div className="w-10 text-center pt-1 flex-shrink-0 flex flex-col items-center mr-1">
                       {result.rank === 1 && <Trophy className="h-8 w-8 text-yellow-400 mb-1 drop-shadow-lg" />}
                       {result.rank === 2 && <Trophy className="h-7 w-7 text-gray-300 mb-1" />}
                       {result.rank === 3 && <Trophy className="h-6 w-6 text-amber-600 mb-1" />}
@@ -608,20 +635,28 @@ export default function VenuePage({ params }: { params: { id: string } }) {
                       }`}>{result.rank ? `${result.rank}位` : '-'}</span>
                     </div>
 
-                    <div className="flex-grow min-w-0">
-                        <div className="flex items-center mb-2">
+                    {/* アバター (順位の右) */}
+                    <div className="flex-none">
+                        <Link href={`/profile/${encodeURIComponent(result.user.screen_name)}`}>
                             <img
-                            src={result.user.profile_image_url || `https://via.placeholder.com/40`}
-                            alt={result.user.screen_name}
-                            className="w-8 h-8 rounded-full mr-2 border border-gray-700"
-                            onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/40')}
+                                src={result.user.profile_image_url || `https://via.placeholder.com/40`}
+                                alt={result.user.screen_name}
+                                className="w-10 h-10 rounded-full border border-gray-700 hover:opacity-80 transition-opacity object-cover"
+                                onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/40')}
                             />
-                            <div className="flex flex-col">
-                                <a href={`/profile/${encodeURIComponent(result.user.screen_name)}`} className="font-bold text-white hover:underline leading-tight">
+                        </Link>
+                    </div>
+
+                    {/* コンテンツ (右側) */}
+                    <div className="flex-grow min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-baseline gap-2 overflow-hidden">
+                                <Link href={`/profile/${encodeURIComponent(result.user.screen_name)}`} className="font-bold text-white hover:underline truncate">
                                 {result.user.screen_name}
-                                </a>
-                                <TimeAgo timestamp={result.created_at} />
+                                </Link>
+                                <span className="text-xs text-gray-500 truncate">@{result.user.screen_name}</span>
                             </div>
+                            <TimeAgo timestamp={result.created_at} />
                         </div>
                         
                         <div className="text-lg text-gray-100 leading-relaxed whitespace-pre-wrap mb-3">
@@ -629,33 +664,55 @@ export default function VenuePage({ params }: { params: { id: string } }) {
                         </div>
 
                         {/* アクションバー */}
-                        <div className="flex items-center gap-6 text-gray-500 text-sm">
-                            <div className="flex items-center text-red-400 font-bold bg-red-900/20 px-2 py-1 rounded-full">
+                        <div className="flex items-center justify-end gap-6 text-gray-500 text-sm">
+                            <div className="flex items-center text-red-400 font-bold bg-red-900/20 px-2 py-1 rounded-full cursor-default" title="スコア">
                                 <Heart className="h-4 w-4 mr-1 fill-current" />
                                 {result.score} <span className="text-xs font-normal ml-1 opacity-70">pts</span>
                             </div>
-                            {/* ブックマークボタン等が必要であればここに追加 */}
+                            <button 
+                              onClick={() => handleBookmarkToggle(result.post_id)}
+                              className={`flex items-center transition-colors p-1.5 rounded-full hover:bg-gray-800 ${
+                                result.isBookmarked 
+                                ? 'text-blue-400 hover:text-blue-300' 
+                                : 'text-gray-500 hover:text-blue-400'
+                              }`}
+                              disabled={!user}
+                            >
+                              <Bookmark className={`h-4 w-4 mr-1.5 ${result.isBookmarked ? 'fill-current' : ''}`} />
+                              {result.bookmarkCount}
+                            </button>
+                            <button className="p-1.5 rounded-full hover:bg-green-900/30 hover:text-green-400 transition-colors">
+                                <Share2 className="h-4 w-4" />
+                            </button>
                         </div>
 
-                        {/* 投票者リスト (詳細) */}
+                        {/* 投票者リストの表示 (追加箇所) */}
                         {result.voters && result.voters.length > 0 && (
-                            <div className="mt-3 pt-2 border-t border-gray-800/50 text-xs text-gray-500">
-                            <span className="font-medium mr-2 opacity-70">投票した人:</span>
-                            <div className="inline-flex flex-wrap gap-1">
-                                {result.voters.map((voter, vIndex) => (
-                                    <span key={vIndex} className="inline-flex items-center">
-                                    <a
-                                        href={`/profile/${encodeURIComponent(voter.screen_name)}`}
-                                        className={`hover:underline hover:text-gray-300 ${voter.is_judge ? 'font-bold text-yellow-500' : ''}`}
-                                    >
-                                        {voter.screen_name}
-                                    </a>
-                                    <span className="opacity-50 ml-0.5">({voter.count})</span>
-                                    {vIndex < result.voters.length - 1 && <span className="mx-1 opacity-30">,</span>}
-                                    </span>
-                                ))}
+                          <div className="mt-3 pt-3 border-t border-gray-800/50 text-xs text-gray-500">
+                            <div className="flex flex-wrap items-center leading-relaxed gap-y-1">
+                              <span className="mr-2 font-semibold">投票した人:</span>
+                              {result.voters.map((voter, vIndex) => (
+                                <span key={vIndex} className="inline-flex items-center">
+                                  {voter.is_judge ? (
+                                     <span className="bg-yellow-900/30 text-yellow-400 px-1.5 py-0.5 rounded mr-1 flex items-center">
+                                       <Link href={`/profile/${encodeURIComponent(voter.screen_name)}`} className="hover:underline font-bold">
+                                         {voter.screen_name}
+                                       </Link>
+                                       <span className="ml-1 font-bold">({voter.count})</span>
+                                     </span>
+                                  ) : (
+                                     <Link href={`/profile/${encodeURIComponent(voter.screen_name)}`} className="hover:underline text-gray-400 hover:text-gray-300">
+                                       {voter.screen_name}
+                                     </Link>
+                                  )}
+                                  
+                                  {vIndex < result.voters.length - 1 && (
+                                    <span className="mx-1.5 text-gray-700">/</span>
+                                  )}
+                                </span>
+                              ))}
                             </div>
-                            </div>
+                          </div>
                         )}
                     </div>
                   </div>
@@ -674,26 +731,31 @@ export default function VenuePage({ params }: { params: { id: string } }) {
         {contestStatus === 'upcoming' && ( <div className="text-center py-10 text-gray-500">この大会はまだ開始されていません。</div> )}
       </div>
 
-      {showVoteBar && (
-        <div className="fixed bottom-0 left-0 right-0 bg-gray-950/90 backdrop-blur border-t border-gray-700 p-4 shadow-2xl z-50">
-          <div className="container mx-auto max-w-2xl flex justify-between items-center gap-4">
-            <div className={`text-sm px-4 py-2 rounded-full font-bold flex-shrink-0 ${totalVotes >= 10 || isJudgeMode ? 'bg-green-500/20 text-green-400 border border-green-500/50' : 'bg-gray-800 text-gray-400 border border-gray-700'}`}>
-              合計: <span className="text-lg mx-1">{totalVotes}</span> 票 {isJudgeMode ? '(審査員)' : '/ 10票以上'}
-            </div>
-            <button
-              onClick={submitVotes}
-              disabled={isVoteSubmitDisabled}
-              className={`flex-1 bg-green-600 text-white font-bold py-3 px-6 rounded-full transition-all shadow-lg hover:shadow-green-500/20 flex items-center justify-center ${isVoteSubmitDisabled ? 'bg-gray-700 text-gray-500 cursor-not-allowed shadow-none' : 'hover:bg-green-500 hover:-translate-y-0.5 active:translate-y-0'}`}
-            >
-              {isSubmittingVotes ? <Loader2 className="animate-spin mr-2" /> : <CheckCircle className="h-5 w-5 mr-2" />}
-              {isVoteDeadlineExceeded ? '投票終了' : (isSubmittingVotes ? '送信中...' : isJudgeMode ? '審査員票を確定' : '投票を確定する')}
-            </button>
-          </div>
-          {voteSubmitMessage && (
-            <div className={`mt-2 text-center text-sm font-bold animate-fade-in ${voteSubmitMessage.type === 'success' ? 'text-green-400' : 'text-red-400'}`}>
-              {voteSubmitMessage.text}
-            </div>
-          )}
+      {/* 投票確定ボタン (最下部) */}
+      {showVoteUI && (
+        <div className="mt-8 pb-12">
+           <div className="bg-gray-900 border border-gray-700 p-6 rounded-lg shadow-lg text-center">
+               <p className="text-gray-400 mb-4">
+                   {isJudgeMode ? "全ての投稿への採点が終わったら、投票を確定してください。" : "「いいね」を付け終わったら、投票を確定してください。"}
+               </p>
+               <button
+                onClick={handleSubmitVotes}
+                disabled={isSubmittingVotes || isVoteDeadlineExceeded || (userHasVoted && !isJudgeMode)}
+                className={`w-full max-w-md mx-auto py-3 px-6 rounded-full font-bold text-lg flex items-center justify-center transition-all ${
+                    (isSubmittingVotes || (userHasVoted && !isJudgeMode)) 
+                    ? 'bg-gray-700 text-gray-500 cursor-not-allowed' 
+                    : 'bg-green-600 hover:bg-green-500 text-white shadow-lg hover:shadow-green-500/30'
+                }`}
+               >
+                   {isSubmittingVotes ? <Loader2 className="animate-spin mr-2"/> : <CheckCircle className="mr-2"/>}
+                   {userHasVoted && !isJudgeMode ? '投票済みです' : '投票を確定する'}
+               </button>
+               {voteSubmitMessage && (
+                 <div className={`mt-4 font-bold ${voteSubmitMessage.type === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+                    {voteSubmitMessage.text}
+                 </div>
+               )}
+           </div>
         </div>
       )}
     </div>
