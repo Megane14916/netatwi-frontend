@@ -9,7 +9,7 @@ export default function RulesPage() {
                 <section>
                     <h2 className="text-2xl font-semibold mb-3 text-yellow-400">基本ルール</h2>
                     <ul className="list-disc list-inside space-y-2 pl-4">
-                        <li>各大会で出題されるお題に沿って、面白いツイート（ネタツイ）を投稿してください。</li>
+                        <li>ネタツイを投稿してください。お題はありません。</li>
                         <li>投稿期間内に投稿されたツイートが審査・投票の対象となります。</li>
                         <li>投稿は1つの大会につき、1人1回までです。</li>
                         <li>公序良俗に反する内容、他人を誹謗中傷する内容の投稿は禁止です。</li>
@@ -19,9 +19,8 @@ export default function RulesPage() {
                 <section>
                     <h2 className="text-2xl font-semibold mb-3 text-yellow-400">投稿について</h2>
                     <ul className="list-disc list-inside space-y-2 pl-4">
-                        <li>投稿はテキスト形式です。絵文字も使用可能です。</li>
-                        <li>（画像投稿は現在未実装です）</li>
-                        <li>投稿された内容は、投稿期間終了まで編集・削除できません。</li>
+                        <li>投稿はテキスト形式です。絵文字・画像も使用可能です。</li>
+                        <li>投稿された内容は、投稿期間終了まで編集することが可能です。</li>
                     </ul>
                 </section>
 
@@ -29,27 +28,33 @@ export default function RulesPage() {
                     <h2 className="text-2xl font-semibold mb-3 text-yellow-400">投票について</h2>
                     <ul className="list-disc list-inside space-y-2 pl-4">
                         <li>投票期間になると、各投稿に対して投票ができるようになります。</li>
-                        <li>一般ユーザーは、各投稿に対して0〜3票の範囲で投票できます。</li>
-                        <li>投票するには、合計で10票以上を異なる投稿に割り振る必要があります。</li>
-                        <li>一度確定した投票は変更できません。</li>
-                        <li>審査員は別途、審査員票として投票を行います。</li>
+                        <li>一般ユーザーは投稿に対して「いいね」で投票ができます。</li>
+                        <li>投票は、投票期間終了まで編集することが可能です。</li>
+                        <li>審査員は、全ての投稿に10点満点で点数をつけてもらいます。</li>
+                        <li>審査員は、<span className="text-yellow-400">審査員特別賞</span>を1つ選出してもらい、ひとことコメントをいただきます。好きな審査員からの審査員特別賞も狙ってみましょう。</li>
                     </ul>
                 </section>
 
-                 <section>
+                <section>
                     <h2 className="text-2xl font-semibold mb-3 text-yellow-400">結果発表について</h2>
                     <ul className="list-disc list-inside space-y-2 pl-4">
-                        <li>投票期間が終了すると、結果が集計され、大会ページで発表されます。</li>
-                        <li>順位は、一般票と審査員票を、大会ごとに設定された比率で合算して決定されます。</li>
-                        <li>（審査員特別賞については後日追記します）</li>
+                        <li>投票期間が終了すると、結果が集計され、会場ページで発表されます。審査員特別賞も同時に発表されます。</li>
+                        <li>順位は、一般票と審査員票を、大会ごとに設定された比率で合算して決定されます。詳しくは下の「得点の計算方法について」をご覧ください。</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h2 className="text-2xl font-semibold mb-3 text-yellow-400">得点の計算方法について</h2>
+                    <ul className="list-disc list-inside space-y-2 pl-4">
+                        <li>得点は、(一般投票者からのいいねの数/一般投票者の人数) × 50 + (審査員がつけた点数の合計) で計算されます。</li>
+                        <li>審査員の数は20人、10点満点で評価するため、満点は250点となります。</li>
                     </ul>
                 </section>
 
                 <section>
                     <h2 className="text-2xl font-semibold mb-3 text-yellow-400">その他</h2>
                      <ul className="list-disc list-inside space-y-2 pl-4">
-                        <li>ルールは予告なく変更される場合があります。</li>
-                        <li>不明な点があれば、運営までお問い合わせください（未実装）。</li>
+                        <li>不明な点があれば、<a href="https://x.com/netatwiGP" className="text-yellow-400">運営</a>までお問い合わせください。</li>
                     </ul>
                 </section>
             </div>

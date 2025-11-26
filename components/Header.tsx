@@ -59,7 +59,7 @@ export default function Header() {
       {/* 左側: ロゴ */}
       <Link href="/" className="flex items-center justify-center">
         <Crown className="h-6 w-6 text-yellow-400" />
-        <span className="ml-2 font-semibold">ネタツイ大会</span>
+        <span className="ml-2 font-semibold">ネタツイグランプリ</span>
       </Link>
 
       {/* 右側: ナビゲーション & ログイン/ユーザーメニュー */}
