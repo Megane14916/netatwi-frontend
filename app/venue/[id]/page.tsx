@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef,useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { Send, Smile, Heart, Info, CheckCircle, Trophy, ShieldCheck, Clock, X, User,Users, AlertTriangle,AlertCircle, Loader2, Award,  Image as ImageIcon } from 'lucide-react';
+import { Send, Smile, Heart, Info, CheckCircle, Trophy, ShieldCheck, Clock, X, User,Users, AlertTriangle,AlertCircle, Loader2, Award,  Image as ImageIcon ,UserCheck} from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import TimeAgo from '@/components/TimeAgo';
 import EmojiPicker, { EmojiClickData, Theme } from 'emoji-picker-react';
@@ -186,6 +186,7 @@ export default function VenueDetailPage() {
   const [error, setError] = useState('');
   const [totalPosters, setTotalPosters] = useState<number | null>(null);
   const [totalVoters, setTotalVoters] = useState<number | null>(null);
+  const [totalJudges, setTotalJudges] = useState<number | null>(null);
   
   const [newPostContent, setNewPostContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -294,7 +295,7 @@ export default function VenueDetailPage() {
       setLoading(true);
       setError(''); setVoteSubmitMessage(null); setUserHasVoted(false);
       setPosts([]); setResults([]); setHasPosted(false); setIsEditing(false);
-      setTotalPosters(null); setTotalVoters(null); 
+      setTotalPosters(null); setTotalVoters(null); setTotalJudges(null);
 
       const contestRes = await fetch(`${API_PREFIX}/api/contests/${contestId}`, { credentials: 'include' });
       if (!contestRes.ok) throw new Error('大会情報の取得に失敗しました');
@@ -322,6 +323,7 @@ export default function VenueDetailPage() {
         setJudgeAwardsResults(resultsData.judgeAwards || []);
         setTotalPosters(resultsData.totalPosters);
         setTotalVoters(resultsData.totalVoters);
+        setTotalJudges(resultsData.totalJudges);
         // if (resultsData.judgeAwards && resultsData.judgeAwards.length > 0) setResultTab('awards');
       } else {
         const postsRes = await fetch(`${API_PREFIX}/api/contests/${contestId}/posts`, { credentials: 'include', cache: 'no-store' });
@@ -329,6 +331,7 @@ export default function VenueDetailPage() {
         const postsData = await postsRes.json();
         const allPosts: Post[] = postsData.posts;
         setUserHasVoted(postsData.userHasVotedInContest);
+        setTotalPosters(postsData.totalPosters);
 
         if (user) {
             const myPost = allPosts.find(p => p.user_id === user.id);
@@ -537,7 +540,7 @@ export default function VenueDetailPage() {
         
                   {/* 2. お題 */}
                   <div className="text-lg font-medium text-gray-200">
-                      {contest.hasTheme && contest.theme ? `お題: 「${contest.theme}」` : "自由にネタツイしよう"}
+                      {contest.hasTheme && contest.theme ? `お題: ${contest.theme}` : "自由にネタツイしよう"}
                   </div>
         
                   {/* 3-6. 各種情報 (Wrap) */}
@@ -575,9 +578,11 @@ export default function VenueDetailPage() {
                             <div className="flex items-center gap-3 bg-gray-800/50 px-3 py-1 rounded border border-gray-700/50">
                                 <span className="flex items-center"><Users className="w-4 h-4 mr-1.5"/>投稿: {totalPosters ?? 0}人</span>
                                 <span className="flex items-center border-l border-gray-600 pl-3"><CheckCircle className="w-4 h-4 mr-1.5"/>投票: {totalVoters ?? 0}人</span>
+                                <span className="flex items-center border-l border-gray-600 pl-3"><UserCheck className="w-4 h-4 mr-1.5"/>審査員: {totalJudges ?? 0}人</span>
                             </div>
                          </>
                      )}
+                     {contestStatus === 'voting' && (<div className="flex items-center bg-gray-800/50 px-2 py-1 rounded border border-gray-700/50"><Users className="w-4 h-4 mr-1.5 text-gray-400" />投稿数: {totalPosters ?? 0}</div>)}
                   </div>
                   {/* 7. 投稿期間の注意書き */}
           {contestStatus === 'ongoing' && (
