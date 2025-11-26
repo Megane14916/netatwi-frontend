@@ -55,6 +55,7 @@ export default function RulesPage() {
                     <h2 className="text-2xl font-semibold mb-3 text-yellow-400">その他</h2>
                      <ul className="list-disc list-inside space-y-2 pl-4">
                         <li>不明な点があれば、<a href="https://x.com/netatwiGP" className="text-yellow-400">運営</a>までお問い合わせください。</li>
+                        <li>本サイトに使用している絵文字には Twemoji を使用しています。© Twitter, Inc. and contributors. Licensed under CC BY 4.0.</li>
                     </ul>
                 </section>
             </div>
