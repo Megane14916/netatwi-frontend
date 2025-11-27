@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 // import Link from 'next/link'; // エラー回避のため削除
-import { Trophy, Heart, Bookmark, Share2, Award, ExternalLink } from 'lucide-react';
+import { Heart, Bookmark, Share2, Award } from 'lucide-react';
 import ImageGrid from './ImageGrid';
 import TimeAgo from './TimeAgo';
 import Twemoji from './Twemoji';
@@ -106,7 +106,7 @@ export default function ResultPostCard({ post, currentUser, onToggleBookmark }: 
     const awardsText = post.awards && post.awards.length > 0 ? ` ${post.awards.join(' ')}` : '';
     
     // ツイート本文の構築
-    const text = `【${contestName}】\n${rankText}${awardsText}\nユーザー: ${post.user.screen_name}さん\n\n${post.content}\n\n#ネタツイ大会`;
+    const text = `【${contestName}】\n${rankText}${awardsText}\nユーザー: ${post.user.screen_name}さん\n\n${post.content}\n\n#ネタツイグランプリ`;
     
     // URL
     const url = window.location.href;

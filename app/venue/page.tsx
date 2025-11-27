@@ -1,4 +1,4 @@
-import { Timer, Zap, Calendar, CheckSquare, Trophy, Users,CheckCircle, UserCheck } from 'lucide-react';
+import { Timer, Zap, Calendar, CheckSquare, Trophy, Users,CheckCircle, UserStar } from 'lucide-react';
 import Link from 'next/link';
 import dayjs from 'dayjs';
 import Countdown from '@/components/venue/Countdown';
@@ -112,7 +112,7 @@ export default async function VenuePage() {
             <div className="flex items-center gap-4 text-sm text-gray-400 mt-4">
                  <span className="flex items-center"><Users className="w-4 h-4 mr-1.5"/>投稿: {latestResult.totalPosters}人</span>
                  <span className="flex items-center border-l border-gray-600 pl-4"><CheckCircle className="w-4 h-4 mr-1.5"/>投票: {latestResult.totalVoters}人</span>
-                 <span className="flex items-center border-l border-gray-600 pl-4"><UserCheck className="w-4 h-4 mr-1.5"/>審査員: {latestResult.totalJudges}人</span>
+                 <span className="flex items-center border-l border-gray-600 pl-4"><UserStar className="w-4 h-4 mr-1.5"/>審査員: {latestResult.totalJudges}人</span>
             </div>
           </section>
         </Link>

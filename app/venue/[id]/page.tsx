@@ -3,15 +3,16 @@
 import { useState, useEffect, useRef,useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { Send, Smile, Heart, Info, CheckCircle, Trophy, ShieldCheck, Clock, X, User,Users, AlertTriangle,AlertCircle, Loader2, Award,  Image as ImageIcon ,UserCheck} from 'lucide-react';
+import { Send, Smile, Heart, Info, CheckCircle, Trophy, ShieldCheck, Clock, X, User,Users, AlertTriangle,AlertCircle, Loader2, Award,  Image as ImageIcon ,UserStar} from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import TimeAgo from '@/components/TimeAgo';
-import EmojiPicker, { EmojiClickData, Theme } from 'emoji-picker-react';
+import EmojiPicker, { EmojiClickData, Theme, EmojiStyle, SkinTonePickerLocation } from 'emoji-picker-react';
 import Twemoji from '@/components/Twemoji';
 import dayjs from 'dayjs';
 import JudgeLoginButton from '@/components/venue/JudgeLoginButton';
 import ImageGrid from '@/components/ImageGrid';
 import ResultPostCard from '@/components/ResultPostCard';
+import RichTextEditor, { RichTextEditorHandle } from '@/components/RichTextEditor';
 
 const API_PREFIX = '';
 
@@ -218,6 +219,11 @@ export default function VenueDetailPage() {
 
   const [showSuccessBanner, setShowSuccessBanner] = useState(false);
 
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const emojiButtonRef = useRef<HTMLButtonElement>(null);
+
+  const editorRef = useRef<RichTextEditorHandle>(null);
+
   const maxTotalScore = useMemo(() => {
       if (!contest || !results || results.length === 0) return 0;
       
@@ -245,6 +251,25 @@ export default function VenueDetailPage() {
       }
   }, []);
 
+  // 絵文字ピッカーの外側クリック検知
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+        if (
+            showEmojiPicker &&
+            emojiPickerRef.current &&
+            !emojiPickerRef.current.contains(event.target as Node) &&
+            emojiButtonRef.current &&
+            !emojiButtonRef.current.contains(event.target as Node)
+        ) {
+            setShowEmojiPicker(false);
+        }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showEmojiPicker]);
+
 
   // 画像選択処理
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -268,25 +293,32 @@ export default function VenueDetailPage() {
   // 画像削除処理
   const removeImage = (index: number) => {
       const targetUrl = previewUrls[index];
-      const isBlob = targetUrl.startsWith('blob:');
+      
+      // 1. previewUrls から削除 (非破壊的)
+      setPreviewUrls(prev => {
+          const newArr = prev.filter((_, i) => i !== index);
+          return newArr;
+      });
 
-      // プレビューから削除
-      const newPreviews = [...previewUrls];
-      if (isBlob) URL.revokeObjectURL(targetUrl);
-      newPreviews.splice(index, 1);
-      setPreviewUrls(newPreviews);
-
-      if (isBlob) {
-        // Blobの場合、selectedImagesからも対応するファイルを削除する必要がある
-        // プレビューURLの中でblobが何番目かを計算してselectedImagesのインデックスを特定
-        const blobIndex = previewUrls.slice(0, index).filter(u => u.startsWith('blob:')).length;
-        const newImages = [...selectedImages];
-        newImages.splice(blobIndex, 1);
-        setSelectedImages(newImages);
+      // 2. Blobだった場合 (新規画像)、selectedImages からも対応するファイルを削除
+      if (targetUrl.startsWith('blob:')) {
+          // targetUrlがプレビュー内の何番目のBlobかを探す
+          // (URL.createObjectURL で生成されたURLは一意なので、それを使って特定も可能だが、
+          //  selectedImagesにはURL情報がないので、インデックスで同期をとる必要がある)
+          
+          // 削除前の配列において、index番目より前にあるBlobの数を数える
+          const blobIndex = previewUrls.slice(0, index).filter(u => u.startsWith('blob:')).length;
+          
+          setSelectedImages(prev => {
+              const newArr = [...prev];
+              newArr.splice(blobIndex, 1);
+              return newArr;
+          });
+          
+          URL.revokeObjectURL(targetUrl); // メモリ解放
       }
-      // 既存URLの場合は、previewUrlsから消すだけでOK (送信時にselectedImagesが空なら画像更新されない仕様だが、プレビュー上は消える)
-      // ※完全な削除機能はバックエンド対応が必要
   };
+
 
 
   // データ取得
@@ -407,8 +439,8 @@ export default function VenueDetailPage() {
   const handlePostSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isPostDeadlineExceeded) return;
-    // 画像があればテキストなしでもOK
-    if ((!newPostContent.trim() && selectedImages.length === 0) || !user) return;
+    // エディタの内容は state (newPostContent) に同期されている前提
+    if ((!newPostContent.trim() && previewUrls.length === 0) || !user) return;
 
     setIsSubmitting(true); setPostError(null);
     const url = isEditing ? `${API_PREFIX}/api/contests/${contestId}/posts/${posts[0]?.id}` : `${API_PREFIX}/api/contests/${contestId}/posts`;
@@ -416,9 +448,13 @@ export default function VenueDetailPage() {
 
     const formData = new FormData();
     formData.append('content', newPostContent);
-    selectedImages.forEach((file) => {
-        formData.append('images', file);
-    });
+    
+    if (isEditing) {
+        // Blob以外のURL（=既存の画像）のみをリスト化して送信
+        const keptImages = previewUrls.filter(url => !url.startsWith('blob:'));
+        formData.append('kept_images', JSON.stringify(keptImages));
+    }
+    selectedImages.forEach((file) => formData.append('images', file));
 
     try {
       const res = await fetch(url, {
@@ -446,7 +482,15 @@ export default function VenueDetailPage() {
     }
   };
   
-  const onEmojiClick = (emojiData: EmojiClickData) => { setNewPostContent(prevInput => prevInput + emojiData.emoji); setShowEmojiPicker(false); };
+  const onEmojiClick = (emojiData: EmojiClickData) => {
+      // ref経由でエディタに絵文字画像を挿入
+      if (editorRef.current) {
+          editorRef.current.insertEmoji(emojiData.emoji);
+      } else {
+          // フォールバック (textarea使用時など)
+          setNewPostContent(prev => prev + emojiData.emoji);
+      }
+  };
 
   const handleVoteChange = (postId: number, newCount: number) => { 
       // 変更点: 一般投票でも再投票可能にするため、userHasVoted チェックを削除
@@ -578,7 +622,7 @@ export default function VenueDetailPage() {
                             <div className="flex items-center gap-3 bg-gray-800/50 px-3 py-1 rounded border border-gray-700/50">
                                 <span className="flex items-center"><Users className="w-4 h-4 mr-1.5"/>投稿: {totalPosters ?? 0}人</span>
                                 <span className="flex items-center border-l border-gray-600 pl-3"><CheckCircle className="w-4 h-4 mr-1.5"/>投票: {totalVoters ?? 0}人</span>
-                                <span className="flex items-center border-l border-gray-600 pl-3"><UserCheck className="w-4 h-4 mr-1.5"/>審査員: {totalJudges ?? 0}人</span>
+                                <span className="flex items-center border-l border-gray-600 pl-3"><UserStar className="w-4 h-4 mr-1.5"/>審査員: {totalJudges ?? 0}人</span>
                             </div>
                          </>
                      )}
@@ -607,22 +651,29 @@ export default function VenueDetailPage() {
                       {user ? ( hasPosted && posts.length > 0 ? ( <MyPostDisplay post={posts[0]} isEditing={isEditing} setIsEditing={setIsEditing} onStartEdit={handleStartEdit} isDeadlinePassed={isPostDeadlineExceeded} user={user} /> ) : null ) : ( <div className="text-center py-10 text-gray-500">ログインすると投稿できます。</div> )}
                       {user && (!hasPosted || isEditing) && (
                          <form onSubmit={handlePostSubmit} className="relative">
-                             <textarea value={newPostContent} onChange={(e)=>setNewPostContent(e.target.value)} disabled={isPostDeadlineExceeded || isSubmitting} className="w-full bg-gray-800 border border-gray-700 rounded-md p-3 text-white" rows={4} placeholder="いまどうしてる？"/>
+                             <RichTextEditor
+                                                     ref={editorRef}
+                                                     content={newPostContent}
+                                                     onChange={setNewPostContent}
+                                                     placeholder={isPostDeadlineExceeded ? "受付時間を終了しました" : "いまどうしてる？"}
+                                                     editable={!isPostDeadlineExceeded && !isSubmitting}
+                                                     className={`w-full ${isPostDeadlineExceeded ? 'opacity-50' : ''}`}
+                                                />
                              {previewUrls.length > 0 && ( <div className="grid grid-cols-2 gap-2 mt-2"> {previewUrls.map((url, idx) => ( <div key={idx} className="relative group"> <img src={url} alt="preview" className="w-full h-32 object-cover rounded-lg"/> <button type="button" onClick={() => removeImage(idx)} className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1 hover:bg-black"><X className="w-4 h-4"/></button> </div> ))} </div> )}
-                             <div className="flex justify-between items-center mt-3">
-                                 <div className="flex items-center gap-2">
-                                      <input type="file" multiple accept="image/*" onChange={handleImageSelect} className="hidden" ref={fileInputRef} disabled={isPostDeadlineExceeded || (previewUrls.length + (selectedImages.length) >= 4)}/>
-                                      {contest.allowImages && (
-                                        <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isPostDeadlineExceeded || (previewUrls.length >= 4)} className={`text-gray-400 hover:text-blue-400 p-2 rounded-full hover:bg-gray-800 transition-colors ${(previewUrls.length >= 4) ? 'opacity-50 cursor-not-allowed' : ''}`}> <ImageIcon className="h-6 w-6" /> </button>
-                                      )}
-                                      <button type="button" onClick={()=>setShowEmojiPicker(!showEmojiPicker)} disabled={isPostDeadlineExceeded} className="text-gray-400 hover:text-yellow-400 p-2 rounded-full hover:bg-gray-800 transition-colors"><Smile className="h-6 w-6"/></button>
-                                 </div>
-                                 <button type="submit" disabled={(!newPostContent.trim() && previewUrls.length === 0) || isSubmitting} className="bg-yellow-500 text-black font-bold py-2 px-6 rounded-full disabled:bg-gray-600 flex items-center">
-                                     {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2"/> : <Send className="inline w-4 h-4 mr-2"/>}
-                                     {isSubmitting ? '送信中...' : (isEditing ? '更新する' : '投稿')}
-                                 </button>
-                             </div>
-                             {showEmojiPicker && <div className="absolute z-10 mt-2"><EmojiPicker onEmojiClick={onEmojiClick} theme={Theme.DARK}/></div>}
+                   <div className="flex justify-between items-center mt-3">
+                       <div className="flex items-center gap-2">
+                            <input type="file" multiple accept="image/*" onChange={handleImageSelect} className="hidden" ref={fileInputRef} disabled={isPostDeadlineExceeded || (previewUrls.length + selectedImages.length >= 4)}/>
+                            {contest.allowImages && (
+                                <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isPostDeadlineExceeded || (previewUrls.length >= 4)} className={`text-gray-400 hover:text-blue-400 p-2 rounded-full hover:bg-gray-800 transition-colors ${(previewUrls.length >= 4) ? 'opacity-50 cursor-not-allowed' : ''}`}> <ImageIcon className="h-6 w-6" /> </button>
+                            )}
+                            <button type="button" ref={emojiButtonRef} onClick={()=>setShowEmojiPicker(!showEmojiPicker)} disabled={isPostDeadlineExceeded} className="text-gray-400 hover:text-yellow-400 p-2 rounded-full hover:bg-gray-800 transition-colors"><Smile className="h-6 w-6"/></button>
+                       </div>
+                       <button type="submit" disabled={(!newPostContent.trim() && previewUrls.length === 0) || isSubmitting} className="bg-yellow-500 text-black font-bold py-2 px-6 rounded-full disabled:bg-gray-600 flex items-center">
+                           {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2"/> : <Send className="inline w-4 h-4 mr-2"/>}
+                           {isSubmitting ? '送信中...' : (isEditing ? '更新する' : '投稿')}
+                       </button>
+                   </div>
+                             {showEmojiPicker && <div className="absolute z-10 mt-2" ref={emojiPickerRef}><EmojiPicker onEmojiClick={onEmojiClick} theme={Theme.DARK} emojiStyle={EmojiStyle.TWITTER} skinTonePickerLocation={SkinTonePickerLocation.PREVIEW} lazyLoadEmojis={true}/></div>}
                          </form>
                       )}
                     </div>
