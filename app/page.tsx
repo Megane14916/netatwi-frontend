@@ -42,10 +42,10 @@ export default function HomePage() {
       <div className="container max-w-3xl w-full">
         <div className="flex flex-col items-center space-y-3 text-center mb-8">
           <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
-            最強のツイートを決めろ
+            ネタツイグランプリサイト
           </h1>
           <p className="mx-auto max-w-[600px] text-gray-400 md:text-lg">
-            お題に沿って面白いツイートを投稿し、頂点を目指すオンラインコンテスト。
+            一番面白いネタツイを決める大会
           </p>
         </div>
         {/* 常に grid-cols-1 を基本とし、中画面以上(md)で2列にする */}
