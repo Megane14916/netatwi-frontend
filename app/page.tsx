@@ -42,7 +42,7 @@ export default function HomePage() {
       <div className="container max-w-3xl w-full">
         <div className="flex flex-col items-center space-y-3 text-center mb-8">
           <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
-            ネタツイグランプリサイト
+            ネタツイグランプリ
           </h1>
           <p className="mx-auto max-w-[600px] text-gray-400 md:text-lg">
             一番面白いネタツイを決める大会
