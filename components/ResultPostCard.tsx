@@ -24,10 +24,12 @@ export interface ResultPostProps {
     rank: number | null;
     user: {
       screen_name: string;
+      name: string;
       profile_image_url: string | null;
     };
     voters?: {
       screen_name: string;
+      name: string;
       count: number;
       is_judge: boolean;
     }[];
@@ -106,7 +108,7 @@ export default function ResultPostCard({ post, currentUser, onToggleBookmark }: 
     const awardsText = post.awards && post.awards.length > 0 ? ` ${post.awards.join(' ')}` : '';
     
     // ツイート本文の構築
-    const text = `【${contestName}】\n${rankText}${awardsText}\nユーザー: ${post.user.screen_name}さん\n\n${post.content}\n\n#ネタツイグランプリ`;
+    const text = `【${contestName}】\n${rankText}${awardsText}\nユーザー: ${post.user.name} (@${post.user.screen_name})さん\n\n${post.content}\n\n#ネタツイグランプリ`;
     
     // URL
     const url = window.location.href;
@@ -172,7 +174,7 @@ return (
             <div className="flex items-start justify-between mb-1">
                 <div className="flex items-center gap-1 min-w-0 flex-wrap">
                     <a href={`/profile/${encodeURIComponent(post.user.screen_name)}`} className="font-bold text-white hover:underline truncate text-base leading-tight">
-                      {post.user.screen_name}
+                      {post.user.name}
                     </a>
                     <span className="text-sm text-gray-500 truncate" style={{ flexShrink: 1000 }}>@{post.user.screen_name}</span>
                     <span className="text-sm text-gray-600 flex-shrink-0">·</span>
@@ -235,13 +237,13 @@ return (
                         {voter.is_judge ? (
                         <span className="bg-yellow-900/30 text-yellow-400 px-1.5 py-0.5 rounded mr-1 flex items-center border border-yellow-700/30">
                             <a href={`/profile/${encodeURIComponent(voter.screen_name)}`} className="hover:underline font-bold">
-                            {voter.screen_name}
+                            {voter.name}
                             </a>
                             <span className="ml-1 font-bold">({voter.count})</span>
                         </span>
                         ) : (
                         <a href={`/profile/${encodeURIComponent(voter.screen_name)}`} className="hover:underline text-gray-400 hover:text-gray-300">
-                            {voter.screen_name}
+                            {voter.name}
                         </a>
                         )}
                         

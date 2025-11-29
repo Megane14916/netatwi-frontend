@@ -44,12 +44,14 @@ interface Post {
 
 interface Voter {
   screen_name: string;
+  name: string;
   count: number;
   is_judge: boolean;
 }
 
 interface JudgeObj {
     screen_name: string;
+    name: string;
     profile_image_url: string | null;
 }
 
@@ -62,6 +64,7 @@ interface ResultPost {
   score: number;
   user: {
     screen_name: string;
+    name: string;
     profile_image_url: string | null;
   };
   voters: Voter[];
@@ -77,7 +80,7 @@ interface JudgeAwardResult {
         post_id: number;
         content: string;
         images?: string[];
-        user: { screen_name: string; profile_image_url: string | null };
+        user: { screen_name: string; name: string; profile_image_url: string | null };
         created_at: string;
     };
 }
@@ -763,7 +766,7 @@ export default function VenueDetailPage() {
                                   <div className="flex-grow min-w-0">
                                       <div className="flex items-center gap-2 mb-1">
                                           <Link href={`/profile/${encodeURIComponent(award.judge.screen_name)}`} className="font-bold text-white hover:underline">
-                                              {award.judge.screen_name}
+                                              {award.judge.name}
                                           </Link>
                                           <span className="inline-flex items-center bg-indigo-500/20 text-indigo-300 text-[10px] font-bold px-1.5 py-0.5 rounded border border-indigo-500/40">
                                               <Award className="w-3 h-3 mr-1" /> 選出
@@ -783,7 +786,7 @@ export default function VenueDetailPage() {
                                                                                 className="w-5 h-5 rounded-full object-cover flex-shrink-0"
                                                                             />
                                                                             <div className="flex items-baseline gap-1 min-w-0">
-                                                                              <Link href={`/profile/${encodeURIComponent(award.post.user.screen_name)}`} className="font-bold text-white hover:underline"><span className="font-bold text-white truncate">{award.post.user.screen_name}</span></Link>
+                                                                              <Link href={`/profile/${encodeURIComponent(award.post.user.screen_name)}`} className="font-bold text-white hover:underline"><span className="font-bold text-white truncate">{award.post.user.name}</span></Link>
                                                                                 
                                                                                 <span className="text-xs text-gray-500 flex-shrink-0">· {dayjs(award.post.created_at).format('MM/DD')}</span>
                                                                             </div>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 // import { useParams } from 'next/navigation'; // propsから取得
-import { User as UserIcon } from 'lucide-react';
+import { User as UserIcon,ExternalLink } from 'lucide-react';
 // import Link from 'next/link'; // aタグ使用
 import ResultPostCard, { ResultPostProps } from '../../../components/ResultPostCard';
 import { useAuth } from '@/context/AuthContext';
@@ -13,6 +13,7 @@ interface ProfileData {
   user: {
     id: number;
     screen_name: string;
+    name: string;
     profile_image_url: string | null;
   };
   posts: any[];
@@ -178,7 +179,20 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
               onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/96')}
             />
           </div>
-          <h1 className="mt-4 text-2xl font-bold text-white">{profileData.user.screen_name}</h1>
+          {/* ユーザー名 & スクリーンネーム (縦積み) */}
+          <h1 className="mt-4 text-2xl font-bold text-white text-center">{profileData.user.name}</h1>
+          <p className="text-gray-500 text-sm mt-1">@{profileData.user.screen_name}</p>
+
+          {/* Xプロフィールへのリンクボタン */}
+          <a 
+            href={`https://x.com/${profileData.user.screen_name}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-4 inline-flex items-center px-4 py-1.5 bg-black text-white text-xs font-bold rounded-full border border-gray-600 hover:bg-gray-800 transition-colors"
+          >
+            Xのプロフィールページへ
+            <ExternalLink className="w-3 h-3 ml-2" />
+          </a>
           <div className="flex gap-6 mt-6 text-sm text-gray-400">
              <div className="text-center">
                 <div className="font-bold text-white text-lg">{profileData.posts.length}</div>
