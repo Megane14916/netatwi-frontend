@@ -64,19 +64,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async () => {
     try {
-      // 修正前: fetch で URLを取得してからリダイレクトしていた
-      // const res = await fetch(`${API_URL}/api/login/twitter`);
-      // const data = await res.json();
-      // window.location.href = data.authorization_url;
-
-      // 修正後: 直接バックエンドのログインURLへ遷移する
-      // こうすることで、ブラウザは「1st Partyの遷移」としてCookieを正しく処理します
-      const currentOrigin = window.location.origin;
-      
-      // バックエンドに自分のURLを教えながら遷移
-      // ※ API_URL は 'https://netatwi-backend-....run.app' など
-      window.location.href = `${API_PREFIX}/api/login/twitter?origin=${encodeURIComponent(currentOrigin)}`;
-      
+      // 【修正】相対パスを使用 ('/api/login/twitter')
+      // Next.jsがこれをバックエンドへ転送します
+      const res = await fetch(`${API_PREFIX}/api/login/twitter`, {
+        // Rewrite経由の場合は通常不要ですが、明示しても問題ありません
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.authorization_url) {
+          // Xの認証ページにリダイレクト
+          // ※これは外部URLなのでそのまま
+          window.location.href = data.authorization_url;
+        }
+      }
     } catch (error) {
       console.error("ログインプロセスを開始できませんでした:", error);
     }
