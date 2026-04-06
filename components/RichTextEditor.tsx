@@ -61,21 +61,21 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, Props>(({
 
   // エディタの内容をテキストとして取得する関数
   const getEditorText = (editor: Editor) => {
-    let text = '';
-    editor.state.doc.descendants((node) => {
-      if (node.isText) {
-        text += node.text;
-      } else if (node.type.name === 'image') {
-        text += node.attrs.alt || '';
-      } else if (node.type.name === 'hardBreak') { // <br>タグ対応
-        text += '\n';
-      } else if (node.type.name === 'paragraph') {
-        if (text.length > 0 && !text.endsWith('\n')) {
-          text += '\n';
+    return editor.state.doc.textBetween(
+      0, 
+      editor.state.doc.content.size, 
+      '\n', // ブロック要素(段落など)の区切り文字
+      (node) => {
+        // テキスト以外のノード（画像など）の文字列表現を定義
+        if (node.type.name === 'image') {
+          return node.attrs.alt || '';
         }
+        if (node.type.name === 'hardBreak') { // <br>タグ
+           return '\n';
+        }
+        return '';
       }
-    });
-    return text.trim();
+    );
   };
 
   // 外部からcontentが変更された場合の同期
@@ -92,7 +92,7 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, Props>(({
     const currentText = getEditorText(editor);
     if (content !== '' && currentText === '') {
          // 改行を<br>タグに変換
-         const textWithBr = content.replace(/\n/g, '<br/>');
+         const textWithBr = content.replace(/(?:\r\n|\r|\n)/g, '<br/>');
          
          // twemojiでパースしてHTML文字列（<img>タグ含む）に変換
          const parsedContent = twemoji.parse(textWithBr, {

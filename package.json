@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@tailwindcss/typography": "^0.5.19",
     "@tiptap/extension-image": "^3.11.0",
     "@tiptap/react": "^3.11.0",
     "@tiptap/starter-kit": "^3.11.0",
@@ -18,13 +19,16 @@
     "next": "^14.2.33",
     "react": "^18",
     "react-dom": "^18",
-    "twemoji": "^14.0.2"
+    "tailwindcss-animate": "^1.0.7",
+    "twemoji": "^14.0.2",
+    "twitter-text": "^3.1.0"
   },
   "devDependencies": {
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@types/twemoji": "^12.1.0",
+    "@types/twitter-text": "^3.1.10",
     "autoprefixer": "^10.4.19",
     "eslint": "^8",
     "eslint-config-next": "^16.0.5",

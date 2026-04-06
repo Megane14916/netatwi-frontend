@@ -13,6 +13,8 @@ import JudgeLoginButton from '@/components/venue/JudgeLoginButton';
 import ImageGrid from '@/components/ImageGrid';
 import ResultPostCard from '@/components/ResultPostCard';
 import RichTextEditor, { RichTextEditorHandle } from '@/components/RichTextEditor';
+import ProgressRing from '@/components/ProgressRing';
+import { countText, TextCountResult } from '@/lib/twitterText';
 
 const API_PREFIX = '';
 
@@ -222,10 +224,18 @@ export default function VenueDetailPage() {
 
   const [showSuccessBanner, setShowSuccessBanner] = useState(false);
 
+  // 文字数カウント状態を追加
+  const [textCount, setTextCount] = useState<TextCountResult>({ length: 0, permillage: 0, isValid: false, remaining: 280 });
+
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const emojiButtonRef = useRef<HTMLButtonElement>(null);
 
   const editorRef = useRef<RichTextEditorHandle>(null);
+
+  // 文字数カウントの更新
+  useEffect(() => {
+    setTextCount(countText(newPostContent));
+  }, [newPostContent]);
 
   const maxTotalScore = useMemo(() => {
       if (!contest || !results || results.length === 0) return 0;
@@ -442,6 +452,14 @@ export default function VenueDetailPage() {
   const handlePostSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isPostDeadlineExceeded) return;
+
+    // 文字数チェック
+    const check = countText(newPostContent);
+    if (!check.isValid && newPostContent.trim().length > 0) {
+      alert('文字数制限（280文字）を超えています');
+      return;
+    }
+
     // エディタの内容は state (newPostContent) に同期されている前提
     if ((!newPostContent.trim() && previewUrls.length === 0) || !user) return;
 
@@ -671,10 +689,13 @@ export default function VenueDetailPage() {
                             )}
                             <button type="button" ref={emojiButtonRef} onClick={()=>setShowEmojiPicker(!showEmojiPicker)} disabled={isPostDeadlineExceeded} className="text-gray-400 hover:text-yellow-400 p-2 rounded-full hover:bg-gray-800 transition-colors"><Smile className="h-6 w-6"/></button>
                        </div>
-                       <button type="submit" disabled={(!newPostContent.trim() && previewUrls.length === 0) || isSubmitting} className="bg-yellow-500 text-black font-bold py-2 px-6 rounded-full disabled:bg-gray-600 flex items-center">
-                           {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2"/> : <Send className="inline w-4 h-4 mr-2"/>}
-                           {isSubmitting ? '送信中...' : (isEditing ? '更新する' : '投稿')}
-                       </button>
+                       <div className="flex items-center gap-3">
+                           <ProgressRing permillage={textCount.permillage} remaining={textCount.remaining} />
+                           <button type="submit" disabled={(!newPostContent.trim() && previewUrls.length === 0) || isSubmitting || !textCount.isValid} className="bg-yellow-500 text-black font-bold py-2 px-6 rounded-full disabled:bg-gray-600 flex items-center">
+                               {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2"/> : <Send className="inline w-4 h-4 mr-2"/>}
+                               {isSubmitting ? '送信中...' : (isEditing ? '更新する' : '投稿')}
+                           </button>
+                       </div>
                    </div>
                              {showEmojiPicker && <div className="absolute z-10 mt-2" ref={emojiPickerRef}><EmojiPicker onEmojiClick={onEmojiClick} theme={Theme.DARK} emojiStyle={EmojiStyle.TWITTER} skinTonePickerLocation={SkinTonePickerLocation.PREVIEW} lazyLoadEmojis={true}/></div>}
                          </form>
