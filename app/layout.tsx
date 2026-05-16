@@ -4,6 +4,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { AuthProvider } from "@/context/AuthContext";
 import Script from "next/script"; // Scriptコンポーネントをインポート
+import { Noto_Sans_JP, Inter } from "next/font/google";
 
 export const metadata: Metadata = {
   title: "ネタツイグランプリ",
@@ -12,6 +13,18 @@ export const metadata: Metadata = {
 
 // Google Analyticsの測定IDを環境変数から取得
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
+const notoSansJP = Noto_Sans_JP({
+  subsets: ["latin"],
+  weight: ["400", "500", "700", "900"],
+  display: "swap",
+  variable: "--font-noto-sans-jp",
+});
+
+const inter = Inter({ 
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter"
+});
 
 export default function RootLayout({
   children,
@@ -41,7 +54,7 @@ export default function RootLayout({
           </>
         )}
       </head>
-      <body className={`bg-gray-950 text-white flex flex-col min-h-screen`}>
+      <body className={`${notoSansJP.variable} ${inter.variable} bg-gray-950 text-white flex flex-col min-h-screen`}>
         <AuthProvider>
           <Header />
           <main className="flex-grow flex flex-col">{children}</main>

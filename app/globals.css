@@ -63,8 +63,10 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-noto-sans-jp), sans-serif;
   }
 }
 
@@ -81,11 +83,11 @@
 
 /* --- ▼▼▼ カレンダーアイコン ▼▼▼ --- */
 input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-    /* display: none; を削除 */
-    /* -webkit-appearance: none; を削除 */
-    /* filterを使って色を変更 (黄色っぽく) */
-    filter: invert(75%) sepia(50%) saturate(500%) hue-rotate(350deg) brightness(1.1);
-    cursor: pointer;
-    /* アイコンと入力内容が重ならないように少し右に余白を追加 (任意) */
-    margin-right: 0.5rem; 
+  /* display: none; を削除 */
+  /* -webkit-appearance: none; を削除 */
+  /* filterを使って色を変更 (黄色っぽく) */
+  filter: invert(75%) sepia(50%) saturate(500%) hue-rotate(350deg) brightness(1.1);
+  cursor: pointer;
+  /* アイコンと入力内容が重ならないように少し右に余白を追加 (任意) */
+  margin-right: 0.5rem;
 }
