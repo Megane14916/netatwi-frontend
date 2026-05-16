@@ -181,28 +181,27 @@ function HeroTimelineRail() {
 
     const tick = () => {
       setStep((prev) => {
-        if (prev === 4) {
+        // シームレスな無限ループ：ステップ16に達したら、見た目が全く同じ1グループ前(ステップ12)に一瞬で戻す
+        if (prev === 16) {
           setIsTransitioning(false);
           setTimeout(() => {
             setIsTransitioning(true);
-            setStep(1);
+            setStep(13);
           }, 50);
-          return 0;
+          return 12;
         }
         return prev + 1;
       });
 
       // ▼ ここの数値を変更するとスクロールの間隔が変わります
-      const minDelay = 100; // 最小間隔 (0.2秒)
-      const maxDelay = 300; // 最大間隔 (0.5秒)
+      const minDelay = 100; // 最小間隔 (0.1秒)
+      const maxDelay = 300; // 最大間隔 (0.3秒)
       const nextDelay = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
 
       timeoutId = setTimeout(tick, nextDelay);
     };
 
-    const minDelay = 200;
-    const maxDelay = 500;
-    const initialDelay = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
+    const initialDelay = 50; // マウント直後に動き出すように短く設定
     timeoutId = setTimeout(tick, initialDelay);
 
     return () => clearTimeout(timeoutId);
@@ -210,19 +209,22 @@ function HeroTimelineRail() {
 
   return (
     <div
-      className="pt-12 h-full w-full border-l border-gray-200 bg-white overflow-hidden"
+      className="pt-12 h-full w-full bg-white overflow-hidden"
       style={{
         maskImage: 'linear-gradient(to bottom, transparent, white 5%, white 100%)',
         WebkitMaskImage: 'linear-gradient(to bottom, transparent, white 5%, white 100%)'
       }}
     >
       <div
-        className="flex flex-col w-[600px]"
+        className="flex flex-col w-[600px] border-l border-gray-200"
         style={{
-          transform: `translateY(calc(-100% / 12 * ${step}))`,
+          transform: `translateY(calc(100dvh - ${step * 160}px))`,
           transition: isTransitioning ? 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)' : 'none'
         }}
       >
+        <HeroTimelineGroup />
+        <HeroTimelineGroup />
+        <HeroTimelineGroup />
         <HeroTimelineGroup />
         <HeroTimelineGroup />
         <HeroTimelineGroup />
