@@ -194,8 +194,8 @@ function HeroTimelineRail() {
       });
 
       // ▼ ここの数値を変更するとスクロールの間隔が変わります
-      const minDelay = 100; // 最小間隔 (0.1秒)
-      const maxDelay = 300; // 最大間隔 (0.3秒)
+      const minDelay = 200; // 最小間隔 (0.1秒)
+      const maxDelay = 900; // 最大間隔 (0.3秒)
       const nextDelay = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
 
       timeoutId = setTimeout(tick, nextDelay);
@@ -291,12 +291,12 @@ export default function HomePage() {
         <div className="relative z-20 mx-auto flex h-full w-full max-w-7xl items-end px-6 pb-24 md:px-10">
           <div className="w-full">
             <h1 className="leading-tight tracking-tight" style={{ fontFamily: 'var(--font-inter), sans-serif' }}>
-              <span className="block text-3xl font-light text-black md:text-4xl">Netatwi GrandPrix</span>
+              <span className="block text-3xl font-light text-black md:text-4xl">Netatweet GrandPrix</span>
               <span className="mt-4 block text-5xl font-black leading-none text-black/80 md:text-7xl lg:text-[5.25rem]">
-                Tiny Tweets
+                Tiny Tweets.
               </span>
               <span className="mt-2 block text-5xl font-black leading-none text-black/80 md:text-7xl lg:text-[5.25rem]">
-                Huge Laughs
+                Huge Laughs.
               </span>
             </h1>
             <Link
