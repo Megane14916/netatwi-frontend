@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Clock3, ExternalLink, Image as ImageIcon, Send, Smile, Users, Heart, Bookmark, Share2, MessageCircle, Repeat2, BarChart2 } from 'lucide-react';
 import ProgressRing from '@/components/ProgressRing';
@@ -114,53 +114,51 @@ function HeroTimelineGroup() {
   return (
     <div className="flex flex-col">
       {timelinePostsMock.map((post) => (
-        <article key={post.id} className="flex h-[160px] w-full flex-col justify-center border-b border-gray-200 bg-white p-4 transition-colors hover:bg-gray-50">
-          <div className="flex items-start gap-3">
+        <article key={post.id} className="flex h-[160px] w-full flex-col justify-center border-b border-gray-200 bg-white p-3 transition-colors hover:bg-gray-50 sm:p-4">
+          <div className="flex items-start gap-2 sm:gap-3">
             <div className="flex-none">
               <div className="block transition-opacity hover:opacity-80">
-                <div className="h-10 w-10 rounded-full border border-gray-200 bg-gray-300" />
+                <div className="h-8 w-8 rounded-full border border-gray-200 bg-gray-300 sm:h-10 sm:w-10" />
               </div>
             </div>
             <div className="min-w-0 flex-grow">
               <div className="mb-1 flex items-start justify-between">
                 <div className="flex min-w-0 flex-wrap items-center gap-1">
-                  <span className="truncate text-base font-bold leading-tight text-black hover:underline">
+                  <span className="truncate text-sm font-bold leading-tight text-black hover:underline sm:text-base">
                     {post.userName}
                   </span>
-                  <span className="truncate text-sm text-gray-500" style={{ flexShrink: 1000 }}>
+                  <span className="truncate text-xs text-gray-500 sm:text-sm" style={{ flexShrink: 1000 }}>
                     {post.screenName}
                   </span>
-                  <span className="flex-shrink-0 text-sm text-gray-400">·</span>
-                  <span className="text-sm text-gray-500">{post.postedAt}</span>
                 </div>
               </div>
               <div>
-                <p className="line-clamp-2 whitespace-pre-wrap text-sm text-black/90">{post.body}</p>
+                <p className="whitespace-pre-wrap text-xs text-black/90 sm:text-sm">{post.body}</p>
               </div>
               <div className="mt-3 flex items-center justify-between text-gray-400">
                 <button type="button" aria-label="コメント" className="group -ml-2 flex items-center focus:outline-none">
-                  <div className="rounded-full p-2 transition-colors group-hover:bg-blue-500/10 group-hover:text-blue-500">
-                    <MessageCircle className="h-4 w-4" />
+                  <div className="rounded-full p-1.5 transition-colors group-hover:bg-blue-500/10 group-hover:text-blue-500 sm:p-2">
+                    <MessageCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   </div>
                 </button>
                 <button type="button" aria-label="リポスト" className="group flex items-center focus:outline-none">
-                  <div className="rounded-full p-2 transition-colors group-hover:bg-green-500/10 group-hover:text-green-500">
-                    <Repeat2 className="h-4 w-4" />
+                  <div className="rounded-full p-1.5 transition-colors group-hover:bg-green-500/10 group-hover:text-green-500 sm:p-2">
+                    <Repeat2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   </div>
                 </button>
                 <button type="button" aria-label="いいね" className="group flex items-center focus:outline-none">
-                  <div className="rounded-full p-2 transition-colors group-hover:bg-pink-500/10 group-hover:text-pink-500">
-                    <Heart className="h-4 w-4" />
+                  <div className="rounded-full p-1.5 transition-colors group-hover:bg-pink-500/10 group-hover:text-pink-500 sm:p-2">
+                    <Heart className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   </div>
                 </button>
                 <button type="button" aria-label="インプレッション" className="group flex items-center focus:outline-none">
-                  <div className="rounded-full p-2 transition-colors group-hover:bg-blue-500/10 group-hover:text-blue-500">
-                    <BarChart2 className="h-4 w-4" />
+                  <div className="rounded-full p-1.5 transition-colors group-hover:bg-blue-500/10 group-hover:text-blue-500 sm:p-2">
+                    <BarChart2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   </div>
                 </button>
                 <button type="button" aria-label="ブックマーク" className="group -mr-2 flex items-center focus:outline-none">
-                  <div className="rounded-full p-2 transition-colors group-hover:bg-blue-500/10 group-hover:text-blue-500">
-                    <Bookmark className="h-4 w-4" />
+                  <div className="rounded-full p-1.5 transition-colors group-hover:bg-blue-500/10 group-hover:text-blue-500 sm:p-2">
+                    <Bookmark className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   </div>
                 </button>
               </div>
@@ -194,8 +192,8 @@ function HeroTimelineRail() {
       });
 
       // ▼ ここの数値を変更するとスクロールの間隔が変わります
-      const minDelay = 200; // 最小間隔 (0.1秒)
-      const maxDelay = 900; // 最大間隔 (0.3秒)
+      const minDelay = 500; // 最小間隔 (0.1秒)
+      const maxDelay = 2000; // 最大間隔 (0.3秒)
       const nextDelay = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
 
       timeoutId = setTimeout(tick, nextDelay);
@@ -216,7 +214,7 @@ function HeroTimelineRail() {
       }}
     >
       <div
-        className="flex flex-col w-[600px] border-l border-gray-200"
+        className="flex flex-col w-full max-w-full border-l border-gray-200 lg:w-[600px]"
         style={{
           transform: `translateY(calc(100dvh - ${step * 160}px))`,
           transition: isTransitioning ? 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)' : 'none'
@@ -262,6 +260,46 @@ function TimelineRail({ direction }: { direction: 'up' | 'down' }) {
 }
 
 export default function HomePage() {
+  const heroTitleMeasureRef = useRef<HTMLSpanElement | null>(null);
+  const heroTaglinesRef = useRef<HTMLDivElement | null>(null);
+  const [heroTitleFontSize, setHeroTitleFontSize] = useState<number | null>(null);
+
+  useEffect(() => {
+    const updateHeroTitleFontSize = () => {
+      const measureEl = heroTitleMeasureRef.current;
+      const taglinesEl = heroTaglinesRef.current;
+      if (!measureEl || !taglinesEl) return;
+
+      const isMobile = window.matchMedia('(max-width: 767px)').matches;
+      if (!isMobile) {
+        setHeroTitleFontSize(null);
+        return;
+      }
+
+      const baseWidth = measureEl.offsetWidth;
+      const taglinesWidth = taglinesEl.offsetWidth;
+      if (baseWidth === 0 || taglinesWidth === 0) return;
+
+      const baseFontSize = parseFloat(window.getComputedStyle(measureEl).fontSize || '0');
+      if (!baseFontSize) return;
+
+      const targetWidth = taglinesWidth * 0.9;
+      const ratio = Math.min(targetWidth / baseWidth, 1);
+      const nextFontSize = baseFontSize * ratio;
+
+      setHeroTitleFontSize((prev) => {
+        if (prev === null && Math.abs(ratio - 1) < 0.01) return prev;
+        if (prev !== null && Math.abs(prev - nextFontSize) < 0.5) return prev;
+        return nextFontSize;
+      });
+    };
+
+    updateHeroTitleFontSize();
+    document.fonts?.ready?.then(updateHeroTitleFontSize);
+    window.addEventListener('resize', updateHeroTitleFontSize);
+    return () => window.removeEventListener('resize', updateHeroTitleFontSize);
+  }, []);
+
   return (
     <div className="relative bg-white text-black">
       <section className="relative z-0 flex h-[calc(100vh-4rem)] min-h-[640px] items-center bg-white">
@@ -274,7 +312,7 @@ export default function HomePage() {
         </svg>
 
         {/* Right Timeline */}
-        <div className="absolute bottom-0 right-0 top-0 z-0 w-[50vw] overflow-hidden lg:w-[600px]">
+        <div className="absolute bottom-0 right-0 top-0 z-0 w-[60vw] overflow-hidden lg:w-[600px]">
           <HeroTimelineRail />
         </div>
 
@@ -290,14 +328,30 @@ export default function HomePage() {
         {/* Main Content */}
         <div className="relative z-20 mx-auto flex h-full w-full max-w-7xl items-end px-6 pb-24 md:px-10">
           <div className="w-full">
-            <h1 className="leading-tight tracking-tight" style={{ fontFamily: 'var(--font-inter), sans-serif' }}>
-              <span className="block text-3xl font-light text-black md:text-4xl">Netatweet GrandPrix</span>
-              <span className="mt-4 block text-5xl font-black leading-none text-black/80 md:text-7xl lg:text-[5.25rem]">
-                Tiny Tweets.
+            <h1 className="relative leading-tight tracking-tight" style={{ fontFamily: 'var(--font-inter), sans-serif' }}>
+              <span
+                ref={heroTitleMeasureRef}
+                aria-hidden="true"
+                className="pointer-events-none absolute left-0 top-0 whitespace-nowrap text-3xl font-light text-black opacity-0 md:text-4xl"
+              >
+                Netatweet GrandPrix
               </span>
-              <span className="mt-2 block text-5xl font-black leading-none text-black/80 md:text-7xl lg:text-[5.25rem]">
-                Huge Laughs.
+              <span
+                className="block whitespace-nowrap text-3xl font-light text-black md:text-4xl"
+                style={heroTitleFontSize ? { fontSize: `${heroTitleFontSize}px` } : undefined}
+              >
+                Netatweet GrandPrix
               </span>
+              <div ref={heroTaglinesRef} className="mt-4 inline-flex flex-col items-start">
+                <span className="block text-5xl font-black leading-none text-black/80 md:text-7xl lg:text-[5.25rem]">
+                  <span className="block md:inline">Tiny</span>
+                  <span className="block md:inline md:ml-2">Tweets.</span>
+                </span>
+                <span className="mt-2 block text-5xl font-black leading-none text-black/80 md:text-7xl lg:text-[5.25rem]">
+                  <span className="block md:inline">Huge</span>
+                  <span className="block md:inline md:ml-2">Laughs.</span>
+                </span>
+              </div>
             </h1>
             <Link
               href="/venue"
