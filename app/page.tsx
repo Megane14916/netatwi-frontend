@@ -312,7 +312,7 @@ export default function HomePage() {
         </svg>
 
         {/* Right Timeline */}
-        <div className="absolute bottom-0 right-0 top-0 z-0 w-[60vw] overflow-hidden lg:w-[600px]">
+        <div className="absolute bottom-0 right-0 top-0 z-0 w-[55.56vw] overflow-hidden lg:w-[600px]">
           <HeroTimelineRail />
         </div>
 
@@ -332,22 +332,22 @@ export default function HomePage() {
               <span
                 ref={heroTitleMeasureRef}
                 aria-hidden="true"
-                className="pointer-events-none absolute left-0 top-0 whitespace-nowrap text-3xl font-light text-black opacity-0 md:text-4xl"
+                className="pointer-events-none absolute left-0 top-0 whitespace-nowrap text-[1.75rem] font-light text-black opacity-0 md:text-4xl"
               >
                 Netatweet GrandPrix
               </span>
               <span
-                className="block whitespace-nowrap text-3xl font-light text-black md:text-4xl"
+                className="block whitespace-nowrap text-[1.75rem] font-light text-black md:text-4xl"
                 style={heroTitleFontSize ? { fontSize: `${heroTitleFontSize}px` } : undefined}
               >
                 Netatweet GrandPrix
               </span>
               <div ref={heroTaglinesRef} className="mt-4 inline-flex flex-col items-start">
-                <span className="block text-5xl font-black leading-none text-black/80 md:text-7xl lg:text-[5.25rem]">
+                <span className="block text-[2.5rem] font-black leading-none text-black/80 md:text-7xl lg:text-[5.25rem]">
                   <span className="block md:inline">Tiny</span>
                   <span className="block md:inline md:ml-2">Tweets.</span>
                 </span>
-                <span className="mt-2 block text-5xl font-black leading-none text-black/80 md:text-7xl lg:text-[5.25rem]">
+                <span className="mt-2 block text-[2.5rem] font-black leading-none text-black/80 md:text-7xl lg:text-[5.25rem]">
                   <span className="block md:inline">Huge</span>
                   <span className="block md:inline md:ml-2">Laughs.</span>
                 </span>
