@@ -37,6 +37,8 @@ interface Contest {
   advancementDenominator?: number | null;
   parentContestId?: number;
   isAdvancedToFinal?: boolean | null;
+  scoringMethod: string;
+  type: string;
 }
 
 interface Post {
