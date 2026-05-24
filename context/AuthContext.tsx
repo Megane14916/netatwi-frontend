@@ -11,6 +11,7 @@ interface User {
   screen_name: string;
   name: string;
   profile_image_url: string;
+  isAdmin?: boolean;
 }
 
 interface AuthContextType {

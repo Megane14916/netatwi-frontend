@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
-import { Crown, Twitter, LogOut, User as UserIcon, ChevronDown } from 'lucide-react';
+import { Crown, Twitter, LogOut, User as UserIcon, ChevronDown, Bell } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 
@@ -12,6 +12,27 @@ export default function Header() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const mobileDropdownRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (user) {
+      const fetchNotifications = async () => {
+        try {
+          const res = await fetch('/api/notifications');
+          if (res.ok) {
+            const data = await res.json();
+            const unread = data.filter((n: any) => !n.is_read).length;
+            setUnreadCount(unread);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      };
+      fetchNotifications();
+      const interval = setInterval(fetchNotifications, 60000);
+      return () => clearInterval(interval);
+    }
+  }, [user]);
 
   // 追加: ページ遷移が発生したらメニューを確実に閉じる
   useEffect(() => {
@@ -75,7 +96,18 @@ export default function Header() {
         {loading ? (
           <div className="h-8 w-24 rounded-md bg-gray-700 animate-pulse"></div>
         ) : user ? (
-          <> {/* PC用ドロップダウン */}
+          <> 
+            {/* 通知アイコン */}
+            <Link href="/notifications" className="relative p-2 text-gray-400 hover:text-white transition-colors">
+              <Bell className="w-5 h-5" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </Link>
+
+            {/* PC用ドロップダウン */}
             <div className="relative hidden md:block" ref={dropdownRef}>
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}

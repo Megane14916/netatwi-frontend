@@ -6,6 +6,7 @@ import { Heart, Bookmark, Share2, Award } from 'lucide-react';
 import ImageGrid from './ImageGrid';
 import TimeAgo from './TimeAgo';
 import Twemoji from './Twemoji';
+import CommentList from './CommentList';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/ja';
@@ -44,22 +45,32 @@ export interface ResultPostProps {
   };
   currentUser: any; // ログインユーザー情報
   onToggleBookmark?: (post: any) => void;
+  contestScoringMethod?: string;
 }
 
-export default function ResultPostCard({ post, currentUser, onToggleBookmark }: ResultPostProps) {
+export default function ResultPostCard({ post, currentUser, onToggleBookmark, contestScoringMethod }: ResultPostProps) {
   const [isBookmarked, setIsBookmarked] = useState(post.isBookmarked);
   const [bookmarkCount, setBookmarkCount] = useState(post.bookmarkCount);
+
+  const initialIsLiked = (post.myVotes !== undefined && post.myVotes > 0) ||
+    (currentUser && post.voters?.some(v => v.screen_name === currentUser.screen_name && !v.is_judge));
+    
+  const isJudgeForThisPost = currentUser && post.voters?.some(v => v.screen_name === currentUser.screen_name && v.is_judge);
+
+  const initialLikeCount = contestScoringMethod === 'judge' 
+    ? (post.voters?.filter(v => !v.is_judge).reduce((sum, v) => sum + v.count, 0) || 0)
+    : post.score;
+
+  const [isLiked, setIsLiked] = useState(initialIsLiked);
+  const [likeCount, setLikeCount] = useState(initialLikeCount);
 
   // 親から渡されたデータが変わったら同期
   useEffect(() => {
     setIsBookmarked(post.isBookmarked);
     setBookmarkCount(post.bookmarkCount);
-  }, [post.isBookmarked, post.bookmarkCount]);
-
-  // 自分が投票したかどうかを判定
-  const isVotedByMe = 
-    (post.myVotes !== undefined && post.myVotes > 0) ||
-    (currentUser && post.voters?.some(v => v.screen_name === currentUser.screen_name));
+    setIsLiked(initialIsLiked);
+    setLikeCount(initialLikeCount);
+  }, [post.isBookmarked, post.bookmarkCount, post.score, post.voters, currentUser]);
 
   // ブックマーク処理
   const handleBookmark = async () => {
@@ -98,6 +109,31 @@ export default function ResultPostCard({ post, currentUser, onToggleBookmark }: 
       setIsBookmarked(prevIsBookmarked);
       setBookmarkCount(prevCount);
       console.error(e);
+    }
+  };
+
+  const handleLike = async () => {
+    if (!currentUser || contestScoringMethod !== 'judge') return;
+    const prevIsLiked = isLiked;
+    const prevCount = likeCount;
+    setIsLiked(!prevIsLiked);
+    setLikeCount(prevIsLiked ? prevCount - 1 : prevCount + 1);
+    try {
+      const res = await fetch(`/api/posts/${post.post_id}/like`, { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        setIsLiked(data.isLiked);
+        setLikeCount(data.likeCount);
+      } else {
+        const errData = await res.json();
+        alert(errData.error || "いいねに失敗しました");
+        setIsLiked(prevIsLiked);
+        setLikeCount(prevCount);
+      }
+    } catch {
+      alert("いいねに失敗しました");
+      setIsLiked(prevIsLiked);
+      setLikeCount(prevCount);
     }
   };
 
@@ -194,13 +230,34 @@ return (
 
             {/* アクションバー (右寄せ: シェア -> ブックマーク -> いいね) */}
             <div className="flex items-center justify-end gap-6 mt-3 text-gray-500">
-                {/* 得票数 (Heart) */}
-                <div className="flex items-center group cursor-default" title="得票数">
-                    <div className={`p-2 rounded-full transition-colors ${isVotedByMe ? 'bg-pink-500/10' : 'group-hover:bg-pink-500/10'}`}>
-                        <Heart className={`h-5 w-5 ${isVotedByMe ? 'text-pink-500 fill-current' : 'group-hover:text-pink-500'}`} />
+                {/* 得点/いいね数 */}
+                {contestScoringMethod === 'judge' ? (
+                  <>
+                    <div className="flex items-center group cursor-default text-yellow-500" title="審査員スコア">
+                        <div className="p-2 rounded-full bg-yellow-500/10">
+                            <Award className="h-5 w-5 fill-current" />
+                        </div>
+                        <span className="text-sm font-bold ml-1">{post.score}</span>
                     </div>
-                    <span className={`text-sm font-bold ml-1 ${isVotedByMe ? 'text-pink-500' : 'group-hover:text-pink-500'}`}>{post.score}</span>
-                </div>
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); handleLike(); }}
+                        disabled={!currentUser || isJudgeForThisPost}
+                        className={`flex items-center group focus:outline-none ${isJudgeForThisPost ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                        title={isJudgeForThisPost ? "審査員はいいねできません" : "いいね"}>
+                        <div className={`p-2 rounded-full transition-colors ${isLiked ? 'bg-pink-500/10 hover:bg-pink-500/20' : 'hover:bg-pink-500/10'}`}>
+                            <Heart className={`h-5 w-5 ${isLiked ? 'text-pink-500 fill-current' : 'group-hover:text-pink-500'}`} />
+                        </div>
+                        <span className={`text-sm font-bold ml-1 ${isLiked ? 'text-pink-500' : 'group-hover:text-pink-500'}`}>{likeCount}</span>
+                    </button>
+                  </>
+                ) : (
+                  <div className="flex items-center group cursor-default" title="得票数">
+                      <div className={`p-2 rounded-full transition-colors ${isLiked ? 'bg-pink-500/10' : 'group-hover:bg-pink-500/10'}`}>
+                          <Heart className={`h-5 w-5 ${isLiked ? 'text-pink-500 fill-current' : 'group-hover:text-pink-500'}`} />
+                      </div>
+                      <span className={`text-sm font-bold ml-1 ${isLiked ? 'text-pink-500' : 'group-hover:text-pink-500'}`}>{post.score}</span>
+                  </div>
+                )}
 
                 {/* ブックマーク */}
                 <button 
@@ -255,6 +312,9 @@ return (
                 </div>
                 </div>
             )}
+            
+            {/* コメント機能 */}
+            <CommentList postId={post.post_id} currentUser={currentUser} contestStatus="closed" />
         </div>
       </div>
     </div>

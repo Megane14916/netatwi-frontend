@@ -266,6 +266,7 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
                     post={post} 
                     currentUser={currentUser} 
                     onToggleBookmark={handleToggleBookmark}
+                    contestScoringMethod={post.contest?.scoringMethod}
                 />
               </div>
             ))

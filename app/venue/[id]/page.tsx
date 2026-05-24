@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef,useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, Fragment } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Send, Smile, Heart, Info, CheckCircle, Trophy, ShieldCheck, Clock, X, User,Users, AlertTriangle,AlertCircle, Loader2, Award,  Image as ImageIcon ,UserStar} from 'lucide-react';
@@ -12,6 +12,7 @@ import dayjs from 'dayjs';
 import JudgeLoginButton from '@/components/venue/JudgeLoginButton';
 import ImageGrid from '@/components/ImageGrid';
 import ResultPostCard from '@/components/ResultPostCard';
+import CommentList from '@/components/CommentList';
 import RichTextEditor, { RichTextEditorHandle } from '@/components/RichTextEditor';
 import ProgressRing from '@/components/ProgressRing';
 import { countText, TextCountResult } from '@/lib/twitterText';
@@ -30,7 +31,12 @@ interface Contest {
   votingEndTime: string;
   generalVoteWeight: number;
   judgeMaxScore: number
-  allowImages: boolean;
+  imageRule: string;
+  isVotingVisible: boolean;
+  advancementNumerator?: number | null;
+  advancementDenominator?: number | null;
+  parentContestId?: number;
+  isAdvancedToFinal?: boolean | null;
 }
 
 interface Post {
@@ -73,6 +79,7 @@ interface ResultPost {
   bookmarkCount: number;
   isBookmarked: boolean;
   awards: string[]; 
+  is_advanced?: boolean;
 }
 
 interface JudgeAwardResult {
@@ -459,6 +466,12 @@ export default function VenueDetailPage() {
       alert('文字数制限（280文字）を超えています');
       return;
     }
+    
+    // 画像必須チェック
+    if (contest?.imageRule === 'required' && previewUrls.length === 0 && selectedImages.length === 0) {
+      alert('画像を1枚以上添付してください');
+      return;
+    }
 
     // エディタの内容は state (newPostContent) に同期されている前提
     if ((!newPostContent.trim() && previewUrls.length === 0) || !user) return;
@@ -555,7 +568,9 @@ export default function VenueDetailPage() {
   const isPostPeriod = !isPostDeadlineExceeded && contestStatus === 'ongoing';
   const isVotePeriod = !isVoteDeadlineExceeded && contestStatus === 'voting';
   const canVote = contestStatus === 'voting' && user;
-  const showVoteUI = (contestStatus === 'voting' && user) || (isJudgeMode && contestStatus === 'voting');
+  const showVoteUI = contestStatus === 'voting' && (
+      (contest.scoringMethod !== 'judge' && user) || isJudgeMode
+  );
 
   // 変更点: 投票済みでもボタン無効化しない
   const voteUIDisabled = false;
@@ -596,8 +611,8 @@ export default function VenueDetailPage() {
                      <div>
                          <h1 className="text-2xl font-bold text-yellow-400">{contest.name}</h1>
                      </div>
-                     {/* 審査員ボタン: 投票期間のみ表示 */}
-                     {!isJudgeMode && isVotePeriod && (
+                     {/* 審査員ボタン: 投票期間のみ表示、かつ審査員が含まれる場合のみ */}
+                     {!isJudgeMode && isVotePeriod && contest.scoringMethod !== 'user' && (
                          <JudgeLoginButton contestId={contestId} onLoginSuccess={async()=>{await refetchUser(); await fetchData();}} />
                      )}
                      {isJudgeMode && (<span className="px-3 py-1 bg-indigo-600 text-white text-xs rounded-full font-bold flex-shrink-0 ml-2">審査員モード</span>)}
@@ -628,7 +643,7 @@ export default function VenueDetailPage() {
                      {/* 4. 画像投稿の有無 */}
                      <div className="flex items-center bg-gray-800/50 px-2 py-1 rounded border border-gray-700/50">
                          <ImageIcon className="w-4 h-4 mr-1.5 text-gray-400" />
-                         画像投稿: {contest.allowImages ? '可' : '不可'}
+                         画像投稿: {contest.imageRule === 'required' ? '1枚以上必須' : contest.imageRule === 'none' ? '不可' : '可'}
                      </div>
         
                      {/* 5 & 6. 結果画面のみの表示項目 */}
@@ -658,7 +673,7 @@ export default function VenueDetailPage() {
           )}
 
           {/* 8. 投票期間の注意書き */}
-          {contestStatus === 'voting' && (
+          {contestStatus === 'voting' && showVoteUI && (
               <div className="bg-green-900/30 text-green-300 px-4 py-2 rounded-lg text-sm flex items-start border border-green-900/50">
                   <Info className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" />
                   <span>投票は期限内なら何回でも編集できます。</span>
@@ -669,8 +684,14 @@ export default function VenueDetailPage() {
         {/* 投稿期間 */}
         {contestStatus === 'ongoing' && (
           <div className="p-4 space-y-4">
-                      {user ? ( hasPosted && posts.length > 0 ? ( <MyPostDisplay post={posts[0]} isEditing={isEditing} setIsEditing={setIsEditing} onStartEdit={handleStartEdit} isDeadlinePassed={isPostDeadlineExceeded} user={user} /> ) : null ) : ( <div className="text-center py-10 text-gray-500">ログインすると投稿できます。</div> )}
-                      {user && (!hasPosted || isEditing) && (
+                      {user ? (
+                          contest.parentContestId && contest.isAdvancedToFinal === false ? (
+                              <div className="text-center py-10 text-gray-500 bg-gray-800/30 rounded-lg border border-gray-700">予選通過者のみ投稿できます。</div>
+                          ) : hasPosted && posts.length > 0 ? (
+                              <MyPostDisplay post={posts[0]} isEditing={isEditing} setIsEditing={setIsEditing} onStartEdit={handleStartEdit} isDeadlinePassed={isPostDeadlineExceeded} user={user} />
+                          ) : null
+                      ) : ( <div className="text-center py-10 text-gray-500">ログインすると投稿できます。</div> )}
+                      {user && (!contest.parentContestId || contest.isAdvancedToFinal !== false) && (!hasPosted || isEditing) && (
                          <form onSubmit={handlePostSubmit} className="relative">
                              <RichTextEditor
                                                      ref={editorRef}
@@ -684,14 +705,14 @@ export default function VenueDetailPage() {
                    <div className="flex justify-between items-center mt-3">
                        <div className="flex items-center gap-2">
                             <input type="file" multiple accept="image/*" onChange={handleImageSelect} className="hidden" ref={fileInputRef} disabled={isPostDeadlineExceeded || (previewUrls.length + selectedImages.length >= 4)}/>
-                            {contest.allowImages && (
+                            {contest.imageRule !== 'none' && (
                                 <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isPostDeadlineExceeded || (previewUrls.length >= 4)} className={`text-gray-400 hover:text-blue-400 p-2 rounded-full hover:bg-gray-800 transition-colors ${(previewUrls.length >= 4) ? 'opacity-50 cursor-not-allowed' : ''}`}> <ImageIcon className="h-6 w-6" /> </button>
                             )}
                             <button type="button" ref={emojiButtonRef} onClick={()=>setShowEmojiPicker(!showEmojiPicker)} disabled={isPostDeadlineExceeded} className="text-gray-400 hover:text-yellow-400 p-2 rounded-full hover:bg-gray-800 transition-colors"><Smile className="h-6 w-6"/></button>
                        </div>
                        <div className="flex items-center gap-3">
                            <ProgressRing permillage={textCount.permillage} remaining={textCount.remaining} />
-                           <button type="submit" disabled={(!newPostContent.trim() && previewUrls.length === 0) || isSubmitting || !textCount.isValid} className="bg-yellow-500 text-black font-bold py-2 px-6 rounded-full disabled:bg-gray-600 flex items-center">
+                           <button type="submit" disabled={(contest.imageRule !== 'required' && !newPostContent.trim() && previewUrls.length === 0) || isSubmitting || !textCount.isValid} className="bg-yellow-500 text-black font-bold py-2 px-6 rounded-full disabled:bg-gray-600 flex items-center">
                                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2"/> : <Send className="inline w-4 h-4 mr-2"/>}
                                {isSubmitting ? '送信中...' : (isEditing ? '更新する' : '投稿')}
                            </button>
@@ -706,9 +727,12 @@ export default function VenueDetailPage() {
         {/* 投票期間 */}
         {contestStatus === 'voting' && (
           <div>
-            <div className="divide-y divide-gray-800">
-            {posts.length > 0 ? (
-              posts.map((post) => {
+            {!contest.isVotingVisible && !isJudgeMode ? (
+              <div className="text-center py-20 text-gray-500 bg-gray-900 rounded-lg border border-gray-800">現在投票期間中のため、投稿は非公開です。</div>
+            ) : (
+              <div className="divide-y divide-gray-800">
+              {posts.length > 0 ? (
+                posts.map((post) => {
                 return (
                   <div key={post.id} className={`p-4 transition-colors hover:bg-gray-800/30`}>
                     <div className="flex items-start gap-3">
@@ -744,11 +768,16 @@ export default function VenueDetailPage() {
                         )
                       )}
                     </div>
+                    {/* コメント機能 */}
+                    <div className="mt-2">
+                        <CommentList postId={post.id} currentUser={user} contestStatus="voting" />
+                    </div>
                   </div>
                 );
               })
             ) : ( <div className="text-center py-12 text-gray-500">投稿がありません。</div> )}
             </div>
+            )}
           </div>
         )}
 
@@ -762,10 +791,24 @@ export default function VenueDetailPage() {
 
               {resultTab === 'ranking' && (
                 <div className="divide-y divide-gray-800">
-                                     {results.map((result) => (
-                                         <ResultPostCard key={result.post_id} post={result} currentUser={user} />
-                                     ))}
-                                 </div>
+                    {results.map((result, index) => {
+                        const showBorder = index > 0 && results[index - 1].is_advanced && !result.is_advanced;
+                        return (
+                            <Fragment key={result.post_id}>
+                                {showBorder && contest.advancementNumerator != null && contest.advancementDenominator != null && (
+                                    <div className="py-4 bg-gray-900 border-y border-red-500/50 flex items-center justify-center">
+                                        <span className="text-red-400 font-bold text-sm tracking-widest flex items-center">
+                                            <div className="w-12 h-px bg-red-500/50 mr-3"></div>
+                                            予選通過ボーダー
+                                            <div className="w-12 h-px bg-red-500/50 ml-3"></div>
+                                        </span>
+                                    </div>
+                                )}
+                                <ResultPostCard post={result} currentUser={user} contestScoringMethod={contest.scoringMethod} />
+                            </Fragment>
+                        );
+                    })}
+                </div>
               )}
 
               {resultTab === 'awards' && (

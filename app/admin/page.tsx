@@ -82,7 +82,8 @@ export default function AdminPage() {
         name: '',
         type: 'grandprix',
         hasQualifier: true,
-        advancementRate: 33,
+        advancementNumerator: 1,
+        advancementDenominator: 3,
 
         hasTheme: false,
         theme: '',
@@ -170,7 +171,7 @@ export default function AdminPage() {
                 setCreateStatus('success');
                 setCreateMessage(`大会「${createForm.name}」が作成されました！ (ID: ${data.id})`);
                 setCreateForm({
-                    name: '', type: 'grandprix', hasQualifier: true, advancementRate: 33,
+                    name: '', type: 'grandprix', hasQualifier: true, advancementNumerator: 1, advancementDenominator: 3,
                     hasTheme: false, theme: '', scoringMethod: 'judge', imageRule: 'required', isVotingVisible: false, startTime: '', endTime: '', votingEndTime: '', judgePassword: '', generalVoteWeight: 0, judgeMaxScore: 20,
                     qualifierHasTheme: false, qualifierTheme: '', qualifierScoringMethod: 'judge', qualifierImageRule: 'none', qualifierIsVotingVisible: false, qualifierStartTime: '', qualifierEndTime: '', qualifierVotingEndTime: '', qualifierJudgePassword: '', qualifierGeneralVoteWeight: 0, qualifierJudgeMaxScore: 20
                 });
@@ -189,7 +190,8 @@ export default function AdminPage() {
             if (field === 'type') {
                 if (value === 'grandprix') {
                     next.hasQualifier = true;
-                    next.advancementRate = 33;
+                    next.advancementNumerator = 1;
+                    next.advancementDenominator = 3;
                     next.scoringMethod = 'judge';
                     next.judgeMaxScore = 20;
                     next.generalVoteWeight = 0;
@@ -241,10 +243,10 @@ export default function AdminPage() {
         }
     };
 
-    if (!user) {
+    if (!user || !user.isAdmin) {
         return (
             <div className="container mx-auto px-4 py-8 text-center">
-                <h1 className="text-2xl font-bold">アクセス権がありません</h1>
+                <h1 className="text-2xl font-bold text-red-500">アクセス権がありません</h1>
                 <p className="text-gray-400 mt-2">このページは管理者専用です。</p>
             </div>
         );
@@ -287,8 +289,12 @@ export default function AdminPage() {
                                     <div className="space-y-6 p-6 border-2 border-gray-700 rounded-lg bg-gray-800/50">
                                         <h3 className="text-xl font-bold text-yellow-400 mb-4">予選の設定</h3>
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-300 mb-2">予選通過率 (%)</label>
-                                            <input type="number" min="1" max="100" value={createForm.advancementRate} onChange={(e) => handleCreateFormChange('advancementRate', parseInt(e.target.value))} className="w-1/3 bg-gray-800 border border-gray-700 rounded-md py-2 px-4 focus:ring-2 focus:ring-yellow-500 focus:outline-none" />
+                                            <label className="block text-sm font-medium text-gray-300 mb-2">予選通過割合</label>
+                                            <div className="flex items-center space-x-2">
+                                                <input type="number" min="1" value={createForm.advancementNumerator} onChange={(e) => handleCreateFormChange('advancementNumerator', parseInt(e.target.value) || 1)} className="w-20 bg-gray-800 border border-gray-700 rounded-md py-2 px-4 text-center focus:ring-2 focus:ring-yellow-500 focus:outline-none" placeholder="1" />
+                                                <span className="text-xl text-gray-400">/</span>
+                                                <input type="number" min="1" value={createForm.advancementDenominator} onChange={(e) => handleCreateFormChange('advancementDenominator', parseInt(e.target.value) || 1)} className="w-20 bg-gray-800 border border-gray-700 rounded-md py-2 px-4 text-center focus:ring-2 focus:ring-yellow-500 focus:outline-none" placeholder="3" />
+                                            </div>
                                         </div>
                                         <div className="p-4 border border-dashed border-gray-600 rounded-md bg-gray-900/50 space-y-4">
                                             <div>
