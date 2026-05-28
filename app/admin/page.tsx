@@ -71,6 +71,16 @@ interface ManagedContest {
     endTime: string;
     votingEndTime: string;
     judgePassword?: string | null;
+    type?: string;
+    scoringMethod?: string;
+    imageRule?: string;
+    generalVoteWeight?: number;
+    judgeMaxScore?: number;
+    isVotingVisible?: boolean;
+    advancementNumerator?: number | null;
+    advancementDenominator?: number | null;
+    resultCommentTop?: string | null;
+    resultCommentBottom?: string | null;
 }
 
 export default function AdminPage() {
@@ -119,6 +129,8 @@ export default function AdminPage() {
     const [showPasswordId, setShowPasswordId] = useState<number | null>(null);
     const [showDeleteModal, setShowDeleteModal] = useState<ManagedContest | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [editingContest, setEditingContest] = useState<ManagedContest | null>(null);
+    const [isUpdating, setIsUpdating] = useState(false);
 
     useEffect(() => {
         if (activeTab === 'manage') {
@@ -240,6 +252,35 @@ export default function AdminPage() {
             alert(`削除エラー: ${error instanceof Error ? error.message : error}`);
         } finally {
             setIsDeleting(false);
+        }
+    };
+
+    const handleEditSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingContest) return;
+        setIsUpdating(true);
+        try {
+            const payload: any = { ...editingContest };
+            payload.startTime = new Date(editingContest.startTime).toISOString();
+            payload.endTime = new Date(editingContest.endTime).toISOString();
+            payload.votingEndTime = new Date(editingContest.votingEndTime).toISOString();
+
+            const response = await fetch(`${API_PREFIX}/api/admin/contests/${editingContest.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+                credentials: 'include',
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.error || '更新に失敗しました。');
+            }
+            setManagedContests(prev => prev.map(c => c.id === editingContest.id ? { ...c, ...editingContest } : c));
+            setEditingContest(null);
+        } catch (error) {
+            alert(`更新エラー: ${error instanceof Error ? error.message : error}`);
+        } finally {
+            setIsUpdating(false);
         }
     };
 
@@ -483,7 +524,7 @@ export default function AdminPage() {
                                         </div>
                                         <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
                                             {contest.judgePassword ? (<div className="flex items-center bg-gray-700 px-2 py-1 rounded text-xs"> <KeyRound className="h-3 w-3 mr-1 text-gray-400" /> {showPasswordId === contest.id ? contest.judgePassword : '••••••'} <button onClick={() => setShowPasswordId(showPasswordId === contest.id ? null : contest.id)} className="ml-1.5 text-gray-400 hover:text-white"> {showPasswordId === contest.id ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />} </button> </div>) : (<span className="text-xs text-gray-500 italic px-2">PWなし</span>)}
-                                            <button className="text-xs px-2 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white flex items-center disabled:opacity-50" disabled> <Edit3 className="h-3 w-3 mr-1" /> 更新 </button>
+                                            <button onClick={() => setEditingContest(contest)} className="text-xs px-2 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white flex items-center"> <Edit3 className="h-3 w-3 mr-1" /> 更新 </button>
                                             <button onClick={() => setShowDeleteModal(contest)} className="text-xs px-2 py-1 rounded bg-red-600 hover:bg-red-700 text-white flex items-center"> <Trash2 className="h-3 w-3 mr-1" /> 削除 </button>
                                         </div>
                                     </div>
@@ -502,6 +543,38 @@ export default function AdminPage() {
                     onCancel={() => setShowDeleteModal(null)}
                     isDeleting={isDeleting}
                 />
+            )}
+
+            {/* 編集モーダル */}
+            {editingContest && (
+                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 overflow-y-auto">
+                    <div className="bg-gray-900 rounded-lg p-6 w-full max-w-2xl relative shadow-xl border border-gray-700 my-8">
+                        <h2 className="text-xl font-bold mb-4 text-yellow-400">大会情報の編集</h2>
+                        <form onSubmit={handleEditSubmit} className="space-y-4">
+                            <div> <label className="block text-sm font-medium text-gray-300 mb-1">大会名</label> <input type="text" value={editingContest.name} onChange={(e) => setEditingContest({ ...editingContest, name: e.target.value })} required className="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-4 focus:outline-none focus:ring-1 focus:ring-yellow-500" /> </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div> <label className="block text-sm font-medium text-gray-300 mb-1">投稿開始</label> <input type="datetime-local" value={editingContest.startTime.substring(0, 16)} onChange={(e) => setEditingContest({ ...editingContest, startTime: e.target.value })} required className="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-4 focus:outline-none focus:ring-1 focus:ring-yellow-500" /> </div>
+                                <div> <label className="block text-sm font-medium text-gray-300 mb-1">投稿終了</label> <input type="datetime-local" value={editingContest.endTime.substring(0, 16)} onChange={(e) => setEditingContest({ ...editingContest, endTime: e.target.value })} required className="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-4 focus:outline-none focus:ring-1 focus:ring-yellow-500" /> </div>
+                            </div>
+                            <div> <label className="block text-sm font-medium text-gray-300 mb-1">投票終了</label> <input type="datetime-local" value={editingContest.votingEndTime.substring(0, 16)} onChange={(e) => setEditingContest({ ...editingContest, votingEndTime: e.target.value })} required className="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-4 focus:outline-none focus:ring-1 focus:ring-yellow-500" /> </div>
+                            
+                            <div className="pt-2 border-t border-gray-700">
+                                <label className="block text-sm font-medium text-gray-300 mb-1 mt-2">主催者からのコメント（始め）</label> 
+                                <textarea value={editingContest.resultCommentTop || ''} onChange={(e) => setEditingContest({ ...editingContest, resultCommentTop: e.target.value })} placeholder="結果発表画面の上部に表示されます" rows={3} className="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-4 focus:outline-none focus:ring-1 focus:ring-yellow-500"></textarea> 
+                            </div>
+                            <div> 
+                                <label className="block text-sm font-medium text-gray-300 mb-1">主催者からのコメント（終わり）</label> 
+                                <textarea value={editingContest.resultCommentBottom || ''} onChange={(e) => setEditingContest({ ...editingContest, resultCommentBottom: e.target.value })} placeholder="結果発表画面の下部に表示されます" rows={3} className="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-4 focus:outline-none focus:ring-1 focus:ring-yellow-500"></textarea> 
+                            </div>
+                            
+                            <div className="flex justify-end gap-3 mt-6">
+                                <button type="button" onClick={() => setEditingContest(null)} disabled={isUpdating} className="px-4 py-2 text-sm rounded-md text-gray-400 hover:bg-gray-700 disabled:opacity-50">キャンセル</button>
+                                <button type="submit" disabled={isUpdating} className="px-4 py-2 text-sm rounded-md bg-yellow-600 hover:bg-yellow-700 text-white font-bold disabled:opacity-50">{isUpdating ? '更新中...' : '保存する'}</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             )}
         </div>
     );

@@ -39,6 +39,8 @@ interface Contest {
   isAdvancedToFinal?: boolean | null;
   scoringMethod: string;
   type: string;
+  resultCommentTop?: string | null;
+  resultCommentBottom?: string | null;
 }
 
 interface Post {
@@ -786,6 +788,11 @@ export default function VenueDetailPage() {
         {/* 結果発表 */}
         {contestStatus === 'closed' && (
           <div>
+              {contest.resultCommentTop && (
+                  <div className="mb-6 p-4 bg-gray-800/50 rounded-lg border border-gray-700 whitespace-pre-wrap text-gray-200">
+                      {contest.resultCommentTop}
+                  </div>
+              )}
               <div className="flex border-b border-gray-800">
                   <button onClick={()=>setResultTab('ranking')} className={`flex-1 py-3 text-sm font-bold ${resultTab==='ranking' ? 'text-yellow-400 border-b-2 border-yellow-400' : 'text-gray-500 hover:text-gray-300'}`}>ランキング</button>
                   <button onClick={()=>setResultTab('awards')} className={`flex-1 py-3 text-sm font-bold ${resultTab==='awards' ? 'text-indigo-400 border-b-2 border-indigo-400' : 'text-gray-500 hover:text-gray-300'}`}>審査員賞</button>
@@ -872,6 +879,11 @@ export default function VenueDetailPage() {
                               </div>
                           </div>
                       ))}
+                  </div>
+              )}
+              {contest.resultCommentBottom && (
+                  <div className="mt-6 p-4 bg-gray-800/50 rounded-lg border border-gray-700 whitespace-pre-wrap text-gray-200">
+                      {contest.resultCommentBottom}
                   </div>
               )}
           </div>
