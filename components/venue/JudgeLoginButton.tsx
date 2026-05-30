@@ -55,7 +55,7 @@ export default function JudgeLoginButton({ contestId, onLoginSuccess }: JudgeLog
         className="flex items-center gap-2 px-4 py-2 bg-indigo-600/20 text-indigo-400 rounded-full hover:bg-indigo-600/30 transition-colors text-sm font-medium border border-indigo-500/30"
       >
         <Gavel className="w-4 h-4" />
-        審査員として参加
+        審査員として投票
       </button>
 
       {isOpen && (

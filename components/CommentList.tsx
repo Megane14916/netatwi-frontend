@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect,useRef } from 'react';
 import { Send, Edit2, Trash2, X, MessageSquare } from 'lucide-react';
 import TimeAgo from './TimeAgo';
 
@@ -23,9 +23,13 @@ interface CommentListProps {
   postId: number;
   currentUser: any;
   contestStatus: string;
+  isAlwaysOpen?: boolean;
+  onClose?: () => void;
+  onCommentAdded?: () => void;
+  onCommentDeleted?: () => void;
 }
 
-export default function CommentList({ postId, currentUser, contestStatus }: CommentListProps) {
+export default function CommentList({ postId, currentUser, contestStatus, isAlwaysOpen = false, onClose, onCommentAdded, onCommentDeleted }: CommentListProps) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -33,6 +37,23 @@ export default function CommentList({ postId, currentUser, contestStatus }: Comm
   const [editContent, setEditContent] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [error, setError] = useState('');
+
+  const newTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const editTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (newTextareaRef.current) {
+      newTextareaRef.current.style.height = 'auto';
+      newTextareaRef.current.style.height = `${newTextareaRef.current.scrollHeight}px`;
+    }
+  }, [newComment]);
+
+  useEffect(() => {
+    if (editTextareaRef.current && editingCommentId !== null) {
+      editTextareaRef.current.style.height = 'auto';
+      editTextareaRef.current.style.height = `${editTextareaRef.current.scrollHeight}px`;
+    }
+  }, [editContent, editingCommentId]);
 
   const fetchComments = async () => {
     try {
@@ -47,10 +68,10 @@ export default function CommentList({ postId, currentUser, contestStatus }: Comm
   };
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen || isAlwaysOpen) {
       fetchComments();
     }
-  }, [postId, isOpen]);
+  }, [postId, isOpen, isAlwaysOpen]);
 
   const hasCommented = comments.some(c => c.user_id === currentUser?.id);
 
@@ -69,6 +90,7 @@ export default function CommentList({ postId, currentUser, contestStatus }: Comm
       if (res.ok) {
         setNewComment('');
         fetchComments();
+        onCommentAdded?.();
       } else {
         const data = await res.json();
         setError(data.error || 'エラーが発生しました');
@@ -86,6 +108,7 @@ export default function CommentList({ postId, currentUser, contestStatus }: Comm
       const res = await fetch(`/api/comments/${commentId}`, { method: 'DELETE' });
       if (res.ok) {
         fetchComments();
+        onCommentDeleted?.();
       }
     } catch (e) {
       console.error(e);
@@ -114,42 +137,97 @@ export default function CommentList({ postId, currentUser, contestStatus }: Comm
     ? comments 
     : comments.filter(c => c.user_id === currentUser?.id);
 
-  if (!isOpen) {
+  const showTopClose = !(currentUser && !hasCommented);
+
+  if (!isOpen && !isAlwaysOpen) {
     return (
-      <button 
-        onClick={() => setIsOpen(true)}
-        className="flex items-center space-x-2 text-gray-400 hover:text-blue-400 text-sm mt-4 transition w-full justify-center bg-gray-800/30 py-2 rounded-lg"
-      >
-        <MessageSquare className="w-4 h-4" />
-        <span>コメントを見る・書く</span>
-      </button>
+      <div className="flex justify-center w-full mt-4">
+        <button 
+          onClick={() => setIsOpen(true)}
+          className="flex items-center justify-center space-x-2 text-[#1DA1F2] bg-white border border-[#1DA1F2] hover:bg-blue-50 text-sm transition py-1 px-6 rounded-full font-bold shadow-sm w-full"
+        >
+          <MessageSquare className="w-4 h-4" />
+          <span>コメント</span>
+        </button>
+      </div>
     );
   }
 
   return (
-    <div className="mt-4 pt-4 border-t border-gray-800">
-      <div className="flex justify-between items-center mb-4">
-         <h4 className="font-semibold text-gray-200">
-             コメント {contestStatus === 'closed' ? `(${comments.length})` : ''}
-         </h4>
-         <button onClick={() => setIsOpen(false)} className="text-gray-500 hover:text-gray-300">
-           <X className="w-4 h-4" />
-         </button>
-      </div>
+    <div className={`mt-4 pt-4 ${isAlwaysOpen ? 'border-t-0 pt-0 mt-0' : 'border-t border-gray-200'}`}>
+      {showTopClose && onClose ? (
+        <div className="flex justify-start mb-2">
+           <button onClick={onClose} className="text-gray-400 hover:text-black p-1.5 hover:bg-gray-100 rounded-full transition-colors flex items-center justify-center">
+             <X className="w-5 h-5" />
+           </button>
+        </div>
+      ) : (
+        showTopClose && !isAlwaysOpen && (
+          <div className="flex justify-start mb-2">
+             <button onClick={() => setIsOpen(false)} className="text-gray-400 hover:text-black p-1.5 hover:bg-gray-100 rounded-full transition-colors flex items-center justify-center">
+               <X className="w-5 h-5" />
+             </button>
+          </div>
+        )
+      )}
 
-      <div className="space-y-4 mb-4">
+      {currentUser && !hasCommented && (
+        <form onSubmit={handleSubmit} className="mb-4">
+          {error && <p className="text-red-500 text-xs mb-2">{error}</p>}
+          <div className="flex items-start gap-2">
+            <img src={currentUser.profile_image_url || 'https://via.placeholder.com/40'} alt="" className="w-8 h-8 rounded-full border border-gray-200 flex-shrink-0" />
+            <div className="flex-grow flex flex-col space-y-2 relative">
+              <textarea
+                ref={newTextareaRef}
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="コメントを入力... (140文字まで)"
+                maxLength={140}
+                rows={1}
+                className="w-full bg-transparent border-0 rounded-lg py-1.5 px-0 text-[15px] text-black placeholder-gray-400 focus:outline-none focus:ring-0 resize-none overflow-hidden"
+              />
+              <div className="flex justify-between items-center border-t border-gray-100 pt-2 mt-1">
+                <span className={`text-xs font-bold ${newComment.length >= 140 ? 'text-red-500' : 'text-gray-400'}`}>
+                  {newComment.length}/140
+                </span>
+                <div className="flex items-center space-x-2">
+                  {(onClose || !isAlwaysOpen) && (
+                    <button
+                      type="button"
+                      onClick={() => onClose ? onClose() : setIsOpen(false)}
+                      className="text-xs text-black/60 px-4 py-1.5 rounded-full bg-gray-100 hover:bg-gray-200 font-bold transition-colors"
+                    >
+                      キャンセル
+                    </button>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={!newComment.trim() || isSubmitting}
+                    className="flex items-center space-x-1.5 bg-[#1DA1F2] hover:bg-[#1788cc] disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-1.5 rounded-full text-sm font-bold shadow-sm transition"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>送信</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+      )}
+
+      <div className="divide-y divide-gray-100 mb-4 border-y border-gray-100 mt-4">
         {visibleComments.map(comment => (
-          <div key={comment.id} className="bg-gray-800/50 rounded-lg p-3">
+          <div key={comment.id} className="bg-white py-4 px-2">
             <div className="flex justify-between items-start">
               <div className="flex items-center space-x-2">
-                <img src={comment.user.profile_image_url} alt="" className="w-6 h-6 rounded-full" />
-                <span className="font-medium text-sm text-gray-200">{comment.user.name}</span>
+                <img src={comment.user.profile_image_url || 'https://via.placeholder.com/40'} alt="" className="w-6 h-6 rounded-full border border-gray-200" />
+                <span className="font-bold text-sm text-black">{comment.user.name}</span>
                 {comment.is_judge && (
-                  <span className="text-[10px] bg-indigo-500/20 text-indigo-400 px-1.5 py-0.5 rounded border border-indigo-500/30">
+                  <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded border border-indigo-200 font-bold">
                     審査員
                   </span>
                 )}
-                <span className="text-xs text-gray-500"><TimeAgo timestamp={comment.created_at} /></span>
+                <span className="text-xs text-black/50"><TimeAgo timestamp={comment.created_at} /></span>
               </div>
               
               {currentUser?.id === comment.user_id && (
@@ -157,10 +235,10 @@ export default function CommentList({ postId, currentUser, contestStatus }: Comm
                   <button onClick={() => {
                     setEditingCommentId(comment.id);
                     setEditContent(comment.content);
-                  }} className="text-gray-500 hover:text-gray-300">
+                  }} className="text-gray-400 hover:text-[#1DA1F2]">
                     <Edit2 className="w-3.5 h-3.5" />
                   </button>
-                  <button onClick={() => handleDelete(comment.id)} className="text-gray-500 hover:text-red-400">
+                  <button onClick={() => handleDelete(comment.id)} className="text-gray-400 hover:text-red-500">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -170,57 +248,29 @@ export default function CommentList({ postId, currentUser, contestStatus }: Comm
             {editingCommentId === comment.id ? (
               <div className="mt-2">
                 <textarea
+                  ref={editTextareaRef}
                   value={editContent}
                   onChange={(e) => setEditContent(e.target.value)}
                   maxLength={140}
-                  className="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 text-sm text-gray-100 focus:ring-1 focus:ring-blue-500"
-                  rows={2}
+                  className="w-full bg-white border-0 rounded-lg p-2 text-[15px] text-black outline-none resize-none overflow-hidden placeholder-gray-400 focus:ring-0"
+                  rows={1}
                 />
                 <div className="flex justify-end space-x-2 mt-2">
-                  <button onClick={() => setEditingCommentId(null)} className="text-xs text-gray-400 border border-gray-700 px-2 py-1 rounded">キャンセル</button>
-                  <button onClick={() => handleEditSubmit(comment.id)} className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded">更新</button>
+                  <button onClick={() => setEditingCommentId(null)} className="text-xs text-black/60 px-4 py-1.5 rounded-full bg-gray-100 hover:bg-gray-200 font-bold transition-colors">キャンセル</button>
+                  <button onClick={() => handleEditSubmit(comment.id)} className="text-xs bg-[#1DA1F2] hover:bg-[#1788cc] text-white px-5 py-1.5 rounded-full font-bold transition-colors shadow-sm">更新</button>
                 </div>
               </div>
             ) : (
-              <p className="text-gray-300 text-sm mt-2 whitespace-pre-wrap">{comment.content}</p>
+              <p className="text-black/90 text-[15px] mt-2 whitespace-pre-wrap leading-relaxed">{comment.content}</p>
             )}
           </div>
         ))}
-        {visibleComments.length === 0 && (
-            <p className="text-gray-500 text-sm italic text-center py-2">
-              {contestStatus !== 'closed' ? '※ 投票期間中は、自分のコメントのみ表示されます' : 'まだコメントはありません'}
+        {visibleComments.length === 0 && contestStatus === 'closed' && (
+            <p className="text-gray-400 text-sm italic text-center py-2">
+              まだコメントはありません
             </p>
         )}
       </div>
-
-      {currentUser && !hasCommented && (
-        <form onSubmit={handleSubmit} className="mt-2">
-          {error && <p className="text-red-400 text-xs mb-2">{error}</p>}
-          <div className="flex flex-col space-y-2">
-            <textarea
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              placeholder="コメントを入力... (140文字まで)"
-              maxLength={140}
-              rows={2}
-              className="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none"
-            />
-            <div className="flex justify-between items-center">
-              <span className={`text-xs ${newComment.length >= 140 ? 'text-red-400' : 'text-gray-500'}`}>
-                {newComment.length}/140
-              </span>
-              <button
-                type="submit"
-                disabled={!newComment.trim() || isSubmitting}
-                className="flex items-center space-x-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-1.5 rounded-full text-sm font-medium transition"
-              >
-                <Send className="w-3.5 h-3.5" />
-                <span>送信</span>
-              </button>
-            </div>
-          </div>
-        </form>
-      )}
     </div>
   );
 }

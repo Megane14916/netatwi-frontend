@@ -30,7 +30,7 @@ const Twemoji = ({ text }: { text: string }) => {
 
   return (
     <div
-      className="text-base text-gray-100 whitespace-pre-wrap leading-relaxed mb-2"
+      className="text-base whitespace-pre-wrap leading-relaxed mb-2"
       // パース済みのHTML（絵文字画像を含む）を安全に表示
       dangerouslySetInnerHTML={{ __html: parsedText }}
     />

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 // import Link from 'next/link'; // エラー回避のため削除
-import { Heart, Bookmark, Share2, Award } from 'lucide-react';
+import { Heart, Bookmark, Share2, Award, Crown, MessageSquare } from 'lucide-react';
 import ImageGrid from './ImageGrid';
 import TimeAgo from './TimeAgo';
 import Twemoji from './Twemoji';
@@ -23,6 +23,8 @@ export interface ResultPostProps {
     created_at: string;
     score: number;
     rank: number | null;
+    commentCount?: number;
+    hasCommented?: boolean;
     user: {
       screen_name: string;
       name: string;
@@ -43,12 +45,13 @@ export interface ResultPostProps {
     };
     myVotes?: number;
   };
-  currentUser: any; // ログインユーザー情報
+  currentUser: { id: number; name: string; screen_name: string; profile_image_url: string | null } | null;
   onToggleBookmark?: (post: any) => void;
   contestScoringMethod?: string;
+  hideVotersAndComments?: boolean;
 }
 
-export default function ResultPostCard({ post, currentUser, onToggleBookmark, contestScoringMethod }: ResultPostProps) {
+export default function ResultPostCard({ post, currentUser, onToggleBookmark, contestScoringMethod, hideVotersAndComments = false }: ResultPostProps) {
   const [isBookmarked, setIsBookmarked] = useState(post.isBookmarked);
   const [bookmarkCount, setBookmarkCount] = useState(post.bookmarkCount);
 
@@ -157,35 +160,23 @@ export default function ResultPostCard({ post, currentUser, onToggleBookmark, co
   const getRankBadge = (rank: number | null) => {
     if (!rank) return null;
     
-    let badgeStyle = "bg-gray-200 text-gray-600";
-    if (rank === 1) badgeStyle = "bg-yellow-400 text-black border border-yellow-500 shadow-sm";
-    if (rank === 2) badgeStyle = "bg-gray-300 text-black border border-gray-400 shadow-sm";
-    if (rank === 3) badgeStyle = "bg-amber-600 text-white border border-amber-700 shadow-sm";
+    if (rank === 1) return <div className="flex items-center text-yellow-500 font-bold text-xl"><Crown className="w-6 h-6 mr-1.5 fill-current" /> 1位</div>;
+    if (rank === 2) return <div className="flex items-center text-gray-400 font-bold text-xl"><Crown className="w-6 h-6 mr-1.5 fill-current" /> 2位</div>;
+    if (rank === 3) return <div className="flex items-center text-amber-600 font-bold text-xl"><Crown className="w-6 h-6 mr-1.5 fill-current" /> 3位</div>;
 
     return (
-      <span className={`inline-flex items-center justify-center px-3 py-1 text-sm font-bold rounded-full ${badgeStyle}`}>
+      <span className="inline-flex items-center justify-center px-4 py-1.5 text-base font-bold rounded-full bg-gray-200 text-gray-600">
         {rank}位
       </span>
     );
   };
 
 return (
-    <div className="p-4 border-b border-gray-800 hover:bg-gray-800/30 transition-colors">
+    <div className="p-4 sm:p-5 transition-colors hover:bg-gray-50">
       {/* 1行目: 順位と審査員賞 (中央揃え) */}
-      <div className="flex items-center gap-2 mb-2">
+      <div className="flex items-center gap-3 mb-3">
          {getRankBadge(post.rank)}
-         
-         {/* 審査員賞バッジ */}
-         {post.awards && post.awards.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {post.awards.map((award, i) => (
-                <span key={i} className="inline-flex items-center bg-indigo-500/20 text-indigo-300 text-xs font-bold px-2 py-0.5 rounded border border-indigo-500/40">
-                  <Award className="w-3 h-3 mr-1" />
-                  {award}
-                </span>
-              ))}
-            </div>
-         )}
+         <span className="text-lg font-bold text-gray-600 ml-1">{post.score}pt</span>
       </div>
 
       {/* 2行目: メインコンテンツ (アバター + ユーザー情報 + 投稿内容) */}
@@ -197,7 +188,7 @@ return (
                 <img 
                   src={post.user.profile_image_url || 'https://via.placeholder.com/40'} 
                   alt={post.user.screen_name} 
-                  className="w-10 h-10 rounded-full border border-gray-700 object-cover"
+                  className="w-10 h-10 rounded-full border border-gray-200 object-cover bg-white"
                   onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/40')}
                 />
             </a>
@@ -209,17 +200,17 @@ return (
             {/* ユーザー情報 (上揃え: items-start) */}
             <div className="flex items-start justify-between mb-1">
                 <div className="flex items-center gap-1 min-w-0 flex-wrap">
-                    <a href={`/profile/${encodeURIComponent(post.user.screen_name)}`} className="font-bold text-white hover:underline truncate text-base leading-tight">
+                    <a href={`/profile/${encodeURIComponent(post.user.screen_name)}`} className="font-bold text-black hover:underline truncate text-base leading-tight">
                       {post.user.name}
                     </a>
-                    <span className="text-sm text-gray-500 truncate" style={{ flexShrink: 1000 }}>@{post.user.screen_name}</span>
-                    <span className="text-sm text-gray-600 flex-shrink-0">·</span>
-                    <TimeAgo timestamp={post.created_at} />
+                    <span className="text-sm text-black/50 truncate" style={{ flexShrink: 1000 }}>@{post.user.screen_name}</span>
+                    <span className="text-sm text-black/30 flex-shrink-0">·</span>
+                    <span className="text-sm text-black/50"><TimeAgo timestamp={post.created_at} /></span>
                 </div>
             </div>
 
             {/* 本文 & 画像 */}
-            <div>
+            <div className="text-[15px] text-black/90 leading-relaxed whitespace-pre-wrap">
               <Twemoji text={post.content} />
               {post.images && post.images.length > 0 && (
                 <div className="mt-2">
@@ -229,35 +220,28 @@ return (
             </div>
 
             {/* アクションバー (右寄せ: シェア -> ブックマーク -> いいね) */}
-            <div className="flex items-center justify-end gap-6 mt-3 text-gray-500">
-                {/* 得点/いいね数 */}
-                {contestScoringMethod === 'judge' ? (
-                  <>
-                    <div className="flex items-center group cursor-default text-yellow-500" title="審査員スコア">
-                        <div className="p-2 rounded-full bg-yellow-500/10">
-                            <Award className="h-5 w-5 fill-current" />
-                        </div>
-                        <span className="text-sm font-bold ml-1">{post.score}</span>
+            <div className="flex items-center justify-end gap-10 mt-3 text-gray-500">
+                {/* コメント */}
+                <div className="flex items-center group cursor-default" title="コメント数">
+                    <div className={`p-2 rounded-full transition-colors ${post.hasCommented ? 'bg-[#1DA1F2]/10' : 'group-hover:bg-[#1DA1F2]/10'}`}>
+                        <MessageSquare className={`h-5 w-5 ${post.hasCommented ? 'text-[#1DA1F2] fill-current' : 'group-hover:text-[#1DA1F2]'}`} />
                     </div>
-                    <button 
-                        onClick={(e) => { e.stopPropagation(); handleLike(); }}
-                        disabled={!currentUser || isJudgeForThisPost}
-                        className={`flex items-center group focus:outline-none ${isJudgeForThisPost ? 'opacity-50 cursor-not-allowed' : ''}`} 
-                        title={isJudgeForThisPost ? "審査員はいいねできません" : "いいね"}>
-                        <div className={`p-2 rounded-full transition-colors ${isLiked ? 'bg-pink-500/10 hover:bg-pink-500/20' : 'hover:bg-pink-500/10'}`}>
-                            <Heart className={`h-5 w-5 ${isLiked ? 'text-pink-500 fill-current' : 'group-hover:text-pink-500'}`} />
-                        </div>
-                        <span className={`text-sm font-bold ml-1 ${isLiked ? 'text-pink-500' : 'group-hover:text-pink-500'}`}>{likeCount}</span>
-                    </button>
-                  </>
-                ) : (
-                  <div className="flex items-center group cursor-default" title="得票数">
-                      <div className={`p-2 rounded-full transition-colors ${isLiked ? 'bg-pink-500/10' : 'group-hover:bg-pink-500/10'}`}>
-                          <Heart className={`h-5 w-5 ${isLiked ? 'text-pink-500 fill-current' : 'group-hover:text-pink-500'}`} />
-                      </div>
-                      <span className={`text-sm font-bold ml-1 ${isLiked ? 'text-pink-500' : 'group-hover:text-pink-500'}`}>{post.score}</span>
-                  </div>
-                )}
+                    <span className={`text-sm font-bold ml-1 ${post.hasCommented ? 'text-[#1DA1F2]' : 'group-hover:text-[#1DA1F2]'}`}>{post.commentCount || 0}</span>
+                </div>
+
+                {/* いいね */}
+                <button 
+                    onClick={(e) => { e.stopPropagation(); handleLike(); }}
+                    disabled={!currentUser || (contestScoringMethod === 'judge' && isJudgeForThisPost)}
+                    className={`flex items-center group focus:outline-none ${(contestScoringMethod === 'judge' && isJudgeForThisPost) ? 'opacity-50 cursor-not-allowed' : ''}`} 
+                    title={(contestScoringMethod === 'judge' && isJudgeForThisPost) ? "審査員はいいねできません" : "いいね"}>
+                    <div className={`p-2 rounded-full transition-colors ${isLiked ? 'bg-pink-500/10 hover:bg-pink-500/20' : 'hover:bg-pink-500/10'}`}>
+                        <Heart className={`h-5 w-5 ${isLiked ? 'text-pink-500 fill-current' : 'group-hover:text-pink-500'}`} />
+                    </div>
+                    <span className={`text-sm font-bold ml-1 ${isLiked ? 'text-pink-500' : 'group-hover:text-pink-500'}`}>
+                        {contestScoringMethod === 'judge' ? likeCount : post.score}
+                    </span>
+                </button>
 
                 {/* ブックマーク */}
                 <button 
@@ -285,36 +269,46 @@ return (
             </div>
 
             {/* 投票者リスト */}
-            {post.voters && post.voters.length > 0 && (
-                <div className="mt-1 border-t border-gray-800/60 text-xs text-gray-500">
-                <div className="flex flex-wrap items-center leading-relaxed gap-y-1">
-                    <span className="mr-2 font-semibold opacity-70">投票した人:</span>
-                    {post.voters.map((voter, vIndex) => (
-                    <span key={vIndex} className="inline-flex items-center">
+            {!hideVotersAndComments && (() => {
+                const displayVoters = contestScoringMethod === 'judge' 
+                    ? (post.voters || []).filter(v => v.is_judge) 
+                    : (post.voters || []);
+                
+                if (displayVoters.length === 0) return null;
+                
+                return (
+                  <div className="mt-3 pt-2 border-t border-gray-100 text-xs text-black/50">
+                  <div className="flex flex-wrap items-center leading-relaxed gap-y-1">
+                      <span className="mr-2 font-semibold">投票した人:</span>
+                      {displayVoters.map((voter, vIndex) => (
+                      <span key={vIndex} className="inline-flex items-center">
                         {voter.is_judge ? (
-                        <span className="bg-yellow-900/30 text-yellow-400 px-1.5 py-0.5 rounded mr-1 flex items-center border border-yellow-700/30">
+                        <span className="bg-yellow-50 text-yellow-700 px-1.5 py-0.5 rounded mr-1 flex items-center border border-yellow-200">
                             <a href={`/profile/${encodeURIComponent(voter.screen_name)}`} className="hover:underline font-bold">
                             {voter.name}
                             </a>
                             <span className="ml-1 font-bold">({voter.count})</span>
                         </span>
                         ) : (
-                        <a href={`/profile/${encodeURIComponent(voter.screen_name)}`} className="hover:underline text-gray-400 hover:text-gray-300">
+                        <a href={`/profile/${encodeURIComponent(voter.screen_name)}`} className="hover:underline text-black/60 hover:text-black/80">
                             {voter.name}
                         </a>
                         )}
                         
-                        {vIndex < (post.voters?.length || 0) - 1 && (
-                        <span className="mx-1.5 text-gray-700">/</span>
+                        {vIndex < displayVoters.length - 1 && (
+                        <span className="mx-1.5 text-black/30">/</span>
                         )}
                     </span>
                     ))}
                 </div>
                 </div>
-            )}
+                );
+            })()}
             
             {/* コメント機能 */}
-            <CommentList postId={post.post_id} currentUser={currentUser} contestStatus="closed" />
+            {!hideVotersAndComments && (
+                <CommentList postId={post.post_id} currentUser={currentUser} contestStatus="closed" />
+            )}
         </div>
       </div>
     </div>

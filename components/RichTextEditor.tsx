@@ -48,7 +48,7 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, Props>(({
     editable: editable,
     editorProps: {
       attributes: {
-        class: `prose prose-invert prose-sm sm:prose-base focus:outline-none text-white min-h-[100px] w-full max-w-none ${className || ''}`,
+        class: `prose prose-sm sm:prose-base focus:outline-none text-black min-h-[100px] w-full max-w-none ${className || ''}`,
       },
     },
     immediatelyRender: false,
@@ -130,10 +130,10 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, Props>(({
   if (!editor) return null;
 
   return (
-    <div className="w-full bg-gray-800 border border-gray-700 rounded-md p-3 cursor-text relative" onClick={() => editor.commands.focus()}>
+    <div className="w-full rounded-md p-0 cursor-text relative" onClick={() => editor.commands.focus()}>
       <EditorContent editor={editor} />
       {editor.isEmpty && (
-        <div className="absolute top-3 left-3 text-gray-500 pointer-events-none select-none">
+        <div className="absolute top-0 left-0 text-gray-400 pointer-events-none select-none">
           {placeholder}
         </div>
       )}

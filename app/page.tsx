@@ -332,15 +332,15 @@ export default function HomePage() {
               <span
                 ref={heroTitleMeasureRef}
                 aria-hidden="true"
-                className="pointer-events-none absolute left-0 top-0 whitespace-nowrap text-[1.75rem] font-light text-black opacity-0 md:text-4xl"
+                className="pointer-events-none absolute left-0 top-0 whitespace-nowrap text-[1.75rem] font-normal text-black opacity-0 md:text-4xl"
               >
-                Netatweet GrandPrix
+                ネタツイグランプリ
               </span>
               <span
-                className="block whitespace-nowrap text-[1.75rem] font-light text-black md:text-4xl"
+                className="block whitespace-nowrap text-[1.75rem] font-normal text-black md:text-4xl"
                 style={heroTitleFontSize ? { fontSize: `${heroTitleFontSize}px` } : undefined}
               >
-                Netatweet GrandPrix
+                ネタツイグランプリ
               </span>
               <div ref={heroTaglinesRef} className="mt-4 inline-flex flex-col items-start">
                 <span className="block text-[2.5rem] font-black leading-none text-black/80 md:text-7xl lg:text-[5.25rem]">

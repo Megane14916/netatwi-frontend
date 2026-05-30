@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useMemo, Fragment } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { Send, Smile, Heart, Info, CheckCircle, Trophy, ShieldCheck, Clock, X, User,Users, AlertTriangle,AlertCircle, Loader2, Award,  Image as ImageIcon ,UserStar} from 'lucide-react';
+import { Send, Smile, Heart, Info, CheckCircle, Trophy, ShieldCheck, Clock, X, User,Users, AlertTriangle,AlertCircle, Loader2, Award,  Image as ImageIcon ,UserStar, Share2, Edit2, MessageSquare } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import TimeAgo from '@/components/TimeAgo';
 import EmojiPicker, { EmojiClickData, Theme, EmojiStyle, SkinTonePickerLocation } from 'emoji-picker-react';
@@ -52,6 +52,7 @@ interface Post {
   myVotes: number;
   myJudgeAward?: boolean;
   myJudgeComment?: string | null;
+  hasCommented?: boolean;
 }
 
 interface Voter {
@@ -111,8 +112,8 @@ const GeneralVoteButton = ({ postId, isLiked, onToggle, disabled }: { postId: nu
     disabled={disabled}
     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all group ${
       isLiked 
-        ? 'text-pink-500 bg-pink-500/10 border border-pink-500/30' 
-        : 'text-gray-500 hover:bg-pink-500/10 hover:text-pink-500 border border-transparent hover:border-pink-500/30'
+        ? 'text-pink-500 bg-pink-50 border border-pink-200' 
+        : 'text-gray-500 hover:bg-pink-50 hover:text-pink-500 border border-transparent hover:border-pink-200'
     } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
   >
     <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
@@ -122,9 +123,9 @@ const GeneralVoteButton = ({ postId, isLiked, onToggle, disabled }: { postId: nu
 
 const JudgeVoteSelector = ({ postId, currentScore, onSelect, disabled, maxScore }: { postId: number, currentScore: number, onSelect: (postId: number, val: number) => void, disabled: boolean, maxScore: number }) => {
   return (
-    <div className="mt-3 bg-gray-800/50 p-3 rounded-lg border border-gray-700">
+    <div className="mt-3 bg-gray-50 p-3 rounded-xl border border-gray-200">
       <div className="flex justify-between items-center mb-2 px-1">
-        <span className="text-xs text-indigo-300 font-bold flex items-center gap-1"><ShieldCheck className="w-3 h-3" /> 審査員評価</span>
+        <span className="text-xs text-indigo-600 font-bold flex items-center gap-1"><ShieldCheck className="w-3 h-3" /> 審査員評価</span>
         <span className="text-xs text-gray-500">満点: {maxScore}</span>
       </div>
       <div className="flex items-center gap-2">
@@ -139,24 +140,24 @@ const JudgeVoteSelector = ({ postId, currentScore, onSelect, disabled, maxScore 
                  onSelect(postId, isNaN(val) ? 0 : Math.min(val, maxScore));
              }}
              disabled={disabled}
-             className="w-20 bg-gray-900 border border-indigo-500/50 rounded px-2 py-1 text-right text-white focus:outline-none focus:border-indigo-400"
+             className="w-20 bg-white border border-indigo-200 rounded-lg px-2 py-1 text-right text-black focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 shadow-sm"
              placeholder="0"
           />
-          <span className="text-sm text-gray-400">点</span>
+          <span className="text-sm text-gray-500 font-medium">点</span>
       </div>
     </div>
   );
 };
 
 const JudgeAwardSelector = ({ postId, isSelected, onSelect, comment, onCommentChange, disabled }: { postId: number, isSelected: boolean, onSelect: (postId: number) => void, comment: string, onCommentChange: (val: string) => void, disabled: boolean }) => (
-    <div className="mt-2 px-1 border-t border-gray-700 pt-2 w-full">
-        <label className={`flex items-center cursor-pointer ${disabled ? 'opacity-50' : ''}`}>
-            <input type="radio" name="judgeAward" checked={isSelected} onChange={() => onSelect(postId)} disabled={disabled} className="w-4 h-4 text-yellow-500 border-gray-600 bg-gray-700 focus:ring-yellow-500 flex-shrink-0"/>
-            <span className={`ml-2 text-xs font-bold flex items-center ${isSelected ? 'text-yellow-400' : 'text-gray-500'}`}><Trophy className="w-3 h-3 mr-1" /> 審査員賞に選ぶ</span>
+    <div className="mt-3 px-1 border-t border-gray-200 pt-3 w-full">
+        <label className={`flex items-center cursor-pointer ${disabled ? 'opacity-50' : ''} group`}>
+            <input type="radio" name="judgeAward" checked={isSelected} onChange={() => onSelect(postId)} disabled={disabled} className="w-4 h-4 text-yellow-500 border-gray-300 focus:ring-yellow-500 flex-shrink-0 cursor-pointer"/>
+            <span className={`ml-2 text-xs font-bold flex items-center transition-colors ${isSelected ? 'text-yellow-600' : 'text-gray-500 group-hover:text-yellow-600'}`}><Trophy className="w-3.5 h-3.5 mr-1" /> 審査員賞に選ぶ</span>
         </label>
         {isSelected && (
-            <div className="mt-2 ml-6 animate-fade-in w-full pr-6">
-                <textarea value={comment} onChange={(e) => onCommentChange(e.target.value)} placeholder="選評コメントを入力してください..." className="w-full bg-gray-900 border border-yellow-500/30 rounded p-2 text-sm text-white focus:outline-none focus:border-yellow-500" rows={2} disabled={disabled}/>
+            <div className="mt-3 w-full animate-fade-in">
+                <textarea value={comment} onChange={(e) => onCommentChange(e.target.value)} placeholder="選評コメントを入力してください..." className="w-full bg-white border border-yellow-300 rounded-lg p-3 text-sm text-black focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 shadow-sm resize-y min-h-[80px]" disabled={disabled}/>
             </div>
         )}
     </div>
@@ -164,26 +165,29 @@ const JudgeAwardSelector = ({ postId, isSelected, onSelect, comment, onCommentCh
 
 // 自分の投稿表示用
 const MyPostDisplay = ({ post, isEditing, onStartEdit, isDeadlinePassed, user }: any) => (
-  <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+  <div className={`mb-4 ${isEditing ? 'pb-4 border-b border-gray-200' : ''}`}>
     <div className="flex items-start gap-3">
-      <div className="flex-none"><img src={user?.profile_image_url || 'https://via.placeholder.com/40'} alt={user?.screen_name} className="w-10 h-10 rounded-full bg-gray-700 object-cover" onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/40')} /></div>
+      <div className="flex-none"><img src={user?.profile_image_url || 'https://via.placeholder.com/40'} alt={user?.screen_name} className="w-10 h-10 rounded-full border border-gray-200 object-cover bg-white" onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/40')} /></div>
       <div className="flex-grow min-w-0">
         <div className="flex items-center justify-between mb-1">
-          <div><span className="font-bold text-white mr-2">{user?.screen_name}</span><span className="text-xs text-gray-500 border border-gray-600 px-1.5 py-0.5 rounded">あなた</span></div>
+          <div className="flex items-center">
+            <span className="font-bold text-black mr-1">{user?.name || user?.screen_name}</span>
+            <span className="text-gray-500 text-sm">@{user?.screen_name}</span>
+          </div>
           <TimeAgo timestamp={post.created_at} />
         </div>
-        <div className="mt-1"><Twemoji text={post.content} /></div>
-        {post.images && <ImageGrid images={post.images} />}
+        <div className="mt-1 text-[15px] text-black/90 leading-relaxed whitespace-pre-wrap"><Twemoji text={post.content} /></div>
+        {post.images && <div className="mt-2"><ImageGrid images={post.images} /></div>}
       </div>
     </div>
     {!isEditing && !isDeadlinePassed && ( 
-      <div className="text-right mt-2"> 
-        <button onClick={onStartEdit} className="text-sm text-yellow-400 hover:underline flex items-center justify-end ml-auto gap-1"> 
-          <div className="w-4 h-4" /> 編集する 
+      <div className="text-right mt-3 pt-3"> 
+        <button onClick={onStartEdit} className="text-sm text-[#1DA1F2] hover:bg-[#1DA1F2]/10 px-3 py-1.5 rounded-full transition-colors inline-flex items-center justify-end ml-auto gap-1 font-bold"> 
+          <Edit2 className="w-4 h-4 fill-current" /> 編集する 
         </button> 
       </div> 
     )}
-    {!isEditing && isDeadlinePassed && ( <div className="text-right mt-2 text-xs text-red-400 flex justify-end items-center"> <Clock className="w-3 h-3 mr-1" /> 編集受付終了 </div> )}
+    {!isEditing && isDeadlinePassed && ( <div className="text-right mt-3 pt-3 text-xs text-red-500 flex justify-end items-center font-bold"> <Clock className="w-3.5 h-3.5 mr-1" /> 編集受付終了 </div> )}
   </div>
 );
 
@@ -197,7 +201,19 @@ export default function VenueDetailPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   
   const [results, setResults] = useState<ResultPost[]>([]);
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | 'random'>('asc');
+  const [sortedResults, setSortedResults] = useState<ResultPost[]>([]);
   const [judgeAwardsResults, setJudgeAwardsResults] = useState<JudgeAwardResult[]>([]);
+
+  useEffect(() => {
+    let newResults = [...results];
+    if (sortOrder === 'desc') {
+      newResults.reverse();
+    } else if (sortOrder === 'random') {
+      newResults.sort(() => Math.random() - 0.5);
+    }
+    setSortedResults(newResults);
+  }, [results, sortOrder]);
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -233,10 +249,23 @@ export default function VenueDetailPage() {
 
   const isJudgeMode = judgeContests.includes(contestId);
 
+  const isVotePeriod = !isVoteDeadlineExceeded && contestStatus === 'voting';
+  const canVote = contestStatus === 'voting' && user;
+  const showVoteUI = contestStatus === 'voting' && (
+      (contest?.scoringMethod !== 'judge' && user) || isJudgeMode
+  );
+  const voteUIDisabled = false;
+  const isVoteSubmitDisabled = isSubmittingVotes || isVoteDeadlineExceeded;
+
   const [showSuccessBanner, setShowSuccessBanner] = useState(false);
 
   // 文字数カウント状態を追加
   const [textCount, setTextCount] = useState<TextCountResult>({ length: 0, permillage: 0, isValid: false, remaining: 280 });
+  const [openComments, setOpenComments] = useState<Record<number, boolean>>({});
+  const [sessionCommentedPosts, setSessionCommentedPosts] = useState<Record<number, boolean>>({});
+  const toggleComments = (postId: number) => setOpenComments(prev => ({...prev, [postId]: !prev[postId]}));
+  const handleCommentAdded = (postId: number) => setSessionCommentedPosts(prev => ({...prev, [postId]: true}));
+  const handleCommentDeleted = (postId: number) => setSessionCommentedPosts(prev => ({...prev, [postId]: false}));
 
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const emojiButtonRef = useRef<HTMLButtonElement>(null);
@@ -399,7 +428,8 @@ export default function VenueDetailPage() {
               if (currentStatus === 'ongoing') { setPosts([]); }
             }
              if (currentStatus === 'voting') {
-               setPosts(allPosts);
+               const shuffled = [...allPosts].sort(() => Math.random() - 0.5);
+               setPosts(shuffled);
                const initialVotes: { [key: number]: number } = {};
                let currentTotal = 0;
                
@@ -407,7 +437,7 @@ export default function VenueDetailPage() {
                let awardPostId: number | null = null;
                let awardComment = '';
 
-               allPosts.forEach(post => { 
+               shuffled.forEach(post => { 
                    const voteVal = post.myVotes || 0;
                    initialVotes[post.id] = voteVal;
                    currentTotal += voteVal;
@@ -425,7 +455,10 @@ export default function VenueDetailPage() {
                }
             }
         } else {
-            if (currentStatus === 'voting') { setPosts(allPosts); }
+            if (currentStatus === 'voting') { 
+                const shuffled = [...allPosts].sort(() => Math.random() - 0.5);
+                setPosts(shuffled); 
+            }
         }
       }
     } catch (err: any) {
@@ -556,230 +589,331 @@ export default function VenueDetailPage() {
     try {
       const response = await fetch(`${API_PREFIX}/api/contests/${contestId}/vote`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), credentials: 'include', });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
-      // 成功したらリロード (URLパラメータ付与)
-      window.location.href = `${window.location.pathname}?voted=true`;
-    } catch (err: any) { 
-        setVoteSubmitMessage({ type: 'error', text: err.message }); 
-        setIsSubmittingVotes(false);
-    } 
+      if(response.ok) {
+        setUserHasVoted(true);
+        setShowSuccessBanner(true);
+        setVoteSubmitMessage({ type: 'success', text: '投票が完了しました！' });
+        if(isJudgeMode) alert('投票と審査員賞を保存しました！');
+        else setTimeout(() => setShowSuccessBanner(false), 5000);
+      } else {
+        setVoteSubmitMessage({ type: 'error', text: data.error || '投票に失敗しました。' });
+      }
+    } catch(err) {
+      setVoteSubmitMessage({ type: 'error', text: 'エラーが発生しました。' });
+    } finally {
+      setIsSubmittingVotes(false);
+    }
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-gray-950 text-gray-400"><Loader2 className="animate-spin mr-2"/>読み込み中...</div>;
-  if (error) return <div className="min-h-screen flex items-center justify-center bg-gray-950 text-red-400"><AlertCircle className="mr-2"/>{error}</div>;
-  if (!contest) return null;
+  const renderTitle = (name: string) => {
+    if (!name.includes('ネタツイグランプリ')) return name;
+    const parts = name.split('ネタツイグランプリ');
+    return (
+        <>
+            {parts[0] && <span className="block mb-1">{parts[0]}</span>}
+            <span className="block">ネタツイグランプリ</span>
+            {parts[1] && <span className="block mt-1">{parts[1]}</span>}
+        </>
+    );
+  };
 
-  const isPostPeriod = !isPostDeadlineExceeded && contestStatus === 'ongoing';
-  const isVotePeriod = !isVoteDeadlineExceeded && contestStatus === 'voting';
-  const canVote = contestStatus === 'voting' && user;
-  const showVoteUI = contestStatus === 'voting' && (
-      (contest.scoringMethod !== 'judge' && user) || isJudgeMode
-  );
-
-  // 変更点: 投票済みでもボタン無効化しない
-  const voteUIDisabled = false;
-  // 変更点: 投票済みでも送信ボタン無効化しない
-  const isVoteSubmitDisabled = isSubmittingVotes || isVoteDeadlineExceeded;
+  if (loading) return <div className="min-h-screen bg-white flex items-center justify-center text-black"><Loader2 className="w-8 h-8 animate-spin text-[#1DA1F2]" /></div>;
+  if (error) return <div className="min-h-screen bg-white flex items-center justify-center text-red-500">{error}</div>;
+  if (!contest) return <div className="min-h-screen bg-white flex items-center justify-center text-black">大会が見つかりません。</div>;
 
   return (
-    <div className="container mx-auto max-w-2xl px-4 py-8 relative">
-      {/* 投票完了バナー */}
-      {showSuccessBanner && (
-          <div className="mb-6 bg-green-500/20 border border-green-500 text-green-400 px-4 py-3 rounded-lg flex items-center shadow-lg animate-fade-in-down">
-              <CheckCircle className="h-6 w-6 mr-3 flex-shrink-0" />
-              <div>
-                  <p className="font-bold text-lg">投票が完了しました！</p>
-                  <p className="text-sm opacity-90">期間内であれば何度でも投票内容を更新できます。</p>
-              </div>
-          </div>
-      )}
+    <div className="relative min-h-screen bg-white text-black flex flex-col overflow-clip">
+      {/* Top Parallel Background */}
+      <div className="absolute left-0 top-0 w-full h-[280px] md:h-[320px] overflow-hidden z-0 select-none pointer-events-none">
+        <div 
+            className="absolute inset-0 bg-[linear-gradient(15deg,#1DA1F2,#70c8f7)] overflow-hidden flex items-center justify-center"
+        >
+            <div className="absolute w-[350%] h-[400%] md:w-[200%] md:h-[300%] -rotate-[15deg] opacity-[0.07] text-white font-black text-5xl md:text-7xl tracking-widest flex flex-col justify-center gap-0">
+                {Array.from({ length: 14 }).map((_, rowIndex) => (
+                    <div 
+                        key={rowIndex}
+                        className={`h-10 md:h-16 flex items-center whitespace-nowrap gap-8 leading-none ${
+                            rowIndex % 2 === 0 
+                                ? 'translate-x-0' 
+                                : 'translate-x-16 scale-y-[-1] scale-x-[-1] mt-2 md:mt-4'
+                        }`}
+                    >
+                        {Array.from({ length: 6 }).map((_, colIndex) => (
+                            <span key={colIndex}>NETATWEET GRANDPRIX</span>
+                        ))}
+                    </div>
+                ))}
+            </div>
+        </div>
+      </div>
 
-      {isJudgeMode && contestStatus === 'voting' && ( <div className="mb-4 bg-yellow-900/50 border border-yellow-700 text-yellow-300 px-4 py-2 rounded-lg flex items-center text-sm sticky top-16 z-40 shadow-lg"> <ShieldCheck className="h-5 w-5 mr-3 flex-shrink-0" /> 現在、審査員として投票中です。 </div> )}
-      {contestStatus === 'ongoing' && isPostDeadlineExceeded && ( <div className="mb-4 bg-red-900/50 border border-red-700 text-red-300 px-4 py-3 rounded-lg flex items-center shadow-lg animate-pulse"> <AlertTriangle className="h-5 w-5 mr-3 flex-shrink-0" /> <div> <p className="font-bold">投稿受け付けは終了しました</p> <p className="text-xs opacity-80">集計中または投票フェーズへの移行待ちです。</p> </div> </div> )}
-      {contestStatus === 'voting' && isVoteDeadlineExceeded && (
-          <div className="mb-4 bg-red-900/50 border border-red-700 text-red-300 px-4 py-3 rounded-lg flex items-center shadow-lg animate-pulse">
-              <AlertTriangle className="h-5 w-5 mr-3 flex-shrink-0" />
-              <div>
-                  <p className="font-bold">投票期間は終了しました</p>
-                  <p className="text-xs opacity-80">集計中または結果発表待ちです。</p>
-              </div>
-          </div>
-      )}
-
-      <div className={`border border-gray-700 rounded-lg bg-gray-900 ${showVoteUI ? 'pb-8' : 'pb-4'}`}>
-        {/* 大会情報ヘッダー (修正部分) */}
-                <div className="p-6 border-b border-gray-700 space-y-4">
-                  
-                  {/* 1. タイトル & 審査員ボタン */}
-                  <div className="flex justify-between items-start">
-                     <div>
-                         <h1 className="text-2xl font-bold text-yellow-400">{contest.name}</h1>
-                     </div>
-                     {/* 審査員ボタン: 投票期間のみ表示、かつ審査員が含まれる場合のみ */}
-                     {!isJudgeMode && isVotePeriod && contest.scoringMethod !== 'user' && (
-                         <JudgeLoginButton contestId={contestId} onLoginSuccess={async()=>{await refetchUser(); await fetchData();}} />
-                     )}
-                     {isJudgeMode && (<span className="px-3 py-1 bg-indigo-600 text-white text-xs rounded-full font-bold flex-shrink-0 ml-2">審査員モード</span>)}
-                  </div>
-        
-                  {/* 2. お題 */}
-                  <div className="text-lg font-medium text-gray-200">
-                      {contest.hasTheme && contest.theme ? `お題: ${contest.theme}` : "自由にネタツイしよう"}
-                  </div>
-        
-                  {/* 3-6. 各種情報 (Wrap) */}
-                  <div className="flex flex-wrap gap-4 text-sm text-gray-400">
-                     
-                     {/* 3. 締め切り */}
-                     {(contestStatus === 'ongoing' || contestStatus === 'upcoming') && (
-                         <div className="flex items-center bg-gray-800/50 px-2 py-1 rounded border border-gray-700/50">
-                             <Clock className="w-4 h-4 mr-1.5 text-gray-400" />
-                             投稿締切: {dayjs(contest.endTime).format('MM/DD HH:mm')}
-                         </div>
-                     )}
-                     {(contestStatus === 'voting' || contestStatus === 'closed') && (
-                         <div className="flex items-center bg-gray-800/50 px-2 py-1 rounded border border-gray-700/50">
-                             <Clock className="w-4 h-4 mr-1.5 text-gray-400" />
-                             投票締切: {dayjs(contest.votingEndTime).format('MM/DD HH:mm')}
-                         </div>
-                     )}
-        
-                     {/* 4. 画像投稿の有無 */}
-                     <div className="flex items-center bg-gray-800/50 px-2 py-1 rounded border border-gray-700/50">
-                         <ImageIcon className="w-4 h-4 mr-1.5 text-gray-400" />
-                         画像投稿: {contest.imageRule === 'required' ? '1枚以上必須' : contest.imageRule === 'none' ? '不可' : '可'}
-                     </div>
-        
-                     {/* 5 & 6. 結果画面のみの表示項目 */}
-                     {contestStatus === 'closed' && (
-                         <>
-                            {/* 満点 */}
-                            <div className="flex items-center bg-gray-800/50 px-2 py-1 rounded border border-gray-700/50">
-                                <Trophy className="w-4 h-4 mr-1.5 text-yellow-500" />
-                                満点: <span className="font-bold ml-1 text-gray-200">{maxTotalScore}</span>点
-                            </div>
-                            {/* 人数 */}
-                            <div className="flex items-center gap-3 bg-gray-800/50 px-3 py-1 rounded border border-gray-700/50">
-                                <span className="flex items-center"><Users className="w-4 h-4 mr-1.5"/>投稿: {totalPosters ?? 0}人</span>
-                                <span className="flex items-center border-l border-gray-600 pl-3"><CheckCircle className="w-4 h-4 mr-1.5"/>投票: {totalVoters ?? 0}人</span>
-                                <span className="flex items-center border-l border-gray-600 pl-3"><UserStar className="w-4 h-4 mr-1.5"/>審査員: {totalJudges ?? 0}人</span>
-                            </div>
-                         </>
-                     )}
-                     {contestStatus === 'voting' && (<div className="flex items-center bg-gray-800/50 px-2 py-1 rounded border border-gray-700/50"><Users className="w-4 h-4 mr-1.5 text-gray-400" />投稿数: {totalPosters ?? 0}</div>)}
-                  </div>
-                  {/* 7. 投稿期間の注意書き */}
-          {contestStatus === 'ongoing' && (
-              <div className="bg-blue-900/30 text-blue-300 px-4 py-2 rounded-lg text-sm flex items-start border border-blue-900/50">
-                  <Info className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" />
-                  <span>投稿は一人一つのみ、期限内なら何回でも編集できます。</span>
-              </div>
-          )}
-
-          {/* 8. 投票期間の注意書き */}
-          {contestStatus === 'voting' && showVoteUI && (
-              <div className="bg-green-900/30 text-green-300 px-4 py-2 rounded-lg text-sm flex items-start border border-green-900/50">
-                  <Info className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" />
-                  <span>投票は期限内なら何回でも編集できます。</span>
-              </div>
-          )}
+      <div className="container mx-auto max-w-2xl px-4 pt-10 relative z-20">
+        {/* 投票完了バナー */}
+        {showSuccessBanner && (
+            <div className="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center shadow-lg animate-fade-in-down">
+                <CheckCircle className="h-6 w-6 mr-3 flex-shrink-0 text-green-500" />
+                <div>
+                    <p className="font-bold text-lg">投票が完了しました！</p>
+                    <p className="text-sm">期間内であれば何度でも投票内容を更新できます。</p>
                 </div>
-        
+            </div>
+        )}
+
+        {isJudgeMode && contestStatus === 'voting' && ( <div className="mb-4 bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg flex items-center text-sm sticky top-10 z-40 shadow-sm"> <ShieldCheck className="h-5 w-5 mr-3 flex-shrink-0 text-yellow-600" /> 現在、審査員として投票中です。 </div> )}
+        {contestStatus === 'ongoing' && isPostDeadlineExceeded && ( <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center shadow-sm animate-pulse"> <AlertTriangle className="h-5 w-5 mr-3 flex-shrink-0 text-red-500" /> <div> <p className="font-bold">投稿受け付けは終了しました</p> <p className="text-xs opacity-80">集計中または投票フェーズへの移行待ちです。</p> </div> </div> )}
+        {contestStatus === 'voting' && isVoteDeadlineExceeded && (
+            <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center shadow-sm animate-pulse">
+                <AlertTriangle className="h-5 w-5 mr-3 flex-shrink-0 text-red-500" />
+                <div>
+                    <p className="font-bold">投票期間は終了しました</p>
+                    <p className="text-xs opacity-80">集計中または結果発表待ちです。</p>
+                </div>
+            </div>
+        )}
+
+        {/* ヘッダーエリア (タイトルとお題のみ) - 背景の中央に配置 */}
+        <div className="relative flex flex-col justify-center h-[280px] md:h-[320px] -mt-10 mb-6">
+            <div className="mt-2">
+                <h1 className="font-extrabold text-white text-left drop-shadow-md text-4xl md:text-6xl tracking-tight leading-tight">
+                    {renderTitle(contest.name)}
+                </h1>
+                {contest.hasTheme && contest.theme && (
+                    <div className="text-[15px] md:text-lg font-bold text-white/90 mt-3 text-left drop-shadow">
+                        お題: {contest.theme}
+                    </div>
+                )}
+            </div>
+        </div>
+
+        {/* アクションボタンエリア (Xでポスト、審査員ログインなど) */}
+        <div className="flex justify-between items-center w-full mb-8 pt-2">
+            <div className="flex items-center gap-2">
+                {/* 審査員ボタン: 投票期間のみ表示、かつ審査員が含まれる場合のみ */}
+                {!isJudgeMode && isVotePeriod && contest.scoringMethod !== 'user' && (
+                    <JudgeLoginButton contestId={contestId} onLoginSuccess={async()=>{await refetchUser(); await fetchData();}} />
+                )}
+                {isJudgeMode && (<span className="px-3 py-1.5 bg-black text-white text-xs md:text-sm rounded-full font-bold shadow-sm border border-gray-200">審査員モード</span>)}
+            </div>
+            
+            <button 
+              onClick={() => {
+                const text = `${contest.name} に参加しよう！\n`;
+                const url = window.location.href;
+                window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
+              }}
+              className="inline-flex items-center gap-1.5 rounded-full bg-black px-6 py-2.5 text-[14px] md:text-[15px] font-bold text-white transition hover:bg-black/80 whitespace-nowrap shadow-none border border-transparent"
+            >
+                <Share2 className="w-4 h-4" />
+                Xでポスト
+            </button>
+        </div>
+
+        {/* 各種バッジ・ルール */}
+        <div className="mb-8 pl-1">
+            <div className="flex flex-col gap-2 text-[15px] font-medium text-black/80 mb-5">
+                {(contestStatus === 'ongoing' || contestStatus === 'upcoming') && (
+                    <div className="flex items-center">
+                        <Clock className="w-5 h-5 mr-2.5 text-[#1DA1F2]" />
+                        投稿締切: {dayjs(contest.endTime).format('MM/DD HH:mm')}
+                    </div>
+                )}
+                {contestStatus === 'voting' && (
+                    <div className="flex items-center">
+                        <Clock className="w-5 h-5 mr-2.5 text-[#1DA1F2]" />
+                        投票締切: {dayjs(contest.votingEndTime).format('MM/DD HH:mm')}
+                    </div>
+                )}
+                {(contestStatus === 'ongoing' || contestStatus === 'upcoming') && (
+                    <div className="flex items-center">
+                        <ImageIcon className="w-5 h-5 mr-2.5 text-[#1DA1F2]" />
+                        画像投稿: {contest.imageRule === 'required' ? '1枚以上必須' : contest.imageRule === 'none' ? '不可' : '可'}
+                    </div>
+                )}
+                {contest.advancementNumerator != null && contest.advancementDenominator != null && (
+                    <div className="flex items-center">
+                        <Award className="w-5 h-5 mr-2.5 text-[#1DA1F2]" />
+                        予選通過率: {contest.advancementNumerator}/{contest.advancementDenominator}
+                    </div>
+                )}
+                {contestStatus === 'closed' && (
+                    <div className="flex items-center gap-4 flex-wrap">
+                        <span className="flex items-center"><Users className="w-5 h-5 mr-2.5 text-[#1DA1F2]"/>投稿: {totalPosters ?? 0}人</span>
+                        {contest.scoringMethod !== 'judge' && (
+                            <span className="flex items-center"><CheckCircle className="w-5 h-5 mr-2.5 text-[#1DA1F2]"/>投票: {totalVoters ?? 0}人</span>
+                        )}
+                        {contest.scoringMethod !== 'user' && (
+                            <span className="flex items-center"><UserStar className="w-5 h-5 mr-2.5 text-[#1DA1F2]"/>審査員: {totalJudges ?? 0}人</span>
+                        )}
+                    </div>
+                )}
+                {contestStatus === 'voting' && (
+                    <div className="flex items-center">
+                        <Users className="w-5 h-5 mr-2.5 text-[#1DA1F2]" />投稿数: {totalPosters ?? 0}
+                    </div>
+                )}
+
+                {/* ルール・概要 */}
+                {contestStatus === 'ongoing' && (
+                    <div className="flex items-start w-full">
+                        <Info className="w-5 h-5 mr-2.5 mt-0.5 flex-shrink-0 text-[#1DA1F2]" />
+                        <p>投稿は一人一つのみ、期限内なら何回でも編集できます。</p>
+                    </div>
+                )}
+                {contestStatus === 'voting' && showVoteUI && (
+                    <div className="flex items-start w-full">
+                        <Info className="w-5 h-5 mr-2.5 mt-0.5 flex-shrink-0 text-[#1DA1F2]" />
+                        <p>投票は期限内なら何回でも編集できます。</p>
+                    </div>
+                )}
+                <div className="mt-1">
+                    <Link href="/rules" className="inline-block text-[#1DA1F2] font-bold text-sm hover:underline">
+                        ルールを詳しく見る→
+                    </Link>
+                </div>
+            </div>
+        </div>
+
         {/* 投稿期間 */}
         {contestStatus === 'ongoing' && (
-          <div className="p-4 space-y-4">
-                      {user ? (
-                          contest.parentContestId && contest.isAdvancedToFinal === false ? (
-                              <div className="text-center py-10 text-gray-500 bg-gray-800/30 rounded-lg border border-gray-700">予選通過者のみ投稿できます。</div>
-                          ) : hasPosted && posts.length > 0 ? (
-                              <MyPostDisplay post={posts[0]} isEditing={isEditing} setIsEditing={setIsEditing} onStartEdit={handleStartEdit} isDeadlinePassed={isPostDeadlineExceeded} user={user} />
-                          ) : null
-                      ) : ( <div className="text-center py-10 text-gray-500">ログインすると投稿できます。</div> )}
-                      {user && (!contest.parentContestId || contest.isAdvancedToFinal !== false) && (!hasPosted || isEditing) && (
-                         <form onSubmit={handlePostSubmit} className="relative">
-                             <RichTextEditor
-                                                     ref={editorRef}
-                                                     content={newPostContent}
-                                                     onChange={setNewPostContent}
-                                                     placeholder={isPostDeadlineExceeded ? "受付時間を終了しました" : "いまどうしてる？"}
-                                                     editable={!isPostDeadlineExceeded && !isSubmitting}
-                                                     className={`w-full ${isPostDeadlineExceeded ? 'opacity-50' : ''}`}
-                                                />
-                             {previewUrls.length > 0 && ( <div className="grid grid-cols-2 gap-2 mt-2"> {previewUrls.map((url, idx) => ( <div key={idx} className="relative group"> <img src={url} alt="preview" className="w-full h-32 object-cover rounded-lg"/> <button type="button" onClick={() => removeImage(idx)} className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1 hover:bg-black"><X className="w-4 h-4"/></button> </div> ))} </div> )}
-                   <div className="flex justify-between items-center mt-3">
-                       <div className="flex items-center gap-2">
-                            <input type="file" multiple accept="image/*" onChange={handleImageSelect} className="hidden" ref={fileInputRef} disabled={isPostDeadlineExceeded || (previewUrls.length + selectedImages.length >= 4)}/>
-                            {contest.imageRule !== 'none' && (
-                                <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isPostDeadlineExceeded || (previewUrls.length >= 4)} className={`text-gray-400 hover:text-blue-400 p-2 rounded-full hover:bg-gray-800 transition-colors ${(previewUrls.length >= 4) ? 'opacity-50 cursor-not-allowed' : ''}`}> <ImageIcon className="h-6 w-6" /> </button>
-                            )}
-                            <button type="button" ref={emojiButtonRef} onClick={()=>setShowEmojiPicker(!showEmojiPicker)} disabled={isPostDeadlineExceeded} className="text-gray-400 hover:text-yellow-400 p-2 rounded-full hover:bg-gray-800 transition-colors"><Smile className="h-6 w-6"/></button>
-                       </div>
-                       <div className="flex items-center gap-3">
-                           <ProgressRing permillage={textCount.permillage} remaining={textCount.remaining} />
-                           <button type="submit" disabled={(contest.imageRule !== 'required' && !newPostContent.trim() && previewUrls.length === 0) || isSubmitting || !textCount.isValid} className="bg-yellow-500 text-black font-bold py-2 px-6 rounded-full disabled:bg-gray-600 flex items-center">
-                               {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2"/> : <Send className="inline w-4 h-4 mr-2"/>}
-                               {isSubmitting ? '送信中...' : (isEditing ? '更新する' : '投稿')}
-                           </button>
-                       </div>
-                   </div>
-                             {showEmojiPicker && <div className="absolute z-10 mt-2" ref={emojiPickerRef}><EmojiPicker onEmojiClick={onEmojiClick} theme={Theme.DARK} emojiStyle={EmojiStyle.TWITTER} skinTonePickerLocation={SkinTonePickerLocation.PREVIEW} lazyLoadEmojis={true}/></div>}
-                         </form>
+          <div className="w-full rounded-2xl border border-[#d9e1e7] bg-white p-5 shadow-[0_12px_40px_rgba(29,161,242,0.12)] mb-8">
+              {user ? (
+                  contest.parentContestId && contest.isAdvancedToFinal === false ? (
+                      <div className="text-center py-10 text-black/50 bg-gray-50 rounded-xl">予選通過者のみ投稿できます。</div>
+                  ) : hasPosted && posts.length > 0 ? (
+                      <MyPostDisplay post={posts[0]} isEditing={isEditing} setIsEditing={setIsEditing} onStartEdit={handleStartEdit} isDeadlinePassed={isPostDeadlineExceeded} user={user} />
+                  ) : null
+              ) : ( <div className="text-center py-10 text-black/50 bg-gray-50 rounded-xl">ログインすると投稿できます。</div> )}
+              
+              {user && (!contest.parentContestId || contest.isAdvancedToFinal !== false) && (!hasPosted || isEditing) && (
+                  <form onSubmit={handlePostSubmit} className="relative mt-4">
+                      <div className="mb-4 flex items-start gap-3">
+                          <div className="mt-0.5 flex-none w-10 h-10 rounded-full bg-gray-200 overflow-hidden border border-gray-200">
+                              <img src={user.profile_image_url || 'https://via.placeholder.com/40'} alt={user.screen_name} className="w-full h-full object-cover" onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/40')} />
+                          </div>
+                          <div className="flex-1 pt-2">
+                              <RichTextEditor
+                                  ref={editorRef}
+                                  content={newPostContent}
+                                  onChange={setNewPostContent}
+                                  placeholder={isPostDeadlineExceeded ? "受付時間を終了しました" : "いまどうしてる？"}
+                                  editable={!isPostDeadlineExceeded && !isSubmitting}
+                                  className={`w-full text-lg text-black ${isPostDeadlineExceeded ? 'opacity-50' : ''}`}
+                              />
+                          </div>
+                      </div>
+                      
+                      {previewUrls.length > 0 && ( 
+                          <div className="grid grid-cols-2 gap-2 mt-2 pl-[52px]"> 
+                              {previewUrls.map((url, idx) => ( 
+                                  <div key={idx} className="relative group"> 
+                                      <img src={url} alt="preview" className="w-full h-32 object-cover rounded-xl border border-gray-200"/> 
+                                      <button type="button" onClick={() => removeImage(idx)} className="absolute top-2 right-2 bg-black/70 text-white rounded-full p-1.5 hover:bg-black transition-colors backdrop-blur-sm"><X className="w-4 h-4"/></button> 
+                                  </div> 
+                              ))} 
+                          </div> 
                       )}
-                    </div>
+                      
+                      <div className="flex items-center justify-between border-t border-gray-100 pt-3 mt-4">
+                          <div className="flex items-center gap-1 text-[#1DA1F2] pl-[44px]">
+                              <input type="file" multiple accept="image/*" onChange={handleImageSelect} className="hidden" ref={fileInputRef} disabled={isPostDeadlineExceeded || (previewUrls.length + selectedImages.length >= 4)}/>
+                              {contest.imageRule !== 'none' && (
+                                  <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isPostDeadlineExceeded || (previewUrls.length >= 4)} className={`rounded-full p-2 hover:bg-blue-50 transition-colors ${(previewUrls.length >= 4) ? 'opacity-50 cursor-not-allowed' : ''}`}> 
+                                      <ImageIcon className="h-5 w-5" /> 
+                                  </button>
+                              )}
+                              <button type="button" ref={emojiButtonRef} onClick={()=>setShowEmojiPicker(!showEmojiPicker)} disabled={isPostDeadlineExceeded} className="rounded-full p-2 hover:bg-blue-50 transition-colors">
+                                  <Smile className="h-5 w-5"/>
+                              </button>
+                          </div>
+                          <div className="flex items-center gap-3">
+                              <ProgressRing permillage={textCount.permillage} remaining={textCount.remaining} />
+                              {isEditing && (
+                                  <button type="button" onClick={() => { setIsEditing(false); setNewPostContent(posts[0]?.content || ''); setPreviewUrls(posts[0]?.images || []); }} className="inline-flex items-center rounded-full bg-gray-100 px-5 py-2 text-sm font-bold text-black transition hover:bg-gray-200 shadow-sm">
+                                      キャンセル
+                                  </button>
+                              )}
+                              <button type="submit" disabled={(contest.imageRule !== 'required' && !newPostContent.trim() && previewUrls.length === 0) || isSubmitting || !textCount.isValid} className="inline-flex items-center rounded-full bg-[#1DA1F2] px-5 py-2 text-sm font-bold text-white transition hover:bg-[#1788cc] disabled:bg-blue-300 disabled:cursor-not-allowed shadow-sm">
+                                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-1.5"/> : <Send className="mr-1.5 h-4 w-4"/>}
+                                  {isSubmitting ? '送信中...' : (isEditing ? '更新する' : '投稿する')}
+                              </button>
+                          </div>
+                      </div>
+                      {showEmojiPicker && <div className="absolute z-10 mt-2" ref={emojiPickerRef}><EmojiPicker onEmojiClick={onEmojiClick} theme={Theme.LIGHT} emojiStyle={EmojiStyle.TWITTER} skinTonePickerLocation={SkinTonePickerLocation.PREVIEW} lazyLoadEmojis={true}/></div>}
+                  </form>
+              )}
+          </div>
         )}
 
         {/* 投票期間 */}
         {contestStatus === 'voting' && (
-          <div>
+          <div className="mb-24">
             {!contest.isVotingVisible && !isJudgeMode ? (
-              <div className="text-center py-20 text-gray-500 bg-gray-900 rounded-lg border border-gray-800">現在投票期間中のため、投稿は非公開です。</div>
+              <div className="text-center py-20 text-black/50 bg-gray-50 rounded-2xl border border-gray-200 shadow-sm">現在投票期間中のため、投稿は非公開です。</div>
             ) : (
-              <div className="divide-y divide-gray-800">
+              <div className="-mx-4 md:mx-0 bg-white md:rounded-2xl border-y border-[#d9e1e7] md:border-x shadow-sm overflow-hidden divide-y divide-gray-100">
               {posts.length > 0 ? (
                 posts.map((post) => {
                 return (
-                  <div key={post.id} className={`p-4 transition-colors hover:bg-gray-800/30`}>
+                  <div key={post.id} className="p-4 sm:p-5 transition-colors hover:bg-gray-50">
                     <div className="flex items-start gap-3">
-                      {/* --- 修正: 匿名ユーザーのアイコンを追加 (2カラム構成) --- */}
                       <div className="flex-none">
-                         <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center">
-                            <User className="w-6 h-6 text-gray-500" />
+                         <div className="w-10 h-10 rounded-full border border-gray-200 bg-gray-100 flex items-center justify-center">
+                            <User className="w-6 h-6 text-gray-400" />
                          </div>
                       </div>
                       <div className="flex-grow min-w-0">
-                        <div className="flex items-center justify-between mb-2"><span className="font-bold text-gray-300 text-sm">匿名さん</span><TimeAgo timestamp={post.created_at} /></div>
-                        <div className="text-lg text-gray-100 leading-relaxed whitespace-pre-wrap">{post.content}</div>
-                        <ImageGrid images={post.images} />
+                        <div className="flex items-center justify-between mb-1">
+                            <span className="font-bold text-black text-sm hover:underline cursor-pointer">匿名さん</span>
+                        </div>
+                        <div className="text-[15px] text-black/90 leading-relaxed whitespace-pre-wrap mb-2">{post.content}</div>
+                        {post.images && post.images.length > 0 && <div className="mt-2"><ImageGrid images={post.images} /></div>}
+                        
+                        {/* 投票UIとコメント */}
+                        <div className="flex flex-col items-end mt-2">
+                          <div className="flex items-center justify-end gap-2 w-full">
+                            <button
+                                onClick={() => toggleComments(post.id)}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all group ${
+                                    openComments[post.id] || post.hasCommented || sessionCommentedPosts[post.id]
+                                    ? 'text-[#1DA1F2] bg-[#1DA1F2]/10 border border-[#1DA1F2]/20'
+                                    : 'text-gray-500 hover:bg-[#1DA1F2]/10 hover:text-[#1DA1F2] border border-transparent hover:border-[#1DA1F2]/20'
+                                }`}
+                            >
+                                <MessageSquare className={`w-5 h-5 ${openComments[post.id] || post.hasCommented || sessionCommentedPosts[post.id] ? 'fill-current' : ''}`} />
+                                <span className="text-sm font-bold">コメント</span>
+                            </button>
+                            
+                            {showVoteUI && !isJudgeMode && (
+                                <GeneralVoteButton postId={post.id} isLiked={votes[post.id] === 1} onToggle={handleVoteChange} disabled={voteUIDisabled || isVoteDeadlineExceeded} />
+                            )}
+                          </div>
+                          
+                          {showVoteUI && isJudgeMode && (
+                             <div className="w-full mt-3">
+                               <JudgeVoteSelector postId={post.id} currentScore={votes[post.id] || 0} onSelect={handleVoteChange} disabled={isVoteDeadlineExceeded} maxScore={contest.judgeMaxScore || 10} />
+                               <JudgeAwardSelector 
+                                  postId={post.id}
+                                  isSelected={judgeAwardSelection.postId === post.id}
+                                  onSelect={handleJudgeAwardSelect}
+                                  comment={judgeAwardSelection.comment}
+                                  onCommentChange={handleJudgeCommentChange}
+                                  disabled={voteUIDisabled || isVoteDeadlineExceeded}
+                               />
+                             </div>
+                          )}
+                        </div>
+                        {/* コメント機能 */}
+                        {openComments[post.id] && (
+                          <div className="mt-3 border-t border-gray-200">
+                              <CommentList postId={post.id} currentUser={user} contestStatus="voting" isAlwaysOpen={true} onClose={() => setOpenComments(prev => ({...prev, [post.id]: false}))} onCommentAdded={() => handleCommentAdded(post.id)} onCommentDeleted={() => handleCommentDeleted(post.id)} />
+                          </div>
+                        )}
                       </div>
-                    </div>
-                    {/* 投票UI */}
-                    <div className="flex flex-col items-end mt-2">
-                      {showVoteUI && (
-                        isJudgeMode ? (
-                           <>
-                             <JudgeVoteSelector postId={post.id} currentScore={votes[post.id] || 0} onSelect={handleVoteChange} disabled={isVoteDeadlineExceeded} maxScore={contest.judgeMaxScore || 10} />
-                             <JudgeAwardSelector 
-                                postId={post.id}
-                                isSelected={judgeAwardSelection.postId === post.id}
-                                onSelect={handleJudgeAwardSelect}
-                                comment={judgeAwardSelection.comment}
-                                onCommentChange={handleJudgeCommentChange}
-                                disabled={voteUIDisabled || isVoteDeadlineExceeded}
-                             />
-                           </>
-                        ) : (
-                           <GeneralVoteButton postId={post.id} isLiked={votes[post.id] === 1} onToggle={handleVoteChange} disabled={voteUIDisabled || isVoteDeadlineExceeded} />
-                        )
-                      )}
-                    </div>
-                    {/* コメント機能 */}
-                    <div className="mt-2">
-                        <CommentList postId={post.id} currentUser={user} contestStatus="voting" />
                     </div>
                   </div>
                 );
               })
-            ) : ( <div className="text-center py-12 text-gray-500">投稿がありません。</div> )}
+            ) : ( <div className="text-center py-16 text-black/50">投稿がありません。</div> )}
             </div>
             )}
           </div>
@@ -787,102 +921,99 @@ export default function VenueDetailPage() {
 
         {/* 結果発表 */}
         {contestStatus === 'closed' && (
-          <div>
+          <div className="space-y-8 pb-12">
               {contest.resultCommentTop && (
-                  <div className="mb-6 p-4 bg-gray-800/50 rounded-lg border border-gray-700 whitespace-pre-wrap text-gray-200">
+                  <div className="whitespace-pre-wrap text-black/80 leading-relaxed px-2">
                       {contest.resultCommentTop}
                   </div>
               )}
-              <div className="flex border-b border-gray-800">
-                  <button onClick={()=>setResultTab('ranking')} className={`flex-1 py-3 text-sm font-bold ${resultTab==='ranking' ? 'text-yellow-400 border-b-2 border-yellow-400' : 'text-gray-500 hover:text-gray-300'}`}>ランキング</button>
-                  <button onClick={()=>setResultTab('awards')} className={`flex-1 py-3 text-sm font-bold ${resultTab==='awards' ? 'text-indigo-400 border-b-2 border-indigo-400' : 'text-gray-500 hover:text-gray-300'}`}>審査員賞</button>
-              </div>
-
-              {resultTab === 'ranking' && (
-                <div className="divide-y divide-gray-800">
-                    {results.map((result, index) => {
-                        const showBorder = index > 0 && results[index - 1].is_advanced && !result.is_advanced;
-                        return (
-                            <Fragment key={result.post_id}>
-                                {showBorder && contest.advancementNumerator != null && contest.advancementDenominator != null && (
-                                    <div className="py-4 bg-gray-900 border-y border-red-500/50 flex items-center justify-center">
-                                        <span className="text-red-400 font-bold text-sm tracking-widest flex items-center">
-                                            <div className="w-12 h-px bg-red-500/50 mr-3"></div>
-                                            予選通過ボーダー
-                                            <div className="w-12 h-px bg-red-500/50 ml-3"></div>
-                                        </span>
-                                    </div>
-                                )}
-                                <ResultPostCard post={result} currentUser={user} contestScoringMethod={contest.scoringMethod} />
-                            </Fragment>
-                        );
-                    })}
-                </div>
-              )}
-
-              {resultTab === 'awards' && (
-                  <div className="space-y-6 p-6">
-                      {judgeAwardsResults.length === 0 && <div className="text-center text-gray-500">審査員賞はありません。</div>}
-                      {judgeAwardsResults.map((award, idx) => (
-                          <div key={idx} className="p-4 border-b border-gray-800 hover:bg-gray-800/20 transition-colors">
-                              {/* 審査員ヘッダー */}
-                              <div className="flex items-start gap-3 mb-3">
-                                  <div className="flex-none pt-1">
-                                      <Link href={`/profile/${encodeURIComponent(award.judge.screen_name)}`}>
-                                          <img 
-                                              src={award.judge.profile_image_url || 'https://via.placeholder.com/40'} 
-                                              className="w-10 h-10 rounded-full border border-indigo-500/50 object-cover"
-                                              onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/40')}
-                                          />
-                                      </Link>
-                                  </div>
-                                  <div className="flex-grow min-w-0">
-                                      <div className="flex items-center gap-2 mb-1">
-                                          <Link href={`/profile/${encodeURIComponent(award.judge.screen_name)}`} className="font-bold text-white hover:underline">
-                                              {award.judge.name}
-                                          </Link>
-                                          <span className="inline-flex items-center bg-indigo-500/20 text-indigo-300 text-[10px] font-bold px-1.5 py-0.5 rounded border border-indigo-500/40">
-                                              <Award className="w-3 h-3 mr-1" /> 選出
+              
+              {/* 結果のタイムライン (並び替え考慮のコンテナ) */}
+              <div className="bg-white rounded-2xl border border-[#d9e1e7] shadow-sm overflow-hidden">
+                  <div className="bg-gray-50 border-b border-gray-200 px-5 py-3 font-bold text-black flex justify-between items-center">
+                      <span>ランキング</span>
+                      <select 
+                          value={sortOrder} 
+                          onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc' | 'random')}
+                          className="text-sm bg-white border border-gray-200 rounded px-2 py-1 focus:outline-none focus:border-[#1DA1F2]"
+                      >
+                          <option value="asc">昇順</option>
+                          <option value="desc">降順</option>
+                          <option value="random">ランダム</option>
+                      </select>
+                  </div>
+                  <div className="divide-y divide-gray-100">
+                      {sortedResults.map((result, index) => {
+                          let showBorder = false;
+                          if (sortOrder === 'asc') {
+                              showBorder = Boolean(index > 0 && sortedResults[index - 1].is_advanced && !result.is_advanced);
+                          } else if (sortOrder === 'desc') {
+                              showBorder = Boolean(index > 0 && !sortedResults[index - 1].is_advanced && result.is_advanced);
+                          }
+                          return (
+                              <Fragment key={result.post_id}>
+                                  {showBorder && contest.advancementNumerator != null && contest.advancementDenominator != null && (
+                                      <div className="py-3 bg-red-50/50 border-y border-red-200 flex items-center justify-center">
+                                          <span className="text-red-500 font-bold text-xs tracking-widest flex items-center">
+                                              <div className="w-12 h-px bg-red-300 mr-3"></div>
+                                              予選通過ボーダー
+                                              <div className="w-12 h-px bg-red-300 ml-3"></div>
                                           </span>
                                       </div>
-                                      <div className="text-gray-200 text-base whitespace-pre-wrap mb-3">
-                                          {award.comment || "（コメントなし）"}
-                                      </div>
+                                  )}
+                                  <ResultPostCard post={result} currentUser={user} contestScoringMethod={contest.scoringMethod} />
+                              </Fragment>
+                          );
+                      })}
+                  </div>
+              </div>
 
-                                      {/* 引用された投稿 */}
-                                      <div className="border border-gray-600 rounded-xl p-3 bg-gray-900/50 text-gray-300 text-sm">
-                                                                        {/* 上段: アバター + ユーザー名 */}
-                                                                        <div className="flex items-center gap-2 mb-2">
-                                                                          
-                                                                            <img 
-                                                                                src={award.post.user.profile_image_url || ''} 
-                                                                                className="w-5 h-5 rounded-full object-cover flex-shrink-0"
-                                                                            />
-                                                                            <div className="flex items-baseline gap-1 min-w-0">
-                                                                              <Link href={`/profile/${encodeURIComponent(award.post.user.screen_name)}`} className="font-bold text-white hover:underline"><span className="font-bold text-white truncate">{award.post.user.name}</span></Link>
-                                                                                
-                                                                                <span className="text-xs text-gray-500 flex-shrink-0">· {dayjs(award.post.created_at).format('MM/DD')}</span>
-                                                                            </div>
-                                                                        </div>
-                                                                        
-                                                                        {/* 下段: 本文 + 画像 */}
-                                                                        <div className="text-white/90">
-                                                                            <p className="whitespace-pre-wrap">{award.post.content}</p>
-                                                                            {award.post.images && award.post.images.length > 0 && (
-                                                                                <div className="mt-2">
-                                                                                    <ImageGrid images={award.post.images} />
-                                                                                </div>
-                                                                            )}
-                                                                        </div>
-                                                                    </div>
-                                  </div>
+              {/* 審査員賞 */}
+              {contest.scoringMethod !== 'general' && judgeAwardsResults.length > 0 && (
+                  <div className="mt-24">
+                      <h2 className="text-3xl font-bold text-black mb-12 flex items-center px-2">
+                          <Award className="w-8 h-8 mr-3 text-[#1DA1F2]" />
+                          審査員賞
+                      </h2>
+                      <div className="space-y-12">
+                      {judgeAwardsResults.map((award, idx) => {
+                          const fullPost = results.find(r => r.post_id === award.post.post_id);
+                          return (
+                          <div key={idx} className="px-2">
+                              {/* Header */}
+                              <div className="flex items-center gap-3 mb-4">
+                                  <Link href={`/profile/${encodeURIComponent(award.judge.screen_name)}`}>
+                                      <img src={award.judge.profile_image_url || 'https://via.placeholder.com/40'} className="w-10 h-10 rounded-full border border-gray-200 object-cover bg-white"/>
+                                  </Link>
+                                  <Link href={`/profile/${encodeURIComponent(award.judge.screen_name)}`} className="text-xl font-bold text-black hover:underline">
+                                      {award.judge.name}
+                                  </Link>
+                                  <span className="text-xl font-bold text-black">賞</span>
+                              </div>
+                              
+                              {/* Post */}
+                              {fullPost ? (
+                                <div className="border border-gray-200 rounded-xl overflow-hidden mb-4 bg-white shadow-sm">
+                                    <ResultPostCard post={fullPost} currentUser={user} contestScoringMethod={contest.scoringMethod} hideVotersAndComments={true} />
+                                </div>
+                              ) : (
+                                <div className="border border-gray-200 rounded-xl overflow-hidden mb-4 bg-white p-4 shadow-sm">
+                                  <p>{award.post.content}</p>
+                                </div>
+                              )}
+
+                              {/* Judge Comment */}
+                              <div className="text-black/90 text-base leading-relaxed whitespace-pre-wrap ml-1">
+                                  {award.comment || "（コメントなし）"}
                               </div>
                           </div>
-                      ))}
+                      )})}
                   </div>
+              </div>
               )}
+
               {contest.resultCommentBottom && (
-                  <div className="mt-6 p-4 bg-gray-800/50 rounded-lg border border-gray-700 whitespace-pre-wrap text-gray-200">
+                  <div className={`whitespace-pre-wrap text-black/80 leading-relaxed px-2 ${contest.scoringMethod !== 'general' && judgeAwardsResults.length > 0 ? 'mt-12 pt-12 border-t border-gray-200' : 'mt-12'}`}>
                       {contest.resultCommentBottom}
                   </div>
               )}
@@ -890,8 +1021,19 @@ export default function VenueDetailPage() {
         )}
       </div>
 
-      {/* 投票確定ボタン */}
-      {showVoteUI && ( <div className="mt-8 pb-12"> <div className="bg-gray-900 border border-gray-700 p-6 rounded-lg shadow-lg text-center"> <button onClick={handleSubmitVotes} disabled={isSubmittingVotes} className="w-full max-w-md mx-auto py-3 px-6 rounded-full font-bold bg-green-600 hover:bg-green-500 text-white shadow-lg flex items-center justify-center"> {isSubmittingVotes ? <Loader2 className="animate-spin mr-2"/> : null} {isSubmittingVotes ? '送信中...' : (userHasVoted ? '投票を更新する' : '投票を確定する')} </button> </div> </div> )}
+      {/* 投票確定ボタン (固定) */}
+      {showVoteUI && ( 
+          <div className="sticky bottom-0 w-full z-50 bg-white/90 backdrop-blur-md border-t border-gray-200 p-4 flex justify-center mt-auto"> 
+              <button 
+                  onClick={handleSubmitVotes} 
+                  disabled={isSubmittingVotes} 
+                  className="w-full max-w-md mx-auto py-3.5 px-6 rounded-full font-bold bg-[#1DA1F2] hover:bg-[#1788cc] text-white shadow-md flex items-center justify-center transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed text-[15px]"
+              > 
+                  {isSubmittingVotes ? <Loader2 className="animate-spin mr-2 w-5 h-5"/> : null} 
+                  {isSubmittingVotes ? '送信中...' : (userHasVoted ? '投票を更新する' : '投票を確定する')} 
+              </button> 
+          </div> 
+      )}
     </div>
   );
 }
