@@ -232,7 +232,7 @@ return (
                 {/* いいね */}
                 <button 
                     onClick={(e) => { e.stopPropagation(); handleLike(); }}
-                    disabled={!currentUser || (contestScoringMethod === 'judge' && isJudgeForThisPost)}
+                    disabled={!currentUser || Boolean(contestScoringMethod === 'judge' && isJudgeForThisPost)}
                     className={`flex items-center group focus:outline-none ${(contestScoringMethod === 'judge' && isJudgeForThisPost) ? 'opacity-50 cursor-not-allowed' : ''}`} 
                     title={(contestScoringMethod === 'judge' && isJudgeForThisPost) ? "審査員はいいねできません" : "いいね"}>
                     <div className={`p-2 rounded-full transition-colors ${isLiked ? 'bg-pink-500/10 hover:bg-pink-500/20' : 'hover:bg-pink-500/10'}`}>
