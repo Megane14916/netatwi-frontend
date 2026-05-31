@@ -971,7 +971,7 @@ export default function VenueDetailPage() {
               {/* 審査員賞 */}
               {contest.scoringMethod !== 'general' && judgeAwardsResults.length > 0 && (
                   <div className="mt-24">
-                      <h2 className="text-3xl font-bold text-black mb-12 flex items-center px-2">
+                      <h2 className="text-3xl font-bold text-black mb-12 mt-24 flex items-center px-2">
                           <Award className="w-8 h-8 mr-3 text-[#1DA1F2]" />
                           審査員賞
                       </h2>
