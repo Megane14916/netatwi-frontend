@@ -132,10 +132,10 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-950 text-gray-400">
+      <div className="min-h-screen flex items-center justify-center bg-white text-gray-600">
         <div className="animate-pulse flex flex-col items-center">
-          <div className="h-12 w-12 bg-gray-800 rounded-full mb-4"></div>
-          <div className="h-4 w-32 bg-gray-800 rounded"></div>
+          <div className="h-12 w-12 bg-gray-200 rounded-full mb-4"></div>
+          <div className="h-4 w-32 bg-gray-200 rounded"></div>
         </div>
       </div>
     );
@@ -143,7 +143,7 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-950 text-red-400">
+      <div className="min-h-screen flex items-center justify-center bg-white text-red-500">
         <p>{error}</p>
       </div>
     );
@@ -151,9 +151,9 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
 
   if (!profileData) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-950 text-gray-400 px-4">
-        <UserIcon className="h-16 w-16 text-gray-600 mb-4" />
-        <h1 className="text-2xl font-bold text-gray-200">ユーザーが見つかりません</h1>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-white text-black px-4">
+        <UserIcon className="h-16 w-16 text-gray-400 mb-4" />
+        <h1 className="text-2xl font-bold text-black">ユーザーが見つかりません</h1>
         <p className="mt-2 text-gray-500">指定されたユーザー名のプロフィールは存在しません。</p>
       </div>
     );
@@ -167,78 +167,79 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
         : profileData.likes;
 
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100 pb-20">
+    <div className="min-h-screen bg-white text-black pb-20">
       {/* ユーザー情報ヘッダー */}
-      <div className="bg-gray-900 border-b border-gray-800">
-        <div className="max-w-4xl mx-auto px-4 py-8 flex flex-col items-center">
-          <div className="relative">
-            <img
-              src={profileData.user.profile_image_url || 'https://via.placeholder.com/96'}
-              alt={profileData.user.screen_name}
-              className="w-24 h-24 rounded-full border-4 border-gray-800 shadow-lg object-cover"
-              onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/96')}
-            />
+      <div className="w-full bg-white">
+        {/* 水色単色バナー (スマホ: 100px, PC: 200px) */}
+        <div className="w-full h-[120px] md:h-[200px] bg-[#1DA1F2]" />
+        
+        <div className="max-w-[672px] mx-auto px-4 relative pb-4">
+          {/* アイコンとXプロフィールボタンの行 */}
+          <div className="flex justify-between items-start">
+            <div className="-mt-12 md:-mt-[66px] relative">
+              <img
+                src={profileData.user.profile_image_url || 'https://via.placeholder.com/133'}
+                alt={profileData.user.screen_name}
+                className="w-24 h-24 md:w-[133px] md:h-[133px] rounded-full border-4 border-white shadow-sm object-cover bg-white"
+                onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/133')}
+              />
+            </div>
+            {/* Xプロフィールへのリンクボタン (境界線上の右のすぐ下側) */}
+            <div className="pt-3">
+              <a 
+                href={`https://x.com/${profileData.user.screen_name}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center px-4 py-1.5 bg-white text-black text-xs font-bold rounded-full border border-gray-300 hover:bg-gray-100 transition-colors"
+              >
+                Xのプロフィールページへ
+                <ExternalLink className="w-3 h-3 ml-1" />
+              </a>
+            </div>
           </div>
-          {/* ユーザー名 & スクリーンネーム (縦積み) */}
-          <h1 className="mt-4 text-2xl font-bold text-white text-center">{profileData.user.name}</h1>
-          <p className="text-gray-500 text-sm mt-1">@{profileData.user.screen_name}</p>
-
-          {/* Xプロフィールへのリンクボタン */}
-          <a 
-            href={`https://x.com/${profileData.user.screen_name}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-4 inline-flex items-center px-4 py-1.5 bg-black text-white text-xs font-bold rounded-full border border-gray-600 hover:bg-gray-800 transition-colors"
-          >
-            Xのプロフィールページへ
-            <ExternalLink className="w-3 h-3 ml-2" />
-          </a>
-          <div className="flex gap-6 mt-6 text-sm text-gray-400">
-             <div className="text-center">
-                <div className="font-bold text-white text-lg">{profileData.posts.length}</div>
-                <div>Posts</div>
-             </div>
-             <div className="text-center">
-                <div className="font-bold text-white text-lg">{profileData.likes.length}</div>
-                <div>Likes</div>
-             </div>
-             <div className="text-center">
-                <div className="font-bold text-white text-lg">{profileData.bookmarks.length}</div>
-                <div>Bookmarks</div>
-             </div>
+          
+          {/* ユーザー情報 */}
+          <div className="mt-2">
+            <h1 className="text-xl font-bold text-black">{profileData.user.name}</h1>
+            <p className="text-gray-500 text-sm">@{profileData.user.screen_name}</p>
+            <p className="mt-3 text-sm text-gray-700">
+              <span className="font-bold text-black">{profileData.posts.length}</span> ポスト{" "}
+              <span className="font-bold text-black ml-3">{profileData.likes.length}</span> いいね{" "}
+              <span className="font-bold text-black ml-3">{profileData.bookmarks.length}</span> ブックマーク
+            </p>
           </div>
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto mt-4">
+      <div className="max-w-[672px] mx-auto mt-2">
         {/* タブ切り替え */}
-        <div className="flex border-b border-gray-800 mb-2 sticky top-0 bg-gray-950 z-10">
+        <div className="flex border-b border-gray-200 mb-2 sticky top-0 bg-white z-10">
           <button
             onClick={() => setActiveTab('posts')}
-            className={`flex-1 py-3 text-sm font-bold transition-colors relative hover:bg-white/5 ${
-              activeTab === 'posts' ? 'text-white' : 'text-gray-500'
+            className={`flex-1 py-3 text-sm font-bold transition-colors relative hover:bg-gray-50 ${
+              activeTab === 'posts' ? 'text-[#1DA1F2]' : 'text-gray-500'
             }`}
           >
             ポスト
-            {activeTab === 'posts' && <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-12 h-1 bg-blue-500 rounded-full" />}
+            {activeTab === 'posts' && <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-12 h-1 bg-[#1DA1F2] rounded-full" />}
           </button>
           <button
             onClick={() => setActiveTab('likes')}
-            className={`flex-1 py-3 text-sm font-bold transition-colors relative hover:bg-white/5 ${
-              activeTab === 'likes' ? 'text-white' : 'text-gray-500'
+            className={`flex-1 py-3 text-sm font-bold transition-colors relative hover:bg-gray-50 ${
+              activeTab === 'likes' ? 'text-[#1DA1F2]' : 'text-gray-500'
             }`}
           >
             いいね
-            {activeTab === 'likes' && <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-12 h-1 bg-blue-500 rounded-full" />}
+            {activeTab === 'likes' && <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-12 h-1 bg-[#1DA1F2] rounded-full" />}
           </button>
           <button
             onClick={() => setActiveTab('bookmarks')}
-            className={`flex-1 py-3 text-sm font-bold transition-colors relative hover:bg-white/5 ${
-              activeTab === 'bookmarks' ? 'text-white' : 'text-gray-500'
+            className={`flex-1 py-3 text-sm font-bold transition-colors relative hover:bg-gray-50 ${
+              activeTab === 'bookmarks' ? 'text-[#1DA1F2]' : 'text-gray-500'
             }`}
           >
             ブックマーク
-            {activeTab === 'bookmarks' && <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-blue-500 rounded-full" />}
+            {activeTab === 'bookmarks' && <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-[#1DA1F2] rounded-full" />}
           </button>
         </div>
 
@@ -250,14 +251,14 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
             </div>
           ) : (
             displayPosts.map((post) => (
-              <div key={post.post_id} className="border-b border-gray-800">
+              <div key={post.post_id} className="border-b border-gray-200">
                 {/* 大会リンク (カードの外に表示) */}
                 {post.contest && (
-                    <div className="px-4 pt-3 pb-1 text-xs text-gray-500 hover:text-gray-300 transition-colors flex items-center">
+                    <div className="px-4 pt-3 pb-1 text-xs text-gray-500 hover:text-[#1DA1F2] transition-colors flex items-center">
                         <a href={`/venue/${post.contest.id}`} className="hover:underline">
                             {post.contest.name}
                         </a>
-                        {post.contest.theme && <span className="ml-2 opacity-70">/ お題: {post.contest.theme}</span>}
+                        {post.contest.theme && <span className="ml-2 text-gray-400">/ お題: {post.contest.theme}</span>}
                     </div>
                 )}
                 
