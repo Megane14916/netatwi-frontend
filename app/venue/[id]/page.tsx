@@ -922,100 +922,114 @@ export default function VenueDetailPage() {
         {/* 結果発表 */}
         {contestStatus === 'closed' && (
           <div className="space-y-8 pb-12">
-              {contest.resultCommentTop && (
-                  <div className="whitespace-pre-wrap text-black/80 leading-relaxed px-2">
-                      {contest.resultCommentTop}
+              {results.length === 0 ? (
+                 <div className="text-center py-20 text-gray-500 bg-gray-50 rounded-2xl border border-gray-200">
+                     投稿がありませんでした。
+                 </div>
+              ) : results.some(r => r.rank === null) ? (
+                 <div className="text-center py-20 bg-gray-50 rounded-2xl border border-gray-200 shadow-sm mt-8">
+                     <Loader2 className="w-10 h-10 animate-spin text-[#1DA1F2] mx-auto mb-4" />
+                     <p className="text-xl font-bold text-gray-700 mb-2">現在、結果を集計中です</p>
+                     <p className="text-gray-500">集計が完了し、結果が発表されるまでしばらくお待ちください。</p>
+                 </div>
+              ) : (
+                <>
+                  {contest.resultCommentTop && (
+                      <div className="whitespace-pre-wrap text-black/80 leading-relaxed px-2">
+                          {contest.resultCommentTop}
+                      </div>
+                  )}
+                  
+                  {/* 結果のタイムライン (並び替え考慮のコンテナ) */}
+                  <div className="bg-white rounded-2xl border border-[#d9e1e7] shadow-sm overflow-hidden">
+                      <div className="bg-gray-50 border-b border-gray-200 px-5 py-3 font-bold text-black flex justify-between items-center">
+                          <span>ランキング</span>
+                          <select 
+                              value={sortOrder} 
+                              onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc' | 'random')}
+                              className="text-sm bg-white border border-gray-200 rounded px-2 py-1 focus:outline-none focus:border-[#1DA1F2]"
+                          >
+                              <option value="asc">昇順</option>
+                              <option value="desc">降順</option>
+                              <option value="random">ランダム</option>
+                          </select>
+                      </div>
+                      <div className="divide-y divide-gray-100">
+                          {sortedResults.map((result, index) => {
+                              let showBorder = false;
+                              if (sortOrder === 'asc') {
+                                  showBorder = Boolean(index > 0 && sortedResults[index - 1].is_advanced && !result.is_advanced);
+                              } else if (sortOrder === 'desc') {
+                                  showBorder = Boolean(index > 0 && !sortedResults[index - 1].is_advanced && result.is_advanced);
+                              }
+                              return (
+                                  <Fragment key={result.post_id}>
+                                      {showBorder && contest.advancementNumerator != null && contest.advancementDenominator != null && (
+                                          <div className="py-3 bg-red-50/50 border-y border-red-200 flex items-center justify-center">
+                                              <span className="text-red-500 font-bold text-xs tracking-widest flex items-center">
+                                                  <div className="w-12 h-px bg-red-300 mr-3"></div>
+                                                  予選通過ボーダー
+                                                  <div className="w-12 h-px bg-red-300 ml-3"></div>
+                                              </span>
+                                          </div>
+                                      )}
+                                      <ResultPostCard post={result} currentUser={user} contestScoringMethod={contest.scoringMethod} />
+                                  </Fragment>
+                              );
+                          })}
+                      </div>
                   </div>
-              )}
-              
-              {/* 結果のタイムライン (並び替え考慮のコンテナ) */}
-              <div className="bg-white rounded-2xl border border-[#d9e1e7] shadow-sm overflow-hidden">
-                  <div className="bg-gray-50 border-b border-gray-200 px-5 py-3 font-bold text-black flex justify-between items-center">
-                      <span>ランキング</span>
-                      <select 
-                          value={sortOrder} 
-                          onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc' | 'random')}
-                          className="text-sm bg-white border border-gray-200 rounded px-2 py-1 focus:outline-none focus:border-[#1DA1F2]"
-                      >
-                          <option value="asc">昇順</option>
-                          <option value="desc">降順</option>
-                          <option value="random">ランダム</option>
-                      </select>
-                  </div>
-                  <div className="divide-y divide-gray-100">
-                      {sortedResults.map((result, index) => {
-                          let showBorder = false;
-                          if (sortOrder === 'asc') {
-                              showBorder = Boolean(index > 0 && sortedResults[index - 1].is_advanced && !result.is_advanced);
-                          } else if (sortOrder === 'desc') {
-                              showBorder = Boolean(index > 0 && !sortedResults[index - 1].is_advanced && result.is_advanced);
-                          }
-                          return (
-                              <Fragment key={result.post_id}>
-                                  {showBorder && contest.advancementNumerator != null && contest.advancementDenominator != null && (
-                                      <div className="py-3 bg-red-50/50 border-y border-red-200 flex items-center justify-center">
-                                          <span className="text-red-500 font-bold text-xs tracking-widest flex items-center">
-                                              <div className="w-12 h-px bg-red-300 mr-3"></div>
-                                              予選通過ボーダー
-                                              <div className="w-12 h-px bg-red-300 ml-3"></div>
-                                          </span>
-                                      </div>
+
+                  {/* 審査員賞 */}
+                  {contest.scoringMethod !== 'general' && judgeAwardsResults.length > 0 && (
+                      <div className="mt-24">
+                          <h2 className="text-3xl font-bold text-black mb-12 mt-24 flex items-center px-2">
+                              <Award className="w-8 h-8 mr-3 text-[#1DA1F2]" />
+                              審査員賞
+                          </h2>
+                          <div className="space-y-12">
+                          {judgeAwardsResults.map((award, idx) => {
+                              const fullPost = results.find(r => r.post_id === award.post.post_id);
+                              return (
+                              <div key={idx} className="px-2">
+                                  {/* Header */}
+                                  <div className="flex items-center gap-3 mb-4">
+                                      <Link href={`/profile/${encodeURIComponent(award.judge.screen_name)}`}>
+                                          <img src={award.judge.profile_image_url || 'https://via.placeholder.com/40'} className="w-10 h-10 rounded-full border border-gray-200 object-cover bg-white"/>
+                                      </Link>
+                                      <Link href={`/profile/${encodeURIComponent(award.judge.screen_name)}`} className="text-xl font-bold text-black hover:underline">
+                                          {award.judge.name}
+                                      </Link>
+                                      <span className="text-xl font-bold text-black">賞</span>
+                                  </div>
+                                  
+                                  {/* Post */}
+                                  {fullPost ? (
+                                    <div className="border border-gray-200 rounded-xl overflow-hidden mb-4 bg-white shadow-sm">
+                                        <ResultPostCard post={fullPost} currentUser={user} contestScoringMethod={contest.scoringMethod} hideVotersAndComments={true} />
+                                    </div>
+                                  ) : (
+                                    <div className="border border-gray-200 rounded-xl overflow-hidden mb-4 bg-white p-4 shadow-sm">
+                                      <p>{award.post.content}</p>
+                                    </div>
                                   )}
-                                  <ResultPostCard post={result} currentUser={user} contestScoringMethod={contest.scoringMethod} />
-                              </Fragment>
-                          );
-                      })}
-                  </div>
-              </div>
 
-              {/* 審査員賞 */}
-              {contest.scoringMethod !== 'general' && judgeAwardsResults.length > 0 && (
-                  <div className="mt-24">
-                      <h2 className="text-3xl font-bold text-black mb-12 mt-24 flex items-center px-2">
-                          <Award className="w-8 h-8 mr-3 text-[#1DA1F2]" />
-                          審査員賞
-                      </h2>
-                      <div className="space-y-12">
-                      {judgeAwardsResults.map((award, idx) => {
-                          const fullPost = results.find(r => r.post_id === award.post.post_id);
-                          return (
-                          <div key={idx} className="px-2">
-                              {/* Header */}
-                              <div className="flex items-center gap-3 mb-4">
-                                  <Link href={`/profile/${encodeURIComponent(award.judge.screen_name)}`}>
-                                      <img src={award.judge.profile_image_url || 'https://via.placeholder.com/40'} className="w-10 h-10 rounded-full border border-gray-200 object-cover bg-white"/>
-                                  </Link>
-                                  <Link href={`/profile/${encodeURIComponent(award.judge.screen_name)}`} className="text-xl font-bold text-black hover:underline">
-                                      {award.judge.name}
-                                  </Link>
-                                  <span className="text-xl font-bold text-black">賞</span>
+                                  {/* Judge Comment */}
+                                  <div className="text-black/90 text-base leading-relaxed whitespace-pre-wrap ml-1">
+                                      {award.comment || "（コメントなし）"}
+                                  </div>
                               </div>
-                              
-                              {/* Post */}
-                              {fullPost ? (
-                                <div className="border border-gray-200 rounded-xl overflow-hidden mb-4 bg-white shadow-sm">
-                                    <ResultPostCard post={fullPost} currentUser={user} contestScoringMethod={contest.scoringMethod} hideVotersAndComments={true} />
-                                </div>
-                              ) : (
-                                <div className="border border-gray-200 rounded-xl overflow-hidden mb-4 bg-white p-4 shadow-sm">
-                                  <p>{award.post.content}</p>
-                                </div>
-                              )}
-
-                              {/* Judge Comment */}
-                              <div className="text-black/90 text-base leading-relaxed whitespace-pre-wrap ml-1">
-                                  {award.comment || "（コメントなし）"}
-                              </div>
-                          </div>
-                      )})}
+                          )})}
+                      </div>
                   </div>
-              </div>
-              )}
+                  )}
 
-              {contest.resultCommentBottom && (
-                  <div className={`whitespace-pre-wrap text-black/80 leading-relaxed px-2 ${contest.scoringMethod !== 'general' && judgeAwardsResults.length > 0 ? 'mt-12 pt-12 border-t border-gray-200' : 'mt-12'}`}>
-                      {contest.resultCommentBottom}
-                  </div>
+                  {contest.resultCommentBottom && (
+                      <div className={`whitespace-pre-wrap text-black/80 leading-relaxed px-2 ${contest.scoringMethod !== 'general' && judgeAwardsResults.length > 0 ? 'mt-12 pt-12 border-t border-gray-200' : 'mt-12'}`}>
+                          {contest.resultCommentBottom}
+                      </div>
+                  )}
+                </>
               )}
           </div>
         )}

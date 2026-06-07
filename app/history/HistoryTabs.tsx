@@ -84,7 +84,7 @@ export default function HistoryTabs({ contests }: { contests: Contest[] }) {
           {activeTab === 'grandprix' && (
             <>
               {grandprixContests.map(renderContestCard)}
-              {/* 第一回 ネタツイグランプリ (note) */}
+              {/* 第1回 ネタツイグランプリ (note) */}
               <a
                 href="https://note.com/ed_nt/n/ne39d454eafb1?magazine_key=m725c32beb85d"
                 target="_blank"
@@ -94,7 +94,7 @@ export default function HistoryTabs({ contests }: { contests: Contest[] }) {
                 <div className="absolute inset-0 z-0 origin-top -translate-y-full bg-[#1DA1F2] transition-transform duration-300 ease-out group-hover:translate-y-0" />
                 <div className="relative z-10 flex flex-row items-center justify-between gap-4">
                   <div>
-                    <h4 className="text-lg font-bold text-black transition-colors group-hover:text-white md:text-xl">第一回 ネタツイグランプリ</h4>
+                    <h4 className="text-lg font-bold text-black transition-colors group-hover:text-white md:text-xl">第1回 ネタツイグランプリ</h4>
                     <p className="mt-1 text-sm text-gray-500 transition-colors group-hover:text-white/80">
                       外部サイト(note.com)へ移動します
                     </p>
@@ -104,7 +104,7 @@ export default function HistoryTabs({ contests }: { contests: Contest[] }) {
                       <span className="text-xs font-medium text-black/60 transition-colors group-hover:text-white/80">
                         投稿数
                       </span>
-                      <span className="text-lg font-bold text-black transition-colors group-hover:text-white">821件</span>
+                      <span className="text-lg font-bold text-black transition-colors group-hover:text-white">324件</span>
                     </div>
                   </div>
                 </div>

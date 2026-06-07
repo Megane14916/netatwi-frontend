@@ -530,7 +530,7 @@ export default function HomePage() {
                 <div className="absolute inset-0 z-0 origin-top -translate-y-full bg-[#1DA1F2] transition-transform duration-300 ease-out group-hover:translate-y-0" />
                 <div className="relative z-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                   <div>
-                    <h3 className="text-xl font-bold text-black transition-colors group-hover:text-white md:text-2xl">第一回 ネタツイグランプリ (note)</h3>
+                    <h3 className="text-xl font-bold text-black transition-colors group-hover:text-white md:text-2xl">第1回 ネタツイグランプリ (note)</h3>
                     <p className="mt-2 text-sm text-gray-500 transition-colors group-hover:text-white/80">外部サイト(note.com)へ移動します</p>
                   </div>
                   <div className="flex items-center gap-8 self-end md:self-auto">
@@ -538,7 +538,7 @@ export default function HomePage() {
                       <span className="text-xs font-medium text-black/60 transition-colors group-hover:text-white/80">
                         投稿数
                       </span>
-                      <span className="text-xl font-bold text-black transition-colors group-hover:text-white">821件</span>
+                      <span className="text-xl font-bold text-black transition-colors group-hover:text-white">324件</span>
                     </div>
                     <ExternalLink className="h-6 w-6 text-gray-400 transition-colors group-hover:text-white" />
                   </div>
