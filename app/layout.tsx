@@ -56,6 +56,8 @@ export default function RootLayout({
       </head>
       <body className={`${notoSansJP.variable} ${inter.variable} bg-gray-950 text-white flex flex-col min-h-screen`}>
         <AuthProvider>
+          {/* ヘッダーの裏に配置するページトップ用の白い背景 */}
+          <div className="absolute top-0 left-0 right-0 h-16 bg-white z-0"></div>
           <Header />
           <main className="flex-grow flex flex-col">{children}</main>
           <Footer />

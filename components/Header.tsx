@@ -76,57 +76,79 @@ export default function Header() {
 
 
   return (
-    <header className="px-4 lg:px-6 h-16 flex items-center justify-between border-b border-gray-800 sticky top-0 z-50 bg-gray-950/95 backdrop-blur supports-[backdrop-filter]:bg-gray-950/60">
-      {/* 左側: ロゴ */}
-      <Link href="/" className="flex items-center justify-center">
-        <Crown className="h-6 w-6 text-yellow-400" />
-        <span className="ml-2 font-semibold">ネタツイグランプリ</span>
-      </Link>
+    <header className="px-4 lg:px-6 h-16 flex items-center justify-between border-b border-gray-200 sticky top-0 z-50 bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/60 text-black">
+      
+      {/* モバイル版 左側: 通知アイコン (非ログイン時は空のdivでスペースを確保) */}
+      <div className="flex md:hidden items-center basis-1/3 justify-start">
+        {!loading && user && (
+          <Link href="/notifications" className="relative p-2 text-black hover:text-gray-700 transition-colors">
+            <Bell className="w-5 h-5" />
+            {unreadCount > 0 && (
+              <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </Link>
+        )}
+      </div>
+
+      {/* ロゴ: PC版は左寄せ、モバイル版は中央寄せ */}
+      <div className="flex items-center justify-center md:justify-start basis-1/3 md:basis-auto">
+        <Link href="/" className="flex items-center justify-center">
+          <Crown className="h-6 w-6 text-yellow-500" />
+          <span className="ml-2 font-semibold whitespace-nowrap">ネタツイグランプリ</span>
+        </Link>
+      </div>
 
       {/* 右側: ナビゲーション & ログイン/ユーザーメニュー */}
-      <div className="flex items-center gap-4 sm:gap-6">
+      <div className="flex items-center justify-end basis-1/3 md:basis-auto gap-4 sm:gap-6">
         {/* ナビゲーションリンク (中画面以上) */}
         <nav className="hidden md:flex gap-4 sm:gap-6 items-center">
-          <Link href="/venue" className={`text-sm font-medium hover:text-gray-50 transition-colors ${pathname === '/venue' ? 'text-white underline underline-offset-4' : 'text-gray-400'}`}>会場</Link>
-          <Link href="/history" className={`text-sm font-medium hover:text-gray-50 transition-colors ${pathname === '/history' ? 'text-white underline underline-offset-4' : 'text-gray-400'}`}>過去ログ</Link>
-          <Link href="/rules" className={`text-sm font-medium hover:text-gray-50 transition-colors ${pathname === '/rules' ? 'text-white underline underline-offset-4' : 'text-gray-400'}`}>ルール</Link>
+          <Link href="/venue" className={`text-sm font-medium hover:text-gray-700 transition-colors ${pathname === '/venue' ? 'text-black underline underline-offset-4' : 'text-black'}`}>会場</Link>
+          <Link href="/history" className={`text-sm font-medium hover:text-gray-700 transition-colors ${pathname === '/history' ? 'text-black underline underline-offset-4' : 'text-black'}`}>過去ログ</Link>
+          <Link href="/rules" className={`text-sm font-medium hover:text-gray-700 transition-colors ${pathname === '/rules' ? 'text-black underline underline-offset-4' : 'text-black'}`}>ルール</Link>
         </nav>
 
         {/* ログイン状態に応じた表示 */}
         {loading ? (
-          <div className="h-8 w-24 rounded-md bg-gray-700 animate-pulse"></div>
+          <div className="h-8 w-24 rounded-md bg-gray-200 animate-pulse"></div>
         ) : user ? (
           <> 
-            {/* 通知アイコン */}
-            <Link href="/notifications" className="relative p-2 text-gray-400 hover:text-white transition-colors">
-              <Bell className="w-5 h-5" />
-              {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                  {unreadCount > 99 ? '99+' : unreadCount}
-                </span>
-              )}
-            </Link>
+            {/* PC版 通知アイコンと「通知」テキスト */}
+            <div className="hidden md:block">
+              <Link href="/notifications" className="relative flex items-center p-2 text-black hover:text-gray-700 transition-colors">
+                <div className="relative">
+                  <Bell className="w-5 h-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
+                </div>
+                <span className="ml-1 text-sm font-medium">通知</span>
+              </Link>
+            </div>
 
             {/* PC用ドロップダウン */}
             <div className="relative hidden md:block" ref={dropdownRef}>
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="flex items-center text-sm font-medium text-gray-400 hover:text-gray-50 focus:outline-none"
+                className="flex items-center text-sm font-medium text-black hover:text-gray-700 focus:outline-none"
               >
                 <img
                     src={user.profile_image_url || `https://via.placeholder.com/24`}
-                    alt={user.screen_name}
-                    className="h-6 w-6 rounded-full mr-2 border border-gray-600"
+                    alt={user.name}
+                    className="h-6 w-6 rounded-full mr-2 border border-gray-300"
                     onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/24')}
                  />
-                {user.screen_name}さん
+                {user.name}さん
                 <ChevronDown className={`h-4 w-4 ml-1 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
               {isDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-md shadow-lg py-1 border border-gray-700 z-50">
+                <div className="absolute right-0 mt-2 w-48 bg-gray-100 rounded-md shadow-lg py-1 border border-gray-200 z-50">
                   <Link
                     href={`/profile/${encodeURIComponent(user.screen_name)}`}
-                    className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white w-full text-left"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 hover:text-black w-full text-left"
                   >
                     マイページ
                   </Link>
@@ -135,7 +157,7 @@ export default function Header() {
                         setIsDropdownOpen(false);
                         await logout();
                     }}
-                    className="block px-4 py-2 text-sm text-red-400 hover:bg-gray-700 hover:text-red-300 w-full text-left"
+                    className="block px-4 py-2 text-sm text-red-500 hover:bg-gray-200 hover:text-red-600 w-full text-left"
                   >
                     ログアウト
                   </button>
@@ -148,17 +170,17 @@ export default function Header() {
                    <img
                        src={user.profile_image_url || `https://via.placeholder.com/32`}
                        alt="メニュー"
-                       className="h-8 w-8 rounded-full border border-gray-600"
+                       className="h-8 w-8 rounded-full border border-gray-300"
                        onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/32')}
                    />
               </button>
                {isDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-md shadow-lg py-1 border border-gray-700 z-50">
-                  <Link href="/venue" className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white">会場</Link>
-                  <Link href="/history" className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white">過去ログ</Link>
-                  <Link href="/rules" className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white">ルール</Link>
-                  <Link href={`/profile/${encodeURIComponent(user.screen_name)}`} className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white">マイページ</Link>
-                  <button onClick={async () => { setIsDropdownOpen(false); await logout(); }} className="block px-4 py-2 text-sm text-red-400 hover:bg-gray-700 hover:text-red-300 w-full text-left">ログアウト</button>
+                <div className="absolute right-0 mt-2 w-48 bg-gray-100 rounded-md shadow-lg py-1 border border-gray-200 z-50">
+                  <Link href="/venue" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 hover:text-black">会場</Link>
+                  <Link href="/history" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 hover:text-black">過去ログ</Link>
+                  <Link href="/rules" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 hover:text-black">ルール</Link>
+                  <Link href={`/profile/${encodeURIComponent(user.screen_name)}`} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 hover:text-black">マイページ</Link>
+                  <button onClick={async () => { setIsDropdownOpen(false); await logout(); }} className="block px-4 py-2 text-sm text-red-500 hover:bg-gray-200 hover:text-red-600 w-full text-left">ログアウト</button>
                 </div>
               )}
           </div>
@@ -170,7 +192,8 @@ export default function Header() {
             className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium h-10 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white"
           >
             <Twitter className="h-4 w-4 mr-2" />
-            Xでログイン
+            <span className="hidden sm:inline">Xでログイン</span>
+            <span className="sm:hidden">ログイン</span>
           </button>
         )}
       </div>
