@@ -14,7 +14,7 @@ export default function UsersPage() {
   const fetchUsers = useCallback(async (q: string, p: number) => {
     setIsLoading(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5001';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
       const res = await fetch(`${apiUrl}/api/users?q=${encodeURIComponent(q)}&page=${p}`);
       if (res.ok) {
         const data = await res.json();
