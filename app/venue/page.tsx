@@ -1,21 +1,19 @@
-import { Timer, Zap, Calendar, CheckSquare, Trophy, Users,CheckCircle, UserStar } from 'lucide-react';
+import { Timer, Zap, Calendar, CheckSquare, Trophy, Users, CheckCircle, UserStar, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import dayjs from 'dayjs';
 import Countdown from '@/components/venue/Countdown';
+import React from 'react';
 
-// --- API_URLの設定 ---
-// Server Componentはサーバー上で実行されるため、相対パスではなく完全なURLが必要です。
-// また、NEXT_PUBLIC_API_URL（クライアント用）ではなく、
-// サーバー間通信用の BACKEND_URL（環境変数）またはローカルアドレスを使用します。
 const API_URL = process.env.BACKEND_URL || 'http://127.0.0.1:5001';
 
-// 型定義
 interface Contest {
   id: number;
   name: string;
   hasTheme: boolean;
   theme: string | null;
   hasQualifier: boolean;
+  parentContestId?: number;
+  type?: string;
   startTime: string | null;
   endTime: string | null;
   votingEndTime: string | null;
@@ -44,41 +42,38 @@ interface ContestsResponse {
   latestResult: LatestResult | null;
 }
 
-// ステータス判定用ヘルパー関数
-type ContestStatusKey = 'upcoming' | 'ongoing' | 'voting' | 'qualifier_ongoing' | 'qualifier_voting' | null;
-
-const getQualifierStatus = (contest: Contest): { phase: '予選' | '決勝' | null; statusKey: ContestStatusKey; targetTime: string | null } => {
-  if (!contest.hasQualifier) return { phase: null, statusKey: null, targetTime: null };
-
+const getGPStep = (c: Contest) => {
   const now = dayjs();
-  const qStart = contest.qualifierStartTime ? dayjs(contest.qualifierStartTime) : null;
-  const qEnd = contest.qualifierEndTime ? dayjs(contest.qualifierEndTime) : null;
-  const qVoteEnd = contest.qualifierVotingEndTime ? dayjs(contest.qualifierVotingEndTime) : null;
+  const qStart = c.qualifierStartTime ? dayjs(c.qualifierStartTime) : null;
+  const qEnd = c.qualifierEndTime ? dayjs(c.qualifierEndTime) : null;
+  const qVoteEnd = c.qualifierVotingEndTime ? dayjs(c.qualifierVotingEndTime) : null;
+  const end = c.endTime ? dayjs(c.endTime) : null;
+  const voteEnd = c.votingEndTime ? dayjs(c.votingEndTime) : null;
 
-  if (qStart && now.isBefore(qStart)) {
-      return { phase: '予選', statusKey: 'upcoming', targetTime: contest.qualifierStartTime };
-  }
-  if (qStart && qEnd && now.isAfter(qStart) && now.isBefore(qEnd)) {
-    return { phase: '予選', statusKey: 'qualifier_ongoing', targetTime: contest.qualifierEndTime };
-  }
-  if (qEnd && qVoteEnd && now.isAfter(qEnd) && now.isBefore(qVoteEnd)) {
-    return { phase: '予選', statusKey: 'qualifier_voting', targetTime: contest.qualifierVotingEndTime };
-  }
-  return { phase: '決勝', statusKey: null, targetTime: null };
+  if (qStart && now.isBefore(qStart)) return 0;
+  if (qStart && qEnd && now.isAfter(qStart) && now.isBefore(qEnd)) return 0;
+  if (qEnd && qVoteEnd && now.isAfter(qEnd) && now.isBefore(qVoteEnd)) return 1;
+  if (qVoteEnd && end && now.isAfter(qVoteEnd) && now.isBefore(end)) return 2;
+  if (end && voteEnd && now.isAfter(end) && now.isBefore(voteEnd)) return 3;
+  if (voteEnd && now.isAfter(voteEnd)) return 4;
+
+  return 0;
 };
 
-// データを取得する非同期関数
+const GP_STEPS = [
+  "予選投稿",
+  "予選投票",
+  "本選投稿",
+  "本選投票",
+  "本選結果"
+];
+
 async function getContestsData(): Promise<ContestsResponse> {
   try {
-    // Server Componentからのフェッチなので、credentials: 'include' は不要（セッションCookieは関係ない公開情報のため）
     const res = await fetch(`${API_URL}/api/contests`, {
-      next: { revalidate: 60 }, // 60秒キャッシュ
+      next: { revalidate: 60 },
     });
-
-    if (!res.ok) {
-      throw new Error('Failed to fetch contests');
-    }
-
+    if (!res.ok) throw new Error('Failed to fetch contests');
     return res.json();
   } catch (error) {
     console.error(error);
@@ -86,169 +81,273 @@ async function getContestsData(): Promise<ContestsResponse> {
   }
 }
 
-export default async function VenuePage() {
-  // サーバー側でデータを取得
-  const data = await getContestsData();
+const renderTitle = (name: string) => {
+  if (!name.includes('ネタツイグランプリ')) return name;
+  const parts = name.split('ネタツイグランプリ');
+  return (
+    <>
+      {parts[0] && <span className="block mb-1">{parts[0]}</span>}
+      <span className="block">ネタツイグランプリ</span>
+      {parts[1] && <span className="block mt-1">{parts[1]}</span>}
+    </>
+  );
+};
 
-  const { ongoing, voting, upcoming, latestResult } = data;
+export default async function VenuePage() {
+  const data = await getContestsData();
+  const { ongoing, voting, upcoming, closed } = data;
+  const allContests = [...ongoing, ...voting, ...upcoming, ...closed];
+
+  // GPの「本選(決勝)」を取得 (parentContestIdを持っているものが本選)
+  // 最新のものを優先するため、idが最大のものを取得するなどしても良いが、
+  // 現行のグランプリを取得する
+  const gpFinals = allContests.find(c => c.type === 'grandprix' && c.parentContestId != null)
+                || allContests.find(c => c.hasQualifier === true); // フォールバック
+
+  let activeGpId = gpFinals?.id;
+  let activeGpName = gpFinals?.name;
+  let step = 0;
+
+  if (gpFinals) {
+    step = getGPStep(gpFinals);
+    // 予選期間中(0または1)は、親コンテスト(=予選)の情報を表示する
+    if (step === 0 || step === 1) {
+      if (gpFinals.parentContestId) {
+        const gpQualifier = allContests.find(c => c.id === gpFinals.parentContestId);
+        if (gpQualifier) {
+          activeGpId = gpQualifier.id;
+          activeGpName = gpQualifier.name;
+        }
+      }
+    }
+  }
+
+  // 日めくり: type === 'daily' のもののみ
+  const dailyContests = allContests.filter(c => c.type === 'daily');
+  
+  const categorizeDaily = (c: Contest) => {
+    const now = dayjs();
+    if (c.endTime && now.isBefore(dayjs(c.endTime))) return 'ongoing';
+    if (c.votingEndTime && now.isBefore(dayjs(c.votingEndTime))) return 'voting';
+    return 'closed';
+  };
+
+  const dailyOngoing = dailyContests.filter(c => categorizeDaily(c) === 'ongoing').sort((a,b) => dayjs(b.startTime).unix() - dayjs(a.startTime).unix());
+  const dailyVoting = dailyContests.filter(c => categorizeDaily(c) === 'voting').sort((a,b) => dayjs(b.startTime).unix() - dayjs(a.startTime).unix());
+  const dailyClosed = dailyContests.filter(c => categorizeDaily(c) === 'closed').sort((a,b) => dayjs(b.startTime).unix() - dayjs(a.startTime).unix());
+
+  const visibleClosed = dailyClosed.slice(0, 3);
+  const hasMoreClosed = dailyClosed.length > 3;
+
+  const renderCard = (contest: Contest, type: 'ongoing' | 'voting' | 'closed') => {
+    const typeConfig = {
+       ongoing: { label: '投稿期間', bg: 'bg-[#1DA1F2]', color: 'text-white' },
+       voting: { label: '投票期間', bg: 'bg-green-500', color: 'text-white' },
+       closed: { label: '結果発表', bg: 'bg-yellow-400', color: 'text-white' }
+    };
+    
+    const config = typeConfig[type];
+
+    let timeText = "";
+    if (type === 'ongoing') {
+      timeText = `投稿締切: ${dayjs(contest.endTime).format('YYYY年MM月DD日 HH:mm')}`;
+    } else if (type === 'voting') {
+      timeText = `投票締切: ${dayjs(contest.votingEndTime).format('YYYY年MM月DD日 HH:mm')}`;
+    } else {
+      timeText = `${dayjs(contest.startTime).format('YYYY年MM月DD日 HH:mm')} 開催`;
+    }
+
+    return (
+       <Link
+          key={contest.id}
+          href={`/venue/${contest.id}`}
+          className="group relative overflow-hidden bg-white px-4 py-4 transition-colors duration-300 hover:text-white md:px-6 md:py-5 flex flex-col"
+       >
+          <div className="absolute inset-0 z-0 origin-top -translate-y-full bg-[#1DA1F2] transition-transform duration-300 ease-out group-hover:translate-y-0" />
+          
+          <div className="relative z-10 flex flex-row items-center justify-between gap-4">
+             <div>
+                <div className={`self-start inline-block px-2.5 py-0.5 text-xs font-bold rounded-full mb-2 transition-colors duration-300 ${config.bg} ${config.color} group-hover:bg-white group-hover:text-[#1DA1F2]`}>
+                   {config.label}
+                </div>
+                <h4 className="text-lg font-bold text-black transition-colors group-hover:text-white md:text-xl">{contest.name}</h4>
+                <p className="mt-1 text-sm text-gray-500 transition-colors group-hover:text-white/80">
+                {timeText}
+                </p>
+             </div>
+             <div className="flex items-center gap-6">
+                <div className="flex flex-col items-end md:items-start">
+                <span className="text-xs font-medium text-black/60 transition-colors group-hover:text-white/80">
+                   投稿数
+                </span>
+                <span className="text-lg font-bold text-black transition-colors group-hover:text-white">
+                   {contest.totalPosters ?? 0}件
+                </span>
+                </div>
+             </div>
+          </div>
+       </Link>
+    );
+  };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8 border-b border-gray-700 pb-2">会場</h1>
+    <div className="relative min-h-screen bg-white text-black flex flex-col overflow-clip pb-20">
+      
+      {/* グランプリエリア */}
+      {gpFinals && (() => {
+        const isPosting = step === 0 || step === 2;
+        const isVoting = step === 1 || step === 3;
+        const isResults = step === 4;
 
-      {/* 最新の結果 */}
-      {latestResult && (
-        <Link
-          href={`/venue/${latestResult.contest_id}`}
-          className="block mb-12 group hover:bg-gray-800/50 transition-colors"
-        >
-          <section className="bg-gray-900 border border-gray-700 rounded-lg p-6 shadow-lg hover:bg-gray-800/50 transition-colors">
-            <h2 className="text-xl font-semibold mb-3 text-gray-300 flex items-center">
-              <Trophy className="h-5 w-5 mr-2 text-yellow-400" />
-              最新の結果：{latestResult.contest_name}
-            </h2>
-            {/* お題は表示しない */}
+        let bannerText = "";
+        let bannerLink = null;
+        if (step === 0) bannerText = "ただいま投稿受付中！";
+        if (step === 1) bannerText = "結果発表までしばらくお待ちください。";
+        if (step === 2) {
+          bannerText = "予選の結果が発表されました！結果ページはこちら";
+          bannerLink = "/history";
+        }
+        if (step === 3) bannerText = "結果発表までしばらくお待ちください。";
+        if (step === 4) {
+          bannerText = "決勝の結果が発表されました！結果ページはこちら";
+          bannerLink = "/history";
+        }
+
+        return (
+          <div className="relative w-full bg-white">
             
-            <div className="flex items-center gap-4 text-sm text-gray-400 mt-4">
-                 <span className="flex items-center"><Users className="w-4 h-4 mr-1.5"/>投稿: {latestResult.totalPosters}人</span>
-                 <span className="flex items-center border-l border-gray-600 pl-4"><CheckCircle className="w-4 h-4 mr-1.5"/>投票: {latestResult.totalVoters}人</span>
-                 <span className="flex items-center border-l border-gray-600 pl-4"><UserStar className="w-4 h-4 mr-1.5"/>審査員: {latestResult.totalJudges}人</span>
+            {/* 上部 バナー */}
+            <div className="relative z-30 w-full bg-gray-50 text-gray-800 text-center py-3.5 px-4 text-[15px] font-bold">
+              {bannerLink ? (
+                <Link href={bannerLink} className="hover:underline flex items-center justify-center gap-1.5 transition-opacity hover:opacity-80">
+                  {bannerText} <ChevronRight className="w-4 h-4" />
+                </Link>
+              ) : (
+                <span>{bannerText}</span>
+              )}
             </div>
-          </section>
-        </Link>
-      )}
 
-      {/* 開催中の大会 */}
-      <section className="mb-12">
-        <h2 className="text-2xl font-semibold mb-4 flex items-center">
-          <Zap className="h-6 w-6 mr-2 text-yellow-400" />
-          開催中の大会 (投稿受付中)
-        </h2>
-        {ongoing && ongoing.length > 0 ? (
-          <div className="space-y-4">
-            {ongoing.map((contest) => {
-              const qualStatus = getQualifierStatus(contest);
-              return (
-                <a
-                  key={contest.id}
-                  href={`/venue/${contest.id}`}
-                  className="block bg-gray-900 rounded-lg p-6 hover:bg-gray-800 transition-colors duration-300 shadow-lg border border-yellow-500/50 relative"
-                >
-                  <div className="flex justify-between items-start">
-                    <h3 className="text-xl font-bold text-yellow-300">{contest.name}</h3>
-                    {qualStatus.phase && (
-                      <span className="text-xs font-semibold bg-yellow-900 text-yellow-300 px-2 py-0.5 rounded">
-                        {qualStatus.phase}
-                      </span>
-                    )}
-                  </div>
-                  {/* お題非表示 */}
+            {/* タイトル・アクション背景エリア */}
+            <div className="relative w-full overflow-hidden bg-[linear-gradient(15deg,#1DA1F2,#70c8f7)] py-12 md:py-20">
+              {/* 背景テキスト (中央揃えのズレ解消) */}
+              <div className="absolute top-1/2 left-1/2 w-[200%] h-[200%] min-w-[1000px] -translate-x-1/2 -translate-y-1/2 -rotate-[15deg] opacity-[0.07] text-white font-black text-5xl md:text-7xl tracking-widest flex flex-col items-center justify-center gap-0 pointer-events-none select-none">
+                  {Array.from({ length: 14 }).map((_, rowIndex) => (
+                      <div 
+                          key={rowIndex}
+                          className={`h-10 md:h-16 flex items-center whitespace-nowrap gap-8 leading-none ${
+                              rowIndex % 2 === 0 
+                                  ? 'translate-x-0' 
+                                  : 'translate-x-16 scale-y-[-1] scale-x-[-1] mt-2 md:mt-4'
+                          }`}
+                      >
+                          {Array.from({ length: 8 }).map((_, colIndex) => (
+                              <span key={colIndex}>NETATWEET GRANDPRIX</span>
+                          ))}
+                      </div>
+                  ))}
+              </div>
+
+              {/* コンテンツ (タイトルとボタン) */}
+              <div className="relative z-20 container mx-auto max-w-2xl px-4 flex flex-col justify-center h-full">
+                  <h2 className="font-extrabold text-white text-left drop-shadow-md text-4xl md:text-6xl tracking-tight leading-tight mb-8">
+                      {renderTitle(activeGpName || "")}
+                  </h2>
                   
-                  <div className="text-sm text-red-400 mt-4 flex items-center font-semibold">
-                    <Timer className="h-4 w-4 mr-1.5" />
-                    {qualStatus.phase === '予選' ? '予選投稿終了まで残り ' : '投稿終了まで残り '}
-                    <Countdown
-                      targetTime={qualStatus.phase === '予選' ? contest.qualifierEndTime : contest.endTime}
-                      status={qualStatus.statusKey || 'ongoing'}
-                    />
-                  </div>
-                </a>
-              );
-            })}
-          </div>
-        ) : (
-          <p className="text-gray-500">現在開催中の大会はありません。</p>
-        )}
-      </section>
-
-      {/* 投票受付中の大会 */}
-      <section className="mb-12">
-        <h2 className="text-2xl font-semibold mb-4 flex items-center">
-          <CheckSquare className="h-6 w-6 mr-2 text-green-400" />
-          投票受付中の大会
-        </h2>
-        {voting && voting.length > 0 ? (
-          <div className="space-y-4">
-            {voting.map((contest) => {
-              const qualStatus = getQualifierStatus(contest);
-              return (
-                <a
-                  key={contest.id}
-                  href={`/venue/${contest.id}`}
-                  className="block bg-gray-900 rounded-lg p-6 shadow-lg border border-green-500/50 hover:bg-gray-800 transition-colors relative group"
-                >
-                  <div>
-                    <div className="flex justify-between items-start">
-                      <h3 className="text-xl font-bold text-green-300">{contest.name}</h3>
-                      {qualStatus.phase && (
-                        <span className="text-xs font-semibold bg-green-900 text-green-300 px-2 py-0.5 rounded">
-                          {qualStatus.phase}
-                        </span>
-                      )}
-                    </div>
-                    {/* お題非表示 */}
-
-                    <div className="mt-4 flex items-center justify-between">
-                        <div className="text-sm text-green-400 flex items-center font-semibold">
-                        <Timer className="h-4 w-4 mr-1.5" />
-                        {qualStatus.phase === '予選' ? '予選投票終了まで残り ' : '投票終了まで残り '}
-                        <Countdown
-                            targetTime={qualStatus.phase === '予選' ? contest.qualifierVotingEndTime : contest.votingEndTime}
-                            status={qualStatus.statusKey || 'voting'}
-                        />
-                        </div>
-                        {/* 投稿者数表示 */}
-                        <div className="text-sm text-gray-400 flex items-center">
-                            <Users className="h-4 w-4 mr-1.5"/> 投稿数: {contest.totalPosters}
-                        </div>
-                    </div>
-                  </div>
-                </a>
-              );
-            })}
-          </div>
-        ) : (
-          <p className="text-gray-500">現在投票受付中の大会はありません。</p>
-        )}
-      </section>
-
-      {/* 準備中の大会 */}
-      <section>
-        <h2 className="text-2xl font-semibold mb-4 flex items-center">
-          <Calendar className="h-6 w-6 mr-2 text-blue-400" />
-          準備中の大会
-        </h2>
-        {upcoming && upcoming.length > 0 ? (
-          <div className="space-y-4">
-            {upcoming.map((contest) => {
-              const qualStatus = getQualifierStatus(contest);
-              return (
-                <div key={contest.id} className="bg-gray-900 rounded-lg p-6 opacity-70">
-                  <div className="flex justify-between items-start">
-                    <h3 className="text-xl font-bold">{contest.name}</h3>
-                    {qualStatus.phase && (
-                      <span className="text-xs font-semibold bg-blue-900 text-blue-300 px-2 py-0.5 rounded">
-                        {qualStatus.phase}
-                      </span>
+                  {/* アクションエリア (青背景に合わせて白ボタンに変更、サイズ縮小) */}
+                  <div className="flex justify-start">
+                    {isPosting && (
+                      <Link href={`/venue/${activeGpId}`} className="inline-block text-center bg-white text-[#1DA1F2] font-bold px-8 py-2.5 rounded-full hover:bg-gray-50 transition-colors text-[14px]">
+                        投稿する
+                      </Link>
+                    )}
+                    {isVoting && (
+                      <p className="font-bold text-[14px] leading-relaxed bg-black/20 p-4 rounded-xl border border-white/20 text-white backdrop-blur-sm">
+                        現在投票期間中です。<br />結果が出るまでしばらくお待ちください。
+                      </p>
+                    )}
+                    {isResults && (
+                      <Link href={`/venue/${activeGpId}`} className="inline-block text-center bg-white text-[#1DA1F2] font-bold px-8 py-2.5 rounded-full hover:bg-gray-50 transition-colors text-[14px]">
+                        結果を見る
+                      </Link>
                     )}
                   </div>
-                  {/* お題非表示 */}
-                  <div className="text-sm text-blue-400 mt-4 flex items-center font-semibold">
-                    <Timer className="h-4 w-4 mr-1.5" />
-                    {qualStatus.phase === '予選' ? '予選開始まで残り ' : '開催まで残り '}
-                    <Countdown
-                      targetTime={qualStatus.phase === '予選' ? contest.qualifierStartTime : contest.startTime}
-                      status={'upcoming'}
-                    />
-                  </div>
-                </div>
-              );
-            })}
+              </div>
+            </div>
+
+            {/* タイムライン */}
+            <div className="mt-2 mb-12 w-full flex justify-center overflow-hidden">
+              <div className="flex w-full">
+                {GP_STEPS.map((stepName, idx) => {
+                  const isFirst = idx === 0;
+                  const isLast = idx === GP_STEPS.length - 1;
+                  const isActive = step === idx;
+                  const isPast = step > idx;
+
+                  const bgClass = isActive 
+                    ? 'bg-[#1DA1F2] text-white' 
+                    : isPast 
+                      ? 'bg-[#1DA1F2]/20 text-[#1DA1F2]' 
+                      : 'bg-gray-100 text-gray-400';
+
+                  const cut = 12;
+                  const clipPath = isFirst 
+                    ? `polygon(0% 0%, calc(100% - ${cut}px) 0%, 100% 50%, calc(100% - ${cut}px) 100%, 0% 100%)`
+                    : isLast
+                    ? `polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%, ${cut}px 50%)`
+                    : `polygon(0% 0%, calc(100% - ${cut}px) 0%, 100% 50%, calc(100% - ${cut}px) 100%, 0% 100%, ${cut}px 50%)`;
+
+                  return (
+                    <div 
+                      key={idx} 
+                      className={`flex-1 flex items-center justify-center py-2 md:py-3 text-[9px] sm:text-[11px] md:text-[13px] font-extrabold transition-all ${bgClass}`}
+                      style={{ 
+                        clipPath, 
+                        marginLeft: isFirst ? '0' : '-6px',
+                        paddingLeft: isFirst ? '4px' : `${cut + 4}px`,
+                        paddingRight: isLast ? '4px' : `${cut + 2}px`,
+                      }}
+                    >
+                      <span className="whitespace-nowrap text-center break-keep leading-tight">{stepName}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
           </div>
-        ) : (
-          <p className="text-gray-500">準備中の大会はありません。</p>
-        )}
-      </section>
+        );
+      })()}
+
+      <div className="container mx-auto max-w-[672px] px-4 mt-12">
+        {/* 日めくりエリア */}
+        <section>
+          <div className="flex items-center gap-3 mb-6 pb-2">
+            <Calendar className="w-7 h-7 text-[#1DA1F2]" />
+            <h2 className="text-2xl font-extrabold text-black">日めくりコンテスト</h2>
+          </div>
+          
+          <div className="flex flex-col border-b border-[#1DA1F2] divide-y divide-[#1DA1F2] mb-4">
+            {dailyOngoing.map(c => renderCard(c, 'ongoing'))}
+            {dailyVoting.map(c => renderCard(c, 'voting'))}
+            {visibleClosed.map(c => renderCard(c, 'closed'))}
+            
+            {dailyOngoing.length === 0 && dailyVoting.length === 0 && visibleClosed.length === 0 && (
+              <div className="text-gray-500 text-center py-10 bg-gray-50">
+                <p>現在開催中の日めくり大会はありません。</p>
+              </div>
+            )}
+          </div>
+
+          {hasMoreClosed && (
+            <div className="flex justify-end mt-4 mb-8">
+              <Link href="/history" className="inline-block px-6 py-2.5 rounded-full bg-gray-100 text-gray-700 font-bold text-sm hover:bg-gray-200 transition-colors">
+                全ての結果を見る
+              </Link>
+            </div>
+          )}
+        </section>
+        
+      </div>
     </div>
   );
 }
