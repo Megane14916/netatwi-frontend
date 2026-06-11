@@ -42,30 +42,39 @@ interface ContestsResponse {
   latestResult: LatestResult | null;
 }
 
-const getGPStep = (c: Contest) => {
+const getGPStep = (gpFinals: Contest, gpQualifier: Contest | undefined | null) => {
   const now = dayjs();
-  const qStart = c.qualifierStartTime ? dayjs(c.qualifierStartTime) : null;
-  const qEnd = c.qualifierEndTime ? dayjs(c.qualifierEndTime) : null;
-  const qVoteEnd = c.qualifierVotingEndTime ? dayjs(c.qualifierVotingEndTime) : null;
-  const end = c.endTime ? dayjs(c.endTime) : null;
-  const voteEnd = c.votingEndTime ? dayjs(c.votingEndTime) : null;
-
-  if (qStart && now.isBefore(qStart)) return 0;
-  if (qStart && qEnd && now.isAfter(qStart) && now.isBefore(qEnd)) return 0;
-  if (qEnd && qVoteEnd && now.isAfter(qEnd) && now.isBefore(qVoteEnd)) return 1;
-  if (qVoteEnd && end && now.isAfter(qVoteEnd) && now.isBefore(end)) return 2;
-  if (end && voteEnd && now.isAfter(end) && now.isBefore(voteEnd)) return 3;
-  if (voteEnd && now.isAfter(voteEnd)) return 4;
-
-  return 0;
+  
+  if (gpQualifier) {
+    const qEnd = dayjs(gpQualifier.endTime);
+    const qVoteEnd = dayjs(gpQualifier.votingEndTime);
+    
+    // 0. 予選投稿期間
+    if (now.isBefore(qEnd)) return 0;
+    
+    // 1. 予選投票期間
+    if (now.isBefore(qVoteEnd)) return 1;
+  }
+  
+  // 2. 本選投稿(予選結果発表と同時)
+  const end = dayjs(gpFinals.endTime);
+  const voteEnd = dayjs(gpFinals.votingEndTime);
+  
+  if (now.isBefore(end)) return 2;
+  
+  // 3. 本選投票期間
+  if (now.isBefore(voteEnd)) return 3;
+  
+  // 4. 本選結果発表
+  return 4;
 };
 
 const GP_STEPS = [
   "予選投稿",
   "予選投票",
-  "本選投稿",
-  "本選投票",
-  "本選結果"
+  "決勝投稿",
+  "決勝投票",
+  "決勝結果"
 ];
 
 async function getContestsData(): Promise<ContestsResponse> {
@@ -109,16 +118,16 @@ export default async function VenuePage() {
   let step = 0;
 
   if (gpFinals) {
-    step = getGPStep(gpFinals);
+    const gpQualifier = gpFinals.parentContestId 
+      ? allContests.find(c => c.id === gpFinals.parentContestId) 
+      : undefined;
+
+    step = getGPStep(gpFinals, gpQualifier);
+    
     // 予選期間中(0または1)は、親コンテスト(=予選)の情報を表示する
-    if (step === 0 || step === 1) {
-      if (gpFinals.parentContestId) {
-        const gpQualifier = allContests.find(c => c.id === gpFinals.parentContestId);
-        if (gpQualifier) {
-          activeGpId = gpQualifier.id;
-          activeGpName = gpQualifier.name;
-        }
-      }
+    if ((step === 0 || step === 1) && gpQualifier) {
+      activeGpId = gpQualifier.id;
+      activeGpName = gpQualifier.name;
     }
   }
 
@@ -259,11 +268,6 @@ export default async function VenuePage() {
                       <Link href={`/venue/${activeGpId}`} className="inline-block text-center bg-white text-[#1DA1F2] font-bold px-8 py-2.5 rounded-full hover:bg-gray-50 transition-colors text-[14px]">
                         投稿する
                       </Link>
-                    )}
-                    {isVoting && (
-                      <p className="font-bold text-[14px] leading-relaxed bg-black/20 p-4 rounded-xl border border-white/20 text-white backdrop-blur-sm">
-                        現在投票期間中です。<br />結果が出るまでしばらくお待ちください。
-                      </p>
                     )}
                     {isResults && (
                       <Link href={`/venue/${activeGpId}`} className="inline-block text-center bg-white text-[#1DA1F2] font-bold px-8 py-2.5 rounded-full hover:bg-gray-50 transition-colors text-[14px]">
