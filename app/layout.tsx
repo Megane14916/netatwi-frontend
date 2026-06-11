@@ -9,9 +9,6 @@ import { Noto_Sans_JP, Inter } from "next/font/google";
 export const metadata: Metadata = {
   title: "ネタツイグランプリ",
   description: "オンライン ネタツイ プラットフォーム",
-  icons: {
-    icon: "/favicon.ico",
-  },
 };
 
 // Google Analyticsの測定IDを環境変数から取得
