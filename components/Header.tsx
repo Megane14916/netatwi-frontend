@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { Crown, Twitter, LogOut, User as UserIcon, ChevronDown, Bell } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
-import logoImg from '../assets/logo.jpg';
+import logoImg from '../assets/logo.png';
 
 export default function Header() {
   const { user, loading, login, logout } = useAuth();
