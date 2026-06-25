@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { KeyRound, Image as ImageIconLucide, Trophy as TrophyIcon, Trash2, Edit3, Eye, EyeOff, PlusCircle, Settings,Sliders } from 'lucide-react';
+import { KeyRound, Image as ImageIconLucide, Trophy as TrophyIcon, Trash2, Edit3, Eye, EyeOff, PlusCircle, Settings,Sliders, Newspaper } from 'lucide-react';
 import dayjs from 'dayjs';
 
 // --- API_URLの設定 ---
@@ -83,9 +83,15 @@ interface ManagedContest {
     resultCommentBottom?: string | null;
 }
 
+interface NewsItem {
+    id: number;
+    tweet_id: string;
+    created_at: string;
+}
+
 export default function AdminPage() {
     const { user } = useAuth();
-    const [activeTab, setActiveTab] = useState<'create' | 'manage'>('create');
+    const [activeTab, setActiveTab] = useState<'create' | 'manage' | 'news'>('create');
 
     // Create Tab States
     const [createForm, setCreateForm] = useState({
@@ -132,6 +138,13 @@ export default function AdminPage() {
     const [editingContest, setEditingContest] = useState<ManagedContest | null>(null);
     const [isUpdating, setIsUpdating] = useState(false);
 
+    // News Tab States
+    const [newsList, setNewsList] = useState<NewsItem[]>([]);
+    const [newsLoading, setNewsLoading] = useState(false);
+    const [newsError, setNewsError] = useState<string | null>(null);
+    const [newNewsUrl, setNewNewsUrl] = useState('');
+    const [isAddingNews, setIsAddingNews] = useState(false);
+
     useEffect(() => {
         if (activeTab === 'manage') {
             const fetchManagedContests = async () => {
@@ -153,6 +166,25 @@ export default function AdminPage() {
                 }
             };
             fetchManagedContests();
+        } else if (activeTab === 'news') {
+            const fetchNews = async () => {
+                setNewsLoading(true);
+                setNewsError(null);
+                try {
+                    const response = await fetch(`${API_PREFIX}/api/admin/news`, { credentials: 'include' });
+                    if (!response.ok) {
+                        const data = await response.json();
+                        throw new Error(data.error || 'ニュースの取得に失敗しました。');
+                    }
+                    const data = await response.json();
+                    setNewsList(data);
+                } catch (error) {
+                    setNewsError(error instanceof Error ? error.message : '不明なエラーが発生しました。');
+                } finally {
+                    setNewsLoading(false);
+                }
+            };
+            fetchNews();
         }
     }, [activeTab]);
 
@@ -284,6 +316,48 @@ export default function AdminPage() {
         }
     };
 
+    const handleAddNews = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsAddingNews(true);
+        try {
+            const response = await fetch(`${API_PREFIX}/api/admin/news`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tweet_id: newNewsUrl }),
+                credentials: 'include',
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || '追加に失敗しました。');
+            setNewNewsUrl('');
+            const res = await fetch(`${API_PREFIX}/api/admin/news`, { credentials: 'include' });
+            if (res.ok) {
+                const newData = await res.json();
+                setNewsList(newData);
+            }
+        } catch (error) {
+            alert(`追加エラー: ${error instanceof Error ? error.message : error}`);
+        } finally {
+            setIsAddingNews(false);
+        }
+    };
+
+    const handleDeleteNews = async (id: number) => {
+        if (!confirm('本当に削除しますか？')) return;
+        try {
+            const response = await fetch(`${API_PREFIX}/api/admin/news/${id}`, {
+                method: 'DELETE',
+                credentials: 'include',
+            });
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.error || '削除に失敗しました。');
+            }
+            setNewsList(prev => prev.filter(n => n.id !== id));
+        } catch (error) {
+            alert(`削除エラー: ${error instanceof Error ? error.message : error}`);
+        }
+    };
+
     if (!user || !user.isAdmin) {
         return (
             <div className="container mx-auto px-4 py-8 text-center">
@@ -301,6 +375,7 @@ export default function AdminPage() {
                 <nav className="-mb-px flex space-x-8" aria-label="Tabs">
                     <button onClick={() => setActiveTab('create')} className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm focus:outline-none ${activeTab === 'create' ? 'border-yellow-500 text-yellow-400' : 'border-transparent text-gray-500 hover:text-gray-300 hover:border-gray-500'}`} > <PlusCircle className="inline-block h-5 w-5 mr-1.5 align-text-bottom" /> 新規作成 </button>
                     <button onClick={() => setActiveTab('manage')} className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm focus:outline-none ${activeTab === 'manage' ? 'border-yellow-500 text-yellow-400' : 'border-transparent text-gray-500 hover:text-gray-300 hover:border-gray-500'}`} > <Settings className="inline-block h-5 w-5 mr-1.5 align-text-bottom" /> 大会管理 </button>
+                    <button onClick={() => setActiveTab('news')} className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm focus:outline-none ${activeTab === 'news' ? 'border-yellow-500 text-yellow-400' : 'border-transparent text-gray-500 hover:text-gray-300 hover:border-gray-500'}`} > <Newspaper className="inline-block h-5 w-5 mr-1.5 align-text-bottom" /> ニュース管理 </button>
                 </nav>
             </div>
 
@@ -531,6 +606,44 @@ export default function AdminPage() {
                                 ))}
                             </div>
                         )}
+                    </div>
+                )}
+
+                {activeTab === 'news' && (
+                    <div>
+                        <h2 className="text-2xl font-semibold mb-4">ニュース管理</h2>
+                        
+                        <form onSubmit={handleAddNews} className="mb-8 bg-gray-800/50 p-6 rounded-lg border border-gray-700">
+                            <h3 className="text-lg font-medium text-gray-200 mb-4">ニュースの追加</h3>
+                            <div className="flex gap-4">
+                                <input type="text" value={newNewsUrl} onChange={(e) => setNewNewsUrl(e.target.value)} placeholder="TwitterのURL または ツイートID" required className="flex-grow bg-gray-900 border border-gray-700 rounded-md py-2 px-4 focus:ring-2 focus:ring-yellow-500 focus:outline-none" />
+                                <button type="submit" disabled={isAddingNews} className="bg-yellow-500 text-gray-900 font-bold py-2 px-6 rounded-md hover:bg-yellow-600 transition duration-300 disabled:bg-gray-600">
+                                    {isAddingNews ? '追加中...' : '追加する'}
+                                </button>
+                            </div>
+                        </form>
+
+                        <div>
+                            <h3 className="text-lg font-medium text-gray-200 mb-4">登録済みのニュース</h3>
+                            {newsLoading && <p>読み込み中...</p>}
+                            {newsError && <p className="text-red-500">エラー: {newsError}</p>}
+                            {!newsLoading && !newsError && newsList.length === 0 && <p className="text-gray-500">ニュースはありません。</p>}
+                            {!newsLoading && !newsError && newsList.length > 0 && (
+                                <div className="space-y-4">
+                                    {newsList.map((news) => (
+                                        <div key={news.id} className="bg-gray-800/50 p-4 rounded-lg border border-gray-700 flex justify-between items-center">
+                                            <div>
+                                                <p className="text-gray-200 font-medium">ID: {news.tweet_id}</p>
+                                                <p className="text-sm text-gray-500">追加日時: {dayjs(news.created_at).format('YYYY/MM/DD HH:mm')}</p>
+                                            </div>
+                                            <button onClick={() => handleDeleteNews(news.id)} className="text-xs px-3 py-2 rounded bg-red-600 hover:bg-red-700 text-white flex items-center">
+                                                <Trash2 className="h-4 w-4 mr-1" /> 削除
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 )}
             </div>

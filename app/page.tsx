@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Clock3, ExternalLink, Image as ImageIcon, Send, Smile, Users, Heart, Bookmark, Share2, MessageCircle, Repeat2, BarChart2 } from 'lucide-react';
+import { Tweet } from 'react-tweet';
 import ProgressRing from '@/components/ProgressRing';
 
 interface FeaturedContestMock {
@@ -264,6 +265,29 @@ export default function HomePage() {
   const heroTaglinesRef = useRef<HTMLDivElement | null>(null);
   const [heroTitleFontSize, setHeroTitleFontSize] = useState<number | null>(null);
 
+  const [newsList, setNewsList] = useState<{id: number, tweet_id: string}[]>([]);
+  const [newsLoading, setNewsLoading] = useState(true);
+  const [newsError, setNewsError] = useState(false);
+
+  useEffect(() => {
+    const fetchNews = async () => {
+      try {
+        const res = await fetch('/api/news');
+        if (res.ok) {
+          const data = await res.json();
+          setNewsList(data);
+        } else {
+          setNewsError(true);
+        }
+      } catch (e) {
+        setNewsError(true);
+      } finally {
+        setNewsLoading(false);
+      }
+    };
+    fetchNews();
+  }, []);
+
   useEffect(() => {
     const updateHeroTitleFontSize = () => {
       const measureEl = heroTitleMeasureRef.current;
@@ -510,6 +534,43 @@ export default function HomePage() {
             >
               ルールを詳しく見る
             </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ニュースセクション */}
+      <section className="bg-[#1DA1F2] px-6 pt-16 md:px-10">
+        <div className="mx-auto max-w-[1200px]">
+          <h2 className="mb-8 text-[40px] font-bold text-white">最新のニュース</h2>
+          
+          <div className="flex overflow-x-auto gap-6 pb-8 snap-x snap-mandatory">
+            {newsLoading ? (
+              <p className="text-white">読み込み中...</p>
+            ) : newsError ? (
+              <p className="text-white">エラーが発生しました</p>
+            ) : newsList.length === 0 ? (
+              <p className="text-white">ニュースはありません</p>
+            ) : (
+              newsList.map((news) => (
+                <div key={news.id} className="snap-start flex-none w-[320px] md:w-[400px] flex justify-center">
+                  <div className="w-full max-w-full">
+                    <Tweet id={news.tweet_id} />
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          
+          <div className="mt-4 flex justify-end">
+            <a
+              href="https://x.com/netatwi_gp"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center rounded-full bg-white px-8 py-3 text-sm font-bold text-[#1DA1F2] shadow-md transition hover:bg-gray-100"
+            >
+              公式Xへ
+              <ExternalLink className="ml-2 h-4 w-4" />
+            </a>
           </div>
         </div>
       </section>
