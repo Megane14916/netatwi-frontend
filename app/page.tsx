@@ -516,9 +516,9 @@ export default function HomePage() {
         const statusConfig: Record<number, { label: string; color: string }> = {
           0: { label: "投稿受付中", color: "bg-[#1DA1F2]" },
           1: { label: "審査員投票中", color: "bg-green-500" },
-          2: { label: "予選結果発表 & 決勝投稿開始", color: "bg-cyan-500" },
+          2: { label: "予選結果発表 & 決勝投稿開始", color: "bg-[#1DA1F2]" },
           3: { label: "審査員投票中", color: "bg-green-500" },
-          4: { label: "結果発表！", color: "bg-yellow-500" },
+          4: { label: "結果発表！", color: "bg-yellow-400" },
         };
         const { label: statusLabel, color: statusColor } = statusConfig[step];
 
