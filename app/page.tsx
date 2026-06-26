@@ -563,7 +563,7 @@ export default function HomePage() {
         const postFormIsFinalRound = step === 2;
 
         return (
-          <section className="relative z-20 py-20">
+          <section className="relative z-20 py-24 md:py-20">
             <div
               className={`mx-auto grid w-full max-w-7xl items-center gap-8 px-6 md:px-10 ${showPostForm ? "lg:grid-cols-[minmax(0,1fr)_600px]" : ""}`}
             >
@@ -573,7 +573,7 @@ export default function HomePage() {
                 >
                   {statusLabel}
                 </span>
-                <h2 className="mt-4 text-4xl font-extrabold leading-tight md:text-5xl">
+                <h2 className="mt-4 text-2xl font-extrabold leading-tight md:text-5xl">
                   {renderGPTitle(displayName)}
                 </h2>
                 <p className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm font-medium text-black/80 md:text-base">
@@ -607,10 +607,10 @@ export default function HomePage() {
                     　/　決勝投票締切: {formatDateTime(gpFinals.votingEndTime)}
                   </p>
                 </div>
-                <div className="mt-7 flex flex-wrap items-center gap-3">
+                <div className="mt-7 flex items-center gap-2 md:gap-3">
                   <Link
                     href={`/venue/${displayContest.id}`}
-                    className="inline-flex items-center rounded-full bg-[#1DA1F2] px-7 py-3 text-sm font-bold text-white transition hover:bg-[#1788cc]"
+                    className="inline-flex shrink-0 items-center rounded-full bg-[#1DA1F2] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#1788cc] md:px-7 md:py-3"
                   >
                     詳しく見る
                     <ExternalLink className="ml-2 h-4 w-4" />
@@ -618,7 +618,7 @@ export default function HomePage() {
                   {step === 2 && gpQualifier && (
                     <Link
                       href={`/venue/${gpQualifier.id}`}
-                      className="inline-flex items-center rounded-full bg-gray-200 px-7 py-3 text-sm font-bold text-gray-700 transition hover:bg-gray-300"
+                      className="inline-flex shrink-0 items-center rounded-full bg-gray-200 px-5 py-2.5 text-sm font-bold text-gray-700 transition hover:bg-gray-300 md:px-7 md:py-3"
                     >
                       予選結果を見る
                     </Link>
@@ -692,7 +692,7 @@ export default function HomePage() {
                         {config.label}
                       </span>
                     </div>
-                    <h4 className="text-2xl font-bold text-black transition-colors group-hover:text-white">
+                    <h4 className="text-lg font-bold text-black transition-colors group-hover:text-white md:text-2xl">
                       {contest.name}
                     </h4>
                     <p className="mt-1 text-sm text-gray-500 transition-colors group-hover:text-white/80">
@@ -718,7 +718,7 @@ export default function HomePage() {
             <section className="relative z-20 pt-12 pb-20">
               <div className="mx-auto max-w-7xl px-6 md:px-10">
                 <div className="mb-6 text-left">
-                  <h3 className="text-[24px] font-bold text-black">
+                  <h3 className="text-lg font-bold text-black md:text-[24px]">
                     日めくりコンテストも開催中！
                   </h3>
                 </div>
@@ -757,7 +757,9 @@ export default function HomePage() {
 
       <section className="flex h-screen items-center bg-[#1DA1F2] px-6 text-white md:block md:h-auto md:px-10 md:pb-[112px] md:pt-[50px]">
         <div className="mx-auto max-w-4xl text-center">
-          <h3 className="text-[40px] font-extrabold">ネタツイグランプリとは</h3>
+          <h3 className="text-2xl font-extrabold md:text-[40px]">
+            ネタツイグランプリとは
+          </h3>
           <div className="mx-auto mt-8 inline-block max-w-3xl text-center text-base leading-relaxed md:text-lg">
             <p className="mb-2">
               ネタツイグランプリは、一番面白いネタツイを決める大会です！
@@ -805,7 +807,7 @@ export default function HomePage() {
       {/* ニュースセクション */}
       <section className="bg-[#1DA1F2] px-6 pt-16 md:px-10">
         <div className="mx-auto max-w-[1200px]">
-          <h2 className="mb-8 text-[40px] font-bold text-white">
+          <h2 className="mb-8 text-2xl font-bold text-white md:text-[40px]">
             最新のニュース
           </h2>
 
@@ -847,7 +849,7 @@ export default function HomePage() {
       <section className="bg-[#1DA1F2] pr-6 pt-16 pb-0 md:pr-[96px]">
         <div className="relative w-full overflow-hidden rounded-tr-[48px] bg-white px-6 pb-24 pt-16 md:px-16 lg:px-24">
           <div className="relative z-10">
-            <h2 className="text-[40px] font-bold text-black">
+            <h2 className="text-2xl font-bold text-black md:text-[40px]">
               過去のグランプリの結果
             </h2>
 
@@ -938,7 +940,7 @@ export default function HomePage() {
 
                 return (
                   <div className="mt-16">
-                    <h3 className="mb-6 text-2xl font-bold text-black">
+                    <h3 className="mb-6 text-lg font-bold text-black md:text-2xl">
                       日めくりコンテストの結果
                     </h3>
                     <div className="flex flex-col border-b border-[#1DA1F2] divide-y divide-[#1DA1F2]">
