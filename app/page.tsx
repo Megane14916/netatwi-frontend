@@ -822,10 +822,10 @@ export default function HomePage() {
 
           <div className="mt-4 flex justify-end">
             <a
-              href="https://x.com/netatwi_gp"
+              href="https://x.com/_n1gp"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center rounded-full bg-white px-8 py-3 text-sm font-bold text-[#1DA1F2] shadow-md transition hover:bg-gray-100"
+              className="inline-flex items-center rounded-full bg-white px-8 py-3 text-sm font-bold text-[#1DA1F2] transition hover:bg-gray-200"
             >
               公式Xへ
               <ExternalLink className="ml-2 h-4 w-4" />
