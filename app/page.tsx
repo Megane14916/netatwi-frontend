@@ -607,13 +607,23 @@ export default function HomePage() {
                     　/　決勝投票締切: {formatDateTime(gpFinals.votingEndTime)}
                   </p>
                 </div>
-                <Link
-                  href={`/venue/${displayContest.id}`}
-                  className="mt-7 inline-flex items-center rounded-full bg-[#1DA1F2] px-7 py-3 text-sm font-bold text-white transition hover:bg-[#1788cc]"
-                >
-                  詳しく見る
-                  <ExternalLink className="ml-2 h-4 w-4" />
-                </Link>
+                <div className="mt-7 flex flex-wrap items-center gap-3">
+                  <Link
+                    href={`/venue/${displayContest.id}`}
+                    className="inline-flex items-center rounded-full bg-[#1DA1F2] px-7 py-3 text-sm font-bold text-white transition hover:bg-[#1788cc]"
+                  >
+                    詳しく見る
+                    <ExternalLink className="ml-2 h-4 w-4" />
+                  </Link>
+                  {step === 2 && gpQualifier && (
+                    <Link
+                      href={`/venue/${gpQualifier.id}`}
+                      className="inline-flex items-center rounded-full bg-gray-200 px-7 py-3 text-sm font-bold text-gray-700 transition hover:bg-gray-300"
+                    >
+                      予選結果を見る
+                    </Link>
+                  )}
+                </div>
               </div>
 
               {showPostForm && (
