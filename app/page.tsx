@@ -849,6 +849,11 @@ export default function HomePage() {
                     c.type === "grandprix" &&
                     (c.hasQualifier === true || c.parentContestId == null),
                 )
+                .sort(
+                  (a, b) =>
+                    dayjs(b.startTime || 0).unix() -
+                    dayjs(a.startTime || 0).unix(),
+                )
                 .map((c) => (
                   <Link
                     key={c.id}
