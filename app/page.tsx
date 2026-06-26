@@ -573,7 +573,7 @@ export default function HomePage() {
                 >
                   {statusLabel}
                 </span>
-                <h2 className="mt-4 text-2xl font-extrabold leading-tight md:text-5xl">
+                <h2 className="mt-4 text-3xl font-extrabold leading-tight md:text-5xl">
                   {renderGPTitle(displayName)}
                 </h2>
                 <p className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm font-medium text-black/80 md:text-base">
