@@ -766,43 +766,28 @@ export default function HomePage() {
         </svg>
       </div>
 
-      <section className="flex h-screen items-center bg-[#1DA1F2] px-6 text-white md:block md:h-auto md:px-10 md:pb-[112px] md:pt-[50px]">
+      <section className="flex h-[120vh] items-center bg-[#1DA1F2] px-6 text-white md:block md:h-auto md:px-10 md:pb-[112px] md:pt-[50px]">
         <div className="mx-auto max-w-4xl text-center">
           <h3 className="text-2xl font-extrabold md:text-[40px]">
             ネタツイグランプリとは
           </h3>
           <div className="mx-auto mt-8 inline-block max-w-3xl text-center text-base leading-relaxed md:text-lg">
             <p className="mb-2">
-              ネタツイグランプリは、一番面白いネタツイを決める大会です！
+              ネタツイグランプリとは、実力派ネタツイッタラー7名（予定）による審査オンリーの、インプレッション数や流行に縛られない、おもしろさのみで競うネタツイの賞レースである。
             </p>
-            <p className="mb-2">投稿は1人1つ、140字と画像4枚。</p>
+            <p className="mb-2">予選・決勝形式について 予選は誰でも参加することができ、決勝には予選で上位1/3の結果を残した者のみ進出することができる。</p>
             <p className="mb-2">
-              <strong className="font-bold">
-                既に自分でしたことのあるツイート
-              </strong>
-              や、
-              <strong className="font-bold">他人のツイートを投稿する</strong>
-              のは<strong className="font-bold">禁止</strong>です。
+              なお、予選では画像を使用することができず、逆に決勝では画像を１枚以上使用しなければならない。
             </p>
             <p className="mb-2">
-              大会期間内に、
-              <strong className="font-bold">
-                同じ内容のものをXに投稿すること
-              </strong>
-              も<strong className="font-bold">禁止</strong>です。
+               日めくり（仮） 今回のネタツイグランプリでは、審査期間中に、予選・決勝とは別で『日めくり（仮）』という大会が毎日開催される。
             </p>
             <p className="mb-2">
-              審査は一般投票と豪華審査員によって行われます！
+              『日めくり（仮）』では、ユーザーによる「いいね」の数で順位が決まるため、本番とはまた違った勝ち方が求められる。
             </p>
             <p className="mb-2">
-              優勝から最下位まで、
-              <strong className="font-bold">全て公開</strong>します。
+              全28回、熾烈なネタツイバトルが勃発する。 
             </p>
-            <p className="mb-2">
-              審査員それぞれが一番面白いと思ったネタツイには
-              <strong className="font-bold">審査員特別賞</strong>が贈られます！
-            </p>
-            <p>誰でも奮ってご参加ください！</p>
           </div>
           <div className="mt-10">
             <Link
