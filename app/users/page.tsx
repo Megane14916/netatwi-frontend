@@ -76,7 +76,7 @@ export default function UsersPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-4">
           <div className="flex items-center gap-2">
             <Users className="h-7 w-7 text-[#1DA1F2]" />
-            <h1 className="text-2xl md:text-3xl font-bold text-black">ユーザー一覧</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-black">ユーザー</h1>
           </div>
           
           <div className="relative w-full md:w-72">

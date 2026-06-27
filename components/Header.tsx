@@ -21,6 +21,24 @@ export default function Header() {
     await login();
   };
 
+  const handleNewsClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    setIsDropdownOpen(false);
+    if (pathname === '/') {
+      e.preventDefault();
+      const newsSection = document.getElementById('news');
+      if (newsSection) {
+        const headerOffset = 64; 
+        const elementPosition = newsSection.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+        window.scrollTo({
+             top: offsetPosition,
+             behavior: 'smooth'
+        });
+      }
+      window.history.pushState(null, '', '/#news');
+    }
+  };
+
   useEffect(() => {
     if (user) {
       const fetchNotifications = async () => {
@@ -113,8 +131,9 @@ export default function Header() {
         <nav className="hidden md:flex gap-4 sm:gap-6 items-center">
           <Link href="/venue" className={`text-sm font-medium hover:text-gray-700 transition-colors ${pathname === '/venue' ? 'text-black underline underline-offset-4' : 'text-black'}`}>会場</Link>
           <Link href="/history" className={`text-sm font-medium hover:text-gray-700 transition-colors ${pathname === '/history' ? 'text-black underline underline-offset-4' : 'text-black'}`}>過去ログ</Link>
-          <Link href="/users" className={`text-sm font-medium hover:text-gray-700 transition-colors ${pathname === '/users' ? 'text-black underline underline-offset-4' : 'text-black'}`}>ユーザー一覧</Link>
+          <Link href="/users" className={`text-sm font-medium hover:text-gray-700 transition-colors ${pathname === '/users' ? 'text-black underline underline-offset-4' : 'text-black'}`}>ユーザー</Link>
           <Link href="/rules" className={`text-sm font-medium hover:text-gray-700 transition-colors ${pathname === '/rules' ? 'text-black underline underline-offset-4' : 'text-black'}`}>ルール</Link>
+          <Link href="/#news" onClick={handleNewsClick} className="text-sm font-medium hover:text-gray-700 transition-colors text-black">ニュース</Link>
         </nav>
 
         {/* ログイン状態に応じた表示 */}
@@ -186,8 +205,9 @@ export default function Header() {
                 <div className="absolute top-full right-0 mt-2 w-48 bg-gray-100 rounded-md shadow-lg py-1 border border-gray-200 z-50">
                   <Link href="/venue" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 hover:text-black">会場</Link>
                   <Link href="/history" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 hover:text-black">過去ログ</Link>
-                  <Link href="/users" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 hover:text-black">ユーザー一覧</Link>
+                  <Link href="/users" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 hover:text-black">ユーザー</Link>
                   <Link href="/rules" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 hover:text-black">ルール</Link>
+                  <Link href="/#news" onClick={handleNewsClick} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 hover:text-black">ニュース</Link>
                   <Link href={`/profile/${encodeURIComponent(user.screen_name)}`} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 hover:text-black">マイページ</Link>
                   <button onClick={async () => { setIsDropdownOpen(false); await logout(); }} className="block px-4 py-2 text-sm text-red-500 hover:bg-gray-200 hover:text-red-600 w-full text-left">ログアウト</button>
                 </div>

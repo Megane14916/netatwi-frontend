@@ -801,7 +801,7 @@ export default function HomePage() {
       </section>
 
       {/* ニュースセクション */}
-      <section className="bg-[#1DA1F2] px-6 pt-16 md:px-10">
+      <section id="news" className="bg-[#1DA1F2] px-6 pt-16 md:px-10">
         <div className="mx-auto max-w-[1200px]">
           <h2 className="mb-8 text-2xl font-bold text-white md:text-[40px]">
             最新のニュース
