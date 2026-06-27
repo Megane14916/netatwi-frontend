@@ -21,6 +21,7 @@
     "react": "^18",
     "react-dom": "^18",
     "react-tweet": "^3.3.1",
+    "swr": "^2.4.2",
     "tailwindcss-animate": "^1.0.7",
     "twemoji": "^14.0.2",
     "twitter-text": "^3.1.0"

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Tweet } from "react-tweet";
 import dayjs from "dayjs";
+import useSWR from "swr";
 import PostForm from "@/components/venue/PostForm";
 
 interface Contest {
@@ -312,53 +313,23 @@ export default function HomePage() {
     null,
   );
 
-  const [newsList, setNewsList] = useState<{ id: number; tweet_id: string }[]>(
-    [],
-  );
-  const [newsLoading, setNewsLoading] = useState(true);
-  const [newsError, setNewsError] = useState(false);
+  const fetcher = (url: string) => fetch(url).then((res) => {
+    if (!res.ok) throw new Error("Failed to fetch");
+    return res.json();
+  });
 
-  const [contestsData, setContestsData] = useState<ContestsResponse | null>(
-    null,
-  );
-  const [contestsLoading, setContestsLoading] = useState(true);
+  const {
+    data: newsList = [],
+    error: newsError,
+    isLoading: newsLoading,
+  } = useSWR<{ id: number; tweet_id: string }[]>("/api/news", fetcher);
+
+  const {
+    data: contestsData = null,
+    isLoading: contestsLoading,
+  } = useSWR<ContestsResponse>("/api/contests", fetcher);
+
   const [currentTime, setCurrentTime] = useState(() => new Date());
-
-  useEffect(() => {
-    const fetchNews = async () => {
-      try {
-        const res = await fetch("/api/news");
-        if (res.ok) {
-          const data = await res.json();
-          setNewsList(data);
-        } else {
-          setNewsError(true);
-        }
-      } catch (e) {
-        setNewsError(true);
-      } finally {
-        setNewsLoading(false);
-      }
-    };
-    fetchNews();
-  }, []);
-
-  useEffect(() => {
-    const fetchContests = async () => {
-      try {
-        const res = await fetch("/api/contests");
-        if (res.ok) {
-          const data = await res.json();
-          setContestsData(data);
-        }
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setContestsLoading(false);
-      }
-    };
-    fetchContests();
-  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -483,9 +454,22 @@ export default function HomePage() {
       {(() => {
         if (contestsLoading) {
           return (
-            <section className="relative z-20 py-20">
-              <div className="mx-auto max-w-7xl px-6 md:px-10 flex items-center justify-center h-40">
-                <Loader2 className="w-8 h-8 animate-spin text-[#1DA1F2]" />
+            <section className="relative z-20 py-24 md:py-20 animate-pulse">
+              <div className="mx-auto w-full max-w-7xl px-6 md:px-10">
+                <div className="h-6 w-24 rounded-full bg-gray-200"></div>
+                <div className="mt-4 h-12 w-3/4 max-w-md rounded-md bg-gray-200 md:h-14"></div>
+                <div className="mt-5 flex gap-4">
+                  <div className="h-4 w-32 rounded-md bg-gray-200"></div>
+                  <div className="h-4 w-32 rounded-md bg-gray-200"></div>
+                </div>
+                <div className="mt-3 space-y-2">
+                  <div className="h-4 w-64 rounded-md bg-gray-200"></div>
+                  <div className="h-4 w-64 rounded-md bg-gray-200"></div>
+                </div>
+                <div className="mt-7 flex gap-3">
+                  <div className="h-10 w-32 rounded-full bg-gray-200 md:h-12 md:w-40"></div>
+                  <div className="h-10 w-32 rounded-full bg-gray-200 md:h-12 md:w-40"></div>
+                </div>
               </div>
             </section>
           );
@@ -638,9 +622,36 @@ export default function HomePage() {
       })()}
 
       {/* Daily Contest Section */}
-      {contestsData &&
-        (() => {
-          const allContests = [
+      {(() => {
+        if (contestsLoading) {
+          return (
+            <section className="relative z-20 pt-12 pb-20 animate-pulse">
+              <div className="mx-auto max-w-7xl px-6 md:px-10">
+                <div className="mb-6">
+                  <div className="h-6 w-64 rounded-md bg-gray-200 md:h-8"></div>
+                </div>
+                <div className="flex flex-col border-b border-[#1DA1F2] divide-y divide-[#1DA1F2]">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="p-6 md:p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                      <div>
+                        <div className="h-6 w-24 rounded-full bg-gray-200 mb-2"></div>
+                        <div className="h-6 w-48 rounded-md bg-gray-200 md:h-8"></div>
+                        <div className="mt-2 h-4 w-32 rounded-md bg-gray-200"></div>
+                      </div>
+                      <div className="self-end md:self-auto flex flex-col items-end md:items-start">
+                        <div className="h-3 w-10 rounded-md bg-gray-200 mb-1"></div>
+                        <div className="h-6 w-12 rounded-md bg-gray-200"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+          );
+        }
+        if (!contestsData) return null;
+
+        const allContests = [
             ...contestsData.ongoing,
             ...contestsData.voting,
             ...contestsData.upcoming,
@@ -854,8 +865,20 @@ export default function HomePage() {
             </h2>
 
             <div className="mt-12 flex flex-col border-b border-[#1DA1F2] divide-y divide-[#1DA1F2]">
-              {/* DBから取得した終了済みグランプリ (新しい順) */}
-              {contestsData?.closed
+              {contestsLoading ? (
+                [1, 2].map((i) => (
+                  <div key={i} className="px-4 py-4 md:px-6 md:py-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-pulse">
+                    <div className="h-6 w-48 rounded-md bg-gray-200 md:h-8"></div>
+                    <div className="self-end md:self-auto flex flex-col items-end md:items-start">
+                      <div className="h-3 w-10 rounded-md bg-gray-200 mb-1"></div>
+                      <div className="h-6 w-12 rounded-md bg-gray-200"></div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <>
+                  {/* DBから取得した終了済みグランプリ (新しい順) */}
+                  {contestsData?.closed
                 .filter(
                   (c) =>
                     c.type === "grandprix" &&
@@ -923,12 +946,33 @@ export default function HomePage() {
                   </div>
                 </div>
               </a>
+                </>
+              )}
             </div>
 
             {/* 日めくりの結果 */}
-            {contestsData &&
-              (() => {
-                const closedDailies = contestsData.closed
+            {(() => {
+              if (contestsLoading) {
+                return (
+                  <div className="mt-16 animate-pulse">
+                    <div className="mb-6 h-6 w-64 rounded-md bg-gray-200 md:h-8"></div>
+                    <div className="flex flex-col border-b border-[#1DA1F2] divide-y divide-[#1DA1F2]">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="px-4 py-3 md:px-6 md:py-4 flex flex-row items-center justify-between gap-4">
+                          <div className="h-5 w-40 rounded-md bg-gray-200 md:h-6"></div>
+                          <div className="flex flex-col items-end md:items-start">
+                            <div className="h-3 w-10 rounded-md bg-gray-200 mb-1"></div>
+                            <div className="h-5 w-10 rounded-md bg-gray-200 md:h-6"></div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              }
+              if (!contestsData) return null;
+
+              const closedDailies = contestsData.closed
                   .filter((c) => c.type === "daily")
                   .sort(
                     (a, b) =>
