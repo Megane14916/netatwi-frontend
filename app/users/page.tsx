@@ -9,7 +9,7 @@ export default function UsersPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const fetchUsers = useCallback(async (q: string, p: number) => {
     setIsLoading(true);
@@ -38,16 +38,23 @@ export default function UsersPage() {
   }, [searchQuery, page, fetchUsers]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setIsLoading(true);
     setSearchQuery(e.target.value);
     setPage(1); // Reset to first page on search
   };
 
   const handlePrevPage = () => {
-    if (page > 1) setPage((p) => p - 1);
+    if (page > 1) {
+      setIsLoading(true);
+      setPage((p) => p - 1);
+    }
   };
 
   const handleNextPage = () => {
-    if (page < totalPages) setPage((p) => p + 1);
+    if (page < totalPages) {
+      setIsLoading(true);
+      setPage((p) => p + 1);
+    }
   };
 
   const renderPageButtons = () => {
@@ -56,7 +63,10 @@ export default function UsersPage() {
       buttons.push(
         <button
           key={i}
-          onClick={() => setPage(i)}
+          onClick={() => {
+            setIsLoading(true);
+            setPage(i);
+          }}
           className={`w-10 h-10 flex items-center justify-center rounded-full text-sm font-bold transition-colors ${
             page === i 
               ? 'bg-[#1DA1F2] text-white' 
@@ -94,10 +104,22 @@ export default function UsersPage() {
         </div>
 
         <div className="flex flex-col">
-          {isLoading && users.length === 0 ? (
-            <div className="py-20 flex justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-[#1DA1F2]" />
-            </div>
+          {isLoading ? (
+            Array.from({ length: 10 }).map((_, i) => (
+              <div key={i} className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3 border-b border-gray-200 animate-pulse">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-gray-200 flex-shrink-0"></div>
+                  <div className="flex flex-col sm:flex-row sm:items-baseline sm:gap-2">
+                    <div className="h-5 w-32 bg-gray-200 rounded"></div>
+                    <div className="h-4 w-24 bg-gray-200 rounded mt-1 sm:mt-0"></div>
+                  </div>
+                </div>
+                <div className="flex flex-row items-center justify-end gap-3 md:gap-4 mt-2 md:mt-0">
+                  <div className="h-8 w-24 bg-gray-200 rounded"></div>
+                  <div className="h-8 w-24 bg-gray-200 rounded"></div>
+                </div>
+              </div>
+            ))
           ) : users.length === 0 ? (
             <div className="py-20 text-center text-gray-500 font-medium text-lg">
               ユーザーが見つかりませんでした。
