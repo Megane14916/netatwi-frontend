@@ -306,6 +306,58 @@ function TimelineRail({ direction }: { direction: "up" | "down" }) {
   );
 }
 
+function RippleLink({ href, children, className }: any) {
+  const [ripples, setRipples] = useState<{ x: number; y: number; id: number; size: number; active: boolean }[]>([]);
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLAnchorElement>) => {
+    const elem = e.currentTarget;
+    const rect = elem.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
+    const x = e.clientX - rect.left - size / 2;
+    const y = e.clientY - rect.top - size / 2;
+    
+    setRipples((prev) => [...prev, { x, y, id: Date.now(), size, active: true }]);
+  };
+
+  const handlePointerUp = () => {
+    setRipples((prev) => prev.map((r) => ({ ...r, active: false })));
+  };
+
+  return (
+    <Link
+      href={href}
+      className={`relative overflow-hidden ${className}`}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerLeave={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+      onDragStart={handlePointerUp}
+    >
+      {children}
+      {ripples.map((r) => (
+        <span
+          key={r.id}
+          className={`absolute bg-gray-400 rounded-full animate-ripple-expand pointer-events-none transition-opacity duration-500 ${
+            r.active ? "opacity-30" : "opacity-0"
+          }`}
+          style={{
+            top: r.y,
+            left: r.x,
+            width: r.size,
+            height: r.size,
+            transform: "scale(0)",
+          }}
+          onTransitionEnd={(e) => {
+            if (e.propertyName === "opacity" && !r.active) {
+              setRipples((prev) => prev.filter((ripple) => ripple.id !== r.id));
+            }
+          }}
+        />
+      ))}
+    </Link>
+  );
+}
+
 export default function HomePage() {
   const heroTitleMeasureRef = useRef<HTMLSpanElement | null>(null);
   const heroTaglinesRef = useRef<HTMLDivElement | null>(null);
@@ -454,7 +506,7 @@ export default function HomePage() {
       {(() => {
         if (contestsLoading) {
           return (
-            <section className="relative z-20 py-24 md:py-20 animate-pulse">
+            <section className="relative z-20 pt-[186px] pb-24 md:pt-20 md:pb-20 animate-pulse">
               <div className="mx-auto w-full max-w-7xl px-6 md:px-10">
                 <div className="h-6 w-24 rounded-full bg-gray-200"></div>
                 <div className="mt-4 h-12 w-3/4 max-w-md rounded-md bg-gray-200 md:h-14"></div>
@@ -547,7 +599,7 @@ export default function HomePage() {
         const postFormIsFinalRound = step === 2;
 
         return (
-          <section className="relative z-20 py-24 md:py-20">
+          <section className="relative z-20 pt-[186px] pb-24 md:pt-20 md:pb-20">
             <div
               className={`mx-auto grid w-full max-w-7xl items-center gap-8 px-6 md:px-10 ${showPostForm ? "lg:grid-cols-[minmax(0,1fr)_600px]" : ""}`}
             >
@@ -630,17 +682,17 @@ export default function HomePage() {
                 <div className="mb-6">
                   <div className="h-6 w-64 rounded-md bg-gray-200 md:h-8"></div>
                 </div>
-                <div className="flex flex-col border-b border-[#1DA1F2] divide-y divide-[#1DA1F2]">
+                <div className="flex flex-col border-b border-gray-200 divide-y divide-gray-200">
                   {[1, 2, 3].map((i) => (
-                    <div key={i} className="p-6 md:p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                      <div>
-                        <div className="h-6 w-24 rounded-full bg-gray-200 mb-2"></div>
-                        <div className="h-6 w-48 rounded-md bg-gray-200 md:h-8"></div>
-                        <div className="mt-2 h-4 w-32 rounded-md bg-gray-200"></div>
+                    <div key={i} className="py-6 px-3 md:p-8 flex flex-row items-center justify-between gap-2 md:gap-4">
+                      <div className="min-w-0">
+                        <div className="h-5 w-20 rounded-full bg-gray-200 mb-1 md:h-6 md:w-24 md:mb-2"></div>
+                        <div className="h-5 w-32 rounded-md bg-gray-200 md:h-8 md:w-48"></div>
+                        <div className="mt-1 h-3 w-24 rounded-md bg-gray-200 md:mt-2 md:h-4 md:w-32"></div>
                       </div>
-                      <div className="self-end md:self-auto flex flex-col items-end md:items-start">
-                        <div className="h-3 w-10 rounded-md bg-gray-200 mb-1"></div>
-                        <div className="h-6 w-12 rounded-md bg-gray-200"></div>
+                      <div className="shrink-0 flex flex-col items-end md:items-start">
+                        <div className="h-3 w-8 rounded-md bg-gray-200 mb-1 md:w-10"></div>
+                        <div className="h-5 w-10 rounded-md bg-gray-200 md:h-6 md:w-12"></div>
                       </div>
                     </div>
                   ))}
@@ -685,43 +737,42 @@ export default function HomePage() {
             else if (type === "voting")
               timeText = `投票締切: ${dayjs(contest.votingEndTime).format("YYYY年MM月DD日 HH:mm")}`;
             else
-              timeText = `${dayjs(contest.startTime).format("YYYY年MM月DD日 HH:mm")} 開催`;
+              timeText = `開催日時：${dayjs(contest.startTime).format("YYYY年MM月DD日 HH:mm")}`;
 
             return (
-              <Link
+              <RippleLink
                 key={contest.id}
                 href={`/venue/${contest.id}`}
-                className="group relative overflow-hidden bg-white p-6 md:p-8 transition-colors duration-300 hover:text-white"
+                className="group relative overflow-hidden bg-white py-6 px-3 md:p-8 transition-colors duration-300 hover:bg-gray-50"
               >
-                <div className="absolute inset-0 z-0 origin-top -translate-y-full bg-[#1DA1F2] transition-transform duration-300 ease-out group-hover:translate-y-0" />
-                <div className="relative z-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <div className="mb-2">
+                <div className="relative z-10 flex flex-row items-center justify-between gap-2 md:gap-4">
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-1 md:mb-2">
                       <span
-                        className={`inline-block rounded-full px-3 py-1 text-xs font-bold text-white transition-colors group-hover:bg-white group-hover:text-[#1DA1F2] ${config.bg}`}
+                        className={`inline-block rounded-full px-2 py-0.5 text-[10px] md:px-3 md:py-1 md:text-xs font-bold text-white ${config.bg}`}
                       >
                         {config.label}
                       </span>
                     </div>
-                    <h4 className="text-lg font-bold text-black transition-colors group-hover:text-white md:text-2xl">
+                    <h4 className="truncate text-base font-bold text-black md:text-2xl">
                       {contest.name}
                     </h4>
-                    <p className="mt-1 text-sm text-gray-500 transition-colors group-hover:text-white/80">
+                    <p className="mt-0.5 md:mt-1 truncate text-[10px] md:text-sm text-gray-500">
                       {timeText}
                     </p>
                   </div>
-                  <div className="flex items-center gap-8 self-end md:self-auto">
-                    <div className="flex flex-col">
-                      <span className="text-xs font-medium text-black/60 transition-colors group-hover:text-white/80">
+                  <div className="flex shrink-0 items-center gap-8">
+                    <div className="flex flex-col items-end md:items-start">
+                      <span className="text-[10px] md:text-xs font-medium text-black/60">
                         投稿数
                       </span>
-                      <span className="text-xl font-bold text-black transition-colors group-hover:text-white">
+                      <span className="text-base md:text-xl font-bold text-black">
                         {contest.totalPosters ?? 0}件
                       </span>
                     </div>
                   </div>
                 </div>
-              </Link>
+              </RippleLink>
             );
           };
 
@@ -733,7 +784,7 @@ export default function HomePage() {
                     日めくり
                   </h3>
                 </div>
-                <div className="flex flex-col border-b border-[#1DA1F2] divide-y divide-[#1DA1F2]">
+                <div className="flex flex-col border-b border-gray-200 divide-y divide-gray-200">
                   {visibleDailies.map((c) =>
                     renderDailyCard(c, categorizeDaily(c)),
                   )}
