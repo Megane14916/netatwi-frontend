@@ -729,8 +729,8 @@ export default function HomePage() {
             <section className="relative z-20 pt-12 pb-20">
               <div className="mx-auto max-w-7xl px-6 md:px-10">
                 <div className="mb-6 text-left">
-                  <h3 className="text-lg font-bold text-black md:text-[24px]">
-                    日めくりコンテストも開催中！
+                  <h3 className="text-2xl font-bold text-black md:text-[40px]">
+                    日めくり
                   </h3>
                 </div>
                 <div className="flex flex-col border-b border-[#1DA1F2] divide-y divide-[#1DA1F2]">

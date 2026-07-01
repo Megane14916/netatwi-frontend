@@ -27,7 +27,7 @@ const ProgressRing: React.FC<ProgressRingProps> = ({ permillage, remaining }) =>
     <div className="relative flex items-center justify-center w-8 h-8 mr-2">
       <svg className="transform -rotate-90 w-6 h-6">
         <circle
-          className="text-gray-700"
+          className="text-gray-200"
           strokeWidth="2"
           stroke="currentColor"
           fill="transparent"
