@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
+import logoImage from "@/assets/logo.png";
 import {
   Clock3,
   ExternalLink,
@@ -365,6 +367,27 @@ export default function HomePage() {
     null,
   );
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!scrollRef.current) return;
+    setIsDragging(true);
+    setStartX(e.pageX - scrollRef.current.offsetLeft);
+    setScrollLeft(scrollRef.current.scrollLeft);
+  };
+  const handleMouseLeave = () => setIsDragging(false);
+  const handleMouseUp = () => setIsDragging(false);
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || !scrollRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - scrollRef.current.offsetLeft;
+    const walk = (x - startX) * 2;
+    scrollRef.current.scrollLeft = scrollLeft - walk;
+  };
+
   const fetcher = (url: string) => fetch(url).then((res) => {
     if (!res.ok) throw new Error("Failed to fetch");
     return res.json();
@@ -375,6 +398,18 @@ export default function HomePage() {
     error: newsError,
     isLoading: newsLoading,
   } = useSWR<{ id: number; tweet_id: string }[]>("/api/news", fetcher);
+
+  // ツイート埋め込み等によるスクロール位置のバグを防ぐため初期状態では左端に戻す
+  useEffect(() => {
+    if (scrollRef.current && newsList.length > 0) {
+      const timer = setTimeout(() => {
+        if (scrollRef.current) {
+          scrollRef.current.scrollLeft = 0;
+        }
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [newsList]);
 
   const {
     data: contestsData = null,
@@ -743,7 +778,7 @@ export default function HomePage() {
               <RippleLink
                 key={contest.id}
                 href={`/venue/${contest.id}`}
-                className="group relative overflow-hidden bg-white py-6 px-3 md:p-8 transition-colors duration-300 hover:bg-gray-50"
+                className="group relative overflow-hidden bg-white py-6 px-3 md:p-8 transition-colors duration-300 hover:bg-gray-100"
               >
                 <div className="relative z-10 flex flex-row items-center justify-between gap-2 md:gap-4">
                   <div className="min-w-0 flex-1">
@@ -804,25 +839,31 @@ export default function HomePage() {
         })()}
 
       <div
-        className="w-full text-[#1DA1F2]"
+        className="w-full text-[#1DA1F2] relative mt-20 md:mt-24"
         aria-hidden="true"
         style={{ marginBottom: "-1px" }}
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 100 17.63"
+          viewBox="0 0 100 26.8"
           className="block w-full"
         >
-          <polygon points="0,17.63 100,0 100,17.63" fill="currentColor" />
+          {/* 右側の斜め区切り */}
+          <polygon points="0,26.8 100,0 100,26.8" fill="currentColor" />
+          {/* 左側の三角形 (右向き ▶) */}
+          <polygon points="0,0 50,13.4 0,26.8" fill="#f3f4f6" />
         </svg>
+        <div className="absolute top-[25%] md:top-[40%] left-0 w-full -translate-y-1/2 flex justify-center px-4 pointer-events-none">
+          <Image src={logoImage} alt="ネタツイグランプリ" className="w-[200px] md:w-[400px] h-auto object-contain drop-shadow-md" />
+        </div>
       </div>
 
-      <section className="flex h-[120vh] items-center bg-[#1DA1F2] px-6 text-white md:block md:h-auto md:px-10 md:pb-[112px] md:pt-[50px]">
-        <div className="mx-auto max-w-4xl text-center">
-          <h3 className="text-2xl font-extrabold md:text-[40px]">
+      <section className="bg-[#1DA1F2] px-6 text-white md:px-10 pb-1 pt-8 md:pt-12">
+        <div className="mx-auto max-w-4xl text-center md:text-left">
+          <h3 className="text-2xl font-extrabold md:text-[40px] text-white mb-8 md:mb-16 text-center">
             ネタツイグランプリとは
           </h3>
-          <div className="mx-auto mt-8 inline-block max-w-3xl text-center text-base leading-relaxed md:text-lg">
+          <div className="mx-auto inline-block max-w-4xl text-left text-base leading-relaxed md:text-lg">
             <p className="mb-2">
               ネタツイグランプリとは、実力派ネタツイッタラー7名（予定）による審査オンリーの、インプレッション数や流行に縛られない、おもしろさのみで競うネタツイの賞レースである。
             </p>
@@ -840,7 +881,7 @@ export default function HomePage() {
               全28回、熾烈なネタツイバトルが勃発する。 
             </p>
           </div>
-          <div className="mt-10">
+          <div className="mt-10 text-center">
             <Link
               href="/rules"
               className="inline-flex items-center rounded-full border border-white px-8 py-3 text-sm font-bold text-white transition hover:bg-white hover:text-[#1DA1F2]"
@@ -851,63 +892,88 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ニュースセクション */}
-      <section id="news" className="bg-[#1DA1F2] px-6 pt-16 md:px-10">
-        <div className="mx-auto max-w-[1200px]">
-          <h2 className="mb-8 text-2xl font-bold text-white md:text-[40px]">
-            最新のニュース
-          </h2>
+      <div className="w-full bg-white text-[#1DA1F2]" aria-hidden="true" style={{ marginTop: "-1px" }}>
+        <svg viewBox="0 0 100 26.8" className="block w-full">
+          {/* 左側の斜め区切り (/) */}
+          <polygon points="0,0 100,0 0,26.8" fill="currentColor" />
+          {/* 右側の三角形 (左向き ◀) */}
+          <polygon points="100,0 50,13.4 100,26.8" fill="#f3f4f6" />
+        </svg>
+      </div>
 
-          <div className="flex overflow-x-auto gap-6 pb-8 snap-x snap-mandatory">
+      {/* ニュースセクション */}
+      <section id="news" className="bg-white py-12 md:py-16">
+        <div className="mx-auto max-w-[1200px]">
+          <div className="mb-8 flex items-center justify-between px-6 md:px-10">
+            <h2 className="text-2xl font-bold text-[#1DA1F2] md:text-[40px]">
+              最新のニュース
+            </h2>
+            <a
+              href="https://x.com/_n1gp"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex shrink-0 items-center rounded-full bg-[#1DA1F2] px-4 py-2 md:px-8 md:py-3 text-xs md:text-sm font-bold text-white transition hover:bg-[#1788cc]"
+            >
+              公式Xへ
+              <ExternalLink className="ml-1 md:ml-2 h-3 w-3 md:h-4 md:w-4" />
+            </a>
+          </div>
+
+          <div
+            ref={scrollRef}
+            onMouseDown={handleMouseDown}
+            onMouseLeave={handleMouseLeave}
+            onMouseUp={handleMouseUp}
+            onMouseMove={handleMouseMove}
+            className={`flex overflow-x-auto gap-6 pb-8 snap-mandatory scroll-pl-6 md:scroll-pl-10 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] ${isDragging ? 'snap-none cursor-grabbing' : 'snap-x cursor-grab'}`}
+          >
             {newsLoading ? (
-              <p className="text-white">読み込み中...</p>
+              <>
+                {[1, 2, 3].map((i, idx) => (
+                  <div key={i} className={`snap-start flex-none w-[280px] md:w-[400px] ${idx === 0 ? 'ml-6 md:ml-10' : ''} ${idx === 2 ? 'mr-6 md:mr-10' : ''}`}>
+                    <div className="w-full h-[400px] rounded-xl bg-gray-200 animate-pulse"></div>
+                  </div>
+                ))}
+              </>
             ) : newsError ? (
-              <p className="text-white">エラーが発生しました</p>
+              <p className="text-black ml-6 md:ml-10">エラーが発生しました</p>
             ) : newsList.length === 0 ? (
-              <p className="text-white">ニュースはありません</p>
+              <p className="text-black ml-6 md:ml-10">ニュースはありません</p>
             ) : (
-              newsList.map((news) => (
+              newsList.map((news, idx) => (
                 <div
                   key={news.id}
-                  className="snap-start flex-none w-[320px] md:w-[400px] flex justify-center"
+                  className={`snap-start flex-none w-[280px] md:w-[400px] flex justify-center ${idx === 0 ? 'ml-6 md:ml-10' : ''} ${idx === newsList.length - 1 ? 'mr-6 md:mr-10' : ''}`}
                 >
-                  <div className="w-full max-w-full">
+                  <div className="w-full max-w-full pointer-events-none select-none">
                     <Tweet id={news.tweet_id} />
                   </div>
                 </div>
               ))
             )}
           </div>
-
-          <div className="mt-4 flex justify-end">
-            <a
-              href="https://x.com/_n1gp"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center rounded-full bg-white px-8 py-3 text-sm font-bold text-[#1DA1F2] transition hover:bg-gray-200"
-            >
-              公式Xへ
-              <ExternalLink className="ml-2 h-4 w-4" />
-            </a>
-          </div>
         </div>
       </section>
 
-      <section className="bg-[#1DA1F2] pr-6 pt-16 pb-0 md:pr-[96px]">
-        <div className="relative w-full overflow-hidden rounded-tr-[48px] bg-white px-6 pb-24 pt-16 md:px-16 lg:px-24">
+      <section className="bg-white px-0 pt-0 pb-0">
+        <div className="relative w-full overflow-hidden rounded-t-[12.5vw] md:rounded-t-[6vw] bg-gray-100 px-6 pb-24 pt-12 md:px-16 lg:px-24">
           <div className="relative z-10">
             <h2 className="text-2xl font-bold text-black md:text-[40px]">
               過去のグランプリの結果
             </h2>
 
-            <div className="mt-12 flex flex-col border-b border-[#1DA1F2] divide-y divide-[#1DA1F2]">
+            <div className="mt-12 flex flex-col border-b border-gray-400 divide-y divide-gray-400">
               {contestsLoading ? (
                 [1, 2].map((i) => (
-                  <div key={i} className="px-4 py-4 md:px-6 md:py-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-pulse">
-                    <div className="h-6 w-48 rounded-md bg-gray-200 md:h-8"></div>
-                    <div className="self-end md:self-auto flex flex-col items-end md:items-start">
-                      <div className="h-3 w-10 rounded-md bg-gray-200 mb-1"></div>
-                      <div className="h-6 w-12 rounded-md bg-gray-200"></div>
+                  <div key={i} className="py-6 px-3 md:p-8 flex flex-row items-center justify-between gap-2 md:gap-4 animate-pulse">
+                    <div className="min-w-0">
+                      <div className="h-5 w-20 rounded-full bg-gray-200 mb-1 md:h-6 md:w-24 md:mb-2"></div>
+                      <div className="h-5 w-32 rounded-md bg-gray-200 md:h-8 md:w-48"></div>
+                      <div className="mt-1 h-3 w-24 rounded-md bg-gray-200 md:mt-2 md:h-4 md:w-32"></div>
+                    </div>
+                    <div className="shrink-0 flex flex-col items-end md:items-start">
+                      <div className="h-3 w-8 rounded-md bg-gray-200 mb-1 md:w-10"></div>
+                      <div className="h-5 w-10 rounded-md bg-gray-200 md:h-6 md:w-12"></div>
                     </div>
                   </div>
                 ))
@@ -926,30 +992,32 @@ export default function HomePage() {
                     dayjs(a.startTime || 0).unix(),
                 )
                 .map((c) => (
-                  <Link
+                  <RippleLink
                     key={c.id}
                     href={`/venue/${c.id}`}
-                    className="group relative overflow-hidden bg-white px-4 py-4 transition-colors duration-300 hover:text-white md:px-6 md:py-6"
+                    className="group relative overflow-hidden bg-gray-100 py-6 px-3 md:p-8 transition-colors duration-300 hover:bg-gray-200"
                   >
-                    <div className="absolute inset-0 z-0 origin-top -translate-y-full bg-[#1DA1F2] transition-transform duration-300 ease-out group-hover:translate-y-0" />
-                    <div className="relative z-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                      <div>
-                        <h3 className="text-xl font-bold text-black transition-colors group-hover:text-white md:text-2xl">
+                    <div className="relative z-10 flex flex-row items-center justify-between gap-2 md:gap-4">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="truncate text-base font-bold text-black md:text-2xl">
                           {c.name}
                         </h3>
+                        <p className="mt-0.5 md:mt-1 truncate text-[10px] md:text-sm text-gray-500">
+                          開催日時：{dayjs(c.startTime).format("YYYY年MM月DD日 HH:mm")}
+                        </p>
                       </div>
-                      <div className="flex items-center gap-8 self-end md:self-auto">
-                        <div className="flex flex-col">
-                          <span className="text-xs font-medium text-black/60 transition-colors group-hover:text-white/80">
+                      <div className="flex shrink-0 items-center gap-8">
+                        <div className="flex flex-col items-end md:items-start">
+                          <span className="text-[10px] md:text-xs font-medium text-black/60">
                             投稿数
                           </span>
-                          <span className="text-xl font-bold text-black transition-colors group-hover:text-white">
+                          <span className="text-base md:text-xl font-bold text-black">
                             {c.totalPosters ?? 0}件
                           </span>
                         </div>
                       </div>
                     </div>
-                  </Link>
+                  </RippleLink>
                 ))}
 
               {/* 第1回は固定リンク (DBに存在しないnote.com外部データ) — 最下部に固定 */}
@@ -957,28 +1025,26 @@ export default function HomePage() {
                 href="https://note.com/ed_nt/n/ne39d454eafb1?magazine_key=m725c32beb85d"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group relative overflow-hidden bg-white px-4 py-4 transition-colors duration-300 hover:text-white md:px-6 md:py-6"
+                className="group relative overflow-hidden bg-gray-100 py-6 px-3 md:p-8 transition-colors duration-300 hover:bg-gray-200"
               >
-                <div className="absolute inset-0 z-0 origin-top -translate-y-full bg-[#1DA1F2] transition-transform duration-300 ease-out group-hover:translate-y-0" />
-                <div className="relative z-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <h3 className="text-xl font-bold text-black transition-colors group-hover:text-white md:text-2xl">
+                <div className="relative z-10 flex flex-row items-center justify-between gap-2 md:gap-4">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="truncate text-base font-bold text-black md:text-2xl">
                       第1回 ネタツイグランプリ (note)
                     </h3>
-                    <p className="mt-2 text-sm text-gray-500 transition-colors group-hover:text-white/80">
+                    <p className="mt-0.5 md:mt-1 truncate text-[10px] md:text-sm text-gray-500">
                       外部サイト(note.com)へ移動します
                     </p>
                   </div>
-                  <div className="flex items-center gap-8 self-end md:self-auto">
-                    <div className="flex flex-col">
-                      <span className="text-xs font-medium text-black/60 transition-colors group-hover:text-white/80">
+                  <div className="flex shrink-0 items-center gap-4 md:gap-8">
+                    <div className="flex flex-col items-end md:items-start">
+                      <span className="text-[10px] md:text-xs font-medium text-black/60">
                         投稿数
                       </span>
-                      <span className="text-xl font-bold text-black transition-colors group-hover:text-white">
+                      <span className="text-base md:text-xl font-bold text-black">
                         324件
                       </span>
                     </div>
-                    <ExternalLink className="h-6 w-6 text-gray-400 transition-colors group-hover:text-white" />
                   </div>
                 </div>
               </a>
@@ -992,7 +1058,7 @@ export default function HomePage() {
                 return (
                   <div className="mt-16 animate-pulse">
                     <div className="mb-6 h-6 w-64 rounded-md bg-gray-200 md:h-8"></div>
-                    <div className="flex flex-col border-b border-[#1DA1F2] divide-y divide-[#1DA1F2]">
+                    <div className="flex flex-col border-b border-gray-300 divide-y divide-gray-300">
                       {[1, 2, 3].map((i) => (
                         <div key={i} className="px-4 py-3 md:px-6 md:py-4 flex flex-row items-center justify-between gap-4">
                           <div className="h-5 w-40 rounded-md bg-gray-200 md:h-6"></div>
@@ -1020,35 +1086,37 @@ export default function HomePage() {
 
                 return (
                   <div className="mt-16">
-                    <h3 className="mb-6 text-lg font-bold text-black md:text-2xl">
-                      日めくりコンテストの結果
+                    <h3 className="mb-6 text-2xl font-bold text-black md:text-[40px]">
+                      日めくりの結果
                     </h3>
-                    <div className="flex flex-col border-b border-[#1DA1F2] divide-y divide-[#1DA1F2]">
+                    <div className="flex flex-col border-b border-gray-300 divide-y divide-gray-300">
                       {closedDailies.map((c) => (
-                        <Link
+                        <RippleLink
                           key={c.id}
                           href={`/venue/${c.id}`}
-                          className="group relative overflow-hidden bg-white px-4 py-3 transition-colors duration-300 hover:text-white md:px-6 md:py-4"
+                          className="group relative overflow-hidden bg-gray-100 py-6 px-3 md:p-8 transition-colors duration-300 hover:bg-gray-200"
                         >
-                          <div className="absolute inset-0 z-0 origin-top -translate-y-full bg-[#1DA1F2] transition-transform duration-300 ease-out group-hover:translate-y-0" />
-                          <div className="relative z-10 flex flex-row items-center justify-between gap-4">
-                            <div>
-                              <h4 className="text-lg font-bold text-black transition-colors group-hover:text-white md:text-xl">
+                          <div className="relative z-10 flex flex-row items-center justify-between gap-2 md:gap-4">
+                            <div className="min-w-0 flex-1">
+                              <h4 className="truncate text-base font-bold text-black md:text-xl">
                                 {c.name}
                               </h4>
+                              <p className="mt-0.5 md:mt-1 truncate text-[10px] md:text-sm text-gray-500">
+                                開催日時：{dayjs(c.startTime).format("YYYY年MM月DD日 HH:mm")}
+                              </p>
                             </div>
-                            <div className="flex items-center gap-8">
+                            <div className="flex shrink-0 items-center gap-8">
                               <div className="flex flex-col items-end md:items-start">
-                                <span className="text-xs font-medium text-black/60 transition-colors group-hover:text-white/80">
+                                <span className="text-[10px] md:text-xs font-medium text-black/60">
                                   投稿数
                                 </span>
-                                <span className="text-lg font-bold text-black transition-colors group-hover:text-white">
+                                <span className="text-base md:text-lg font-bold text-black">
                                   {c.totalPosters ?? 0}件
                                 </span>
                               </div>
                             </div>
                           </div>
-                        </Link>
+                        </RippleLink>
                       ))}
                     </div>
                     <div className="mt-8 flex justify-end">
