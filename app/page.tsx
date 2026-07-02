@@ -258,7 +258,7 @@ function HeroTimelineRail() {
       <div
         className="flex flex-col w-full max-w-full border-l border-gray-200 lg:w-[600px]"
         style={{
-          transform: `translateY(calc(100dvh - ${step * 160}px))`,
+          transform: `translateY(calc(100vh - ${step * 160}px))`,
           transition: isTransitioning
             ? "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
             : "none",
@@ -839,7 +839,7 @@ export default function HomePage() {
         })()}
 
       <div
-        className="w-full text-[#1DA1F2] relative mt-20 md:mt-24"
+        className="w-full text-[#1DA1F2] relative mt-[130px] md:mt-[150px]"
         aria-hidden="true"
         style={{ marginBottom: "-1px" }}
       >
@@ -853,7 +853,7 @@ export default function HomePage() {
           {/* 左側の三角形 (右向き ▶) */}
           <polygon points="0,0 50,13.4 0,26.8" fill="#f3f4f6" />
         </svg>
-        <div className="absolute top-[25%] md:top-[40%] left-0 w-full -translate-y-1/2 flex justify-center px-4 pointer-events-none">
+        <div className="absolute top-[25%] md:top-[40%] left-0 w-full -translate-y-[calc(50%+20px)] md:-translate-y-[calc(50%+50px)] flex justify-center px-4 pointer-events-none">
           <Image src={logoImage} alt="ネタツイグランプリ" className="w-[200px] md:w-[400px] h-auto object-contain drop-shadow-md" />
         </div>
       </div>
@@ -902,10 +902,10 @@ export default function HomePage() {
       </div>
 
       {/* ニュースセクション */}
-      <section id="news" className="bg-white py-12 md:py-16">
+      <section id="news" className="bg-white py-24 md:py-16">
         <div className="mx-auto max-w-[1200px]">
           <div className="mb-8 flex items-center justify-between px-6 md:px-10">
-            <h2 className="text-2xl font-bold text-[#1DA1F2] md:text-[40px]">
+            <h2 className="text-2xl font-bold text-black md:text-[40px]">
               最新のニュース
             </h2>
             <a
@@ -927,23 +927,26 @@ export default function HomePage() {
             onMouseMove={handleMouseMove}
             className={`flex overflow-x-auto gap-6 pb-8 snap-mandatory scroll-pl-6 md:scroll-pl-10 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] ${isDragging ? 'snap-none cursor-grabbing' : 'snap-x cursor-grab'}`}
           >
+            {/* 左端の余白 (スナップ用) */}
+            <div className="snap-start flex-none w-0 md:w-4"></div>
+
             {newsLoading ? (
               <>
-                {[1, 2, 3].map((i, idx) => (
-                  <div key={i} className={`snap-start flex-none w-[280px] md:w-[400px] ${idx === 0 ? 'ml-6 md:ml-10' : ''} ${idx === 2 ? 'mr-6 md:mr-10' : ''}`}>
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="snap-start flex-none w-[280px] md:w-[400px]">
                     <div className="w-full h-[400px] rounded-xl bg-gray-200 animate-pulse"></div>
                   </div>
                 ))}
               </>
             ) : newsError ? (
-              <p className="text-black ml-6 md:ml-10">エラーが発生しました</p>
+              <p className="text-black">エラーが発生しました</p>
             ) : newsList.length === 0 ? (
-              <p className="text-black ml-6 md:ml-10">ニュースはありません</p>
+              <p className="text-black">ニュースはありません</p>
             ) : (
-              newsList.map((news, idx) => (
+              newsList.map((news) => (
                 <div
                   key={news.id}
-                  className={`snap-start flex-none w-[280px] md:w-[400px] flex justify-center ${idx === 0 ? 'ml-6 md:ml-10' : ''} ${idx === newsList.length - 1 ? 'mr-6 md:mr-10' : ''}`}
+                  className="snap-start flex-none w-[280px] md:w-[400px] flex justify-center"
                 >
                   <div className="w-full max-w-full pointer-events-none select-none">
                     <Tweet id={news.tweet_id} />
@@ -951,6 +954,9 @@ export default function HomePage() {
                 </div>
               ))
             )}
+
+            {/* 右端の余白 */}
+            <div className="flex-none w-0 md:w-4"></div>
           </div>
         </div>
       </section>
@@ -1030,7 +1036,7 @@ export default function HomePage() {
                 <div className="relative z-10 flex flex-row items-center justify-between gap-2 md:gap-4">
                   <div className="min-w-0 flex-1">
                     <h3 className="truncate text-base font-bold text-black md:text-2xl">
-                      第1回 ネタツイグランプリ (note)
+                      第1回 ネタツイグランプリ
                     </h3>
                     <p className="mt-0.5 md:mt-1 truncate text-[10px] md:text-sm text-gray-500">
                       外部サイト(note.com)へ移動します
