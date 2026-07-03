@@ -948,7 +948,7 @@ export default function VenueDetailPage() {
                 "_blank",
               );
             }}
-            className="inline-flex items-center gap-1.5 rounded-full bg-black px-6 py-2.5 text-[14px] md:text-[15px] font-bold text-white transition hover:bg-black/80 whitespace-nowrap shadow-none border border-transparent"
+            className="inline-flex items-center gap-1.5 rounded-full bg-black px-4 py-2 text-[13px] md:text-[14px] font-bold text-white transition hover:bg-black/80 whitespace-nowrap shadow-none border border-transparent"
           >
             <Share2 className="w-4 h-4" />
             Xでポスト

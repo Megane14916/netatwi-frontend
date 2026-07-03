@@ -412,7 +412,7 @@ export default function PostForm({
   }
 
   return (
-    <div className="w-full rounded-2xl border border-[#d9e1e7] bg-white p-5 shadow-[0_12px_40px_rgba(29,161,242,0.12)] mb-8">
+    <div className="w-full rounded-2xl border border-[#d9e1e7] bg-white p-5 shadow-[0_12px_40px_rgba(29,161,242,0.12)] mb-[450px]">
       {/* ── ログイン未済 ── */}
       {!user && (
         <div className="text-center py-10 text-black/50 bg-gray-50 rounded-xl">
@@ -501,7 +501,7 @@ export default function PostForm({
           {/* ツールバー */}
           <div className="flex items-center justify-between border-t border-gray-100 pt-3 mt-4">
             {/* 左: 画像・絵文字ボタン */}
-            <div className="flex items-center gap-1 text-[#1DA1F2] pl-[44px]">
+            <div className="flex items-center gap-1 text-[#1DA1F2]">
               <input
                 type="file"
                 multiple
@@ -556,7 +556,7 @@ export default function PostForm({
                     setNewPostContent(myPost?.content || "");
                     setPreviewUrls(myPost?.images || []);
                   }}
-                  className="inline-flex items-center rounded-full bg-gray-100 px-5 py-2 text-sm font-bold text-black transition hover:bg-gray-200 shadow-sm"
+                  className="hidden md:inline-flex items-center rounded-full bg-gray-100 md:px-5 md:py-2 md:text-sm font-bold text-black transition hover:bg-gray-200 shadow-sm"
                 >
                   キャンセル
                 </button>
@@ -571,7 +571,7 @@ export default function PostForm({
                   isSubmitting ||
                   !textCount.isValid
                 }
-                className="inline-flex items-center rounded-full bg-[#1DA1F2] px-5 py-2 text-sm font-bold text-white transition hover:bg-[#1788cc] disabled:bg-blue-300 disabled:cursor-not-allowed shadow-sm"
+                className="inline-flex items-center rounded-full bg-[#1DA1F2] px-4 py-1.5 text-xs md:px-5 md:py-2 md:text-sm font-bold text-white transition hover:bg-[#1788cc] disabled:bg-blue-300 disabled:cursor-not-allowed shadow-sm"
               >
                 {isSubmitting ? (
                   <Loader2 className="w-4 h-4 animate-spin mr-1.5" />
