@@ -1060,11 +1060,13 @@ export default function VenueDetailPage() {
 
         {/* 投稿期間 */}
         {contestStatus === "ongoing" && (
-          <PostForm
-            contestId={contestId}
-            isFinalRound={!!contest.parentContestId}
-            onPostSuccess={() => fetchData()}
-          />
+          <div className="pb-[450px]">
+            <PostForm
+              contestId={contestId}
+              isFinalRound={!!contest.parentContestId}
+              onPostSuccess={() => fetchData()}
+            />
+          </div>
         )}
 
         {/* 投票期間 */}
