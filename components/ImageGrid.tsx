@@ -60,7 +60,6 @@ export default function ImageGrid({ images }: ImageGridProps) {
     let style: React.CSSProperties = {
         maxWidth: '100%',
         borderRadius: '0.75rem',
-        border: '1px solid #374151',
         cursor: 'pointer',
         objectFit: 'cover'
     };
@@ -94,7 +93,7 @@ export default function ImageGrid({ images }: ImageGridProps) {
         )}
 
         {count > 1 && (
-          <div className="grid grid-cols-2 gap-0.5 w-full aspect-video rounded-xl overflow-hidden border border-gray-700">
+          <div className="grid grid-cols-2 gap-0.5 w-full aspect-video rounded-xl overflow-hidden">
             {count === 2 && images.map((src, idx) => (
                <div key={idx} className="relative h-full w-full cursor-pointer bg-gray-800" onClick={() => openLightbox(idx)}>
                   <img src={src} alt={`image-${idx}`} className="absolute inset-0 w-full h-full object-cover hover:opacity-90 transition-opacity" />
