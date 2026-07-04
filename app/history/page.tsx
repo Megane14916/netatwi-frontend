@@ -15,6 +15,7 @@ interface Contest {
   endTime: string;
   votingEndTime: string;
   totalPosters?: number;
+  type?: string;
 }
 
 interface ContestsApiResponse {

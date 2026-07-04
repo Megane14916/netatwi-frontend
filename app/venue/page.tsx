@@ -1,6 +1,7 @@
-import { Timer, Zap, Calendar, CheckSquare, Trophy, Users, CheckCircle, UserStar, ChevronRight } from 'lucide-react';
+import { Timer, Zap, Calendar, CheckSquare, Trophy, Users, CheckCircle, UserStar, ChevronRight, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import dayjs from 'dayjs';
+import RippleLink from "@/components/RippleLink";
 import Countdown from '@/components/venue/Countdown';
 import React from 'react';
 
@@ -145,57 +146,63 @@ export default async function VenuePage() {
   const dailyVoting = dailyContests.filter(c => categorizeDaily(c) === 'voting').sort((a,b) => dayjs(b.startTime).unix() - dayjs(a.startTime).unix());
   const dailyClosed = dailyContests.filter(c => categorizeDaily(c) === 'closed').sort((a,b) => dayjs(b.startTime).unix() - dayjs(a.startTime).unix());
 
-  const visibleClosed = dailyClosed.slice(0, 3);
-  const hasMoreClosed = dailyClosed.length > 3;
+  const categorizedDaily = [
+    ...dailyOngoing.map(c => ({ contest: c, type: 'ongoing' as const })),
+    ...dailyVoting.map(c => ({ contest: c, type: 'voting' as const })),
+    ...dailyClosed.map(c => ({ contest: c, type: 'closed' as const }))
+  ];
+  const visibleDailies = categorizedDaily.slice(0, 5);
 
   const renderCard = (contest: Contest, type: 'ongoing' | 'voting' | 'closed') => {
     const typeConfig = {
-       ongoing: { label: '投稿期間', bg: 'bg-[#1DA1F2]', color: 'text-white' },
-       voting: { label: '投票期間', bg: 'bg-green-500', color: 'text-white' },
-       closed: { label: '結果発表', bg: 'bg-yellow-400', color: 'text-white' }
+      ongoing: { label: "投稿期間", bg: "bg-[#1DA1F2]" },
+      voting: { label: "投票期間", bg: "bg-green-500" },
+      closed: { label: "結果発表", bg: "bg-yellow-400" },
     };
-    
     const config = typeConfig[type];
 
     let timeText = "";
-    if (type === 'ongoing') {
-      timeText = `投稿締切: ${dayjs(contest.endTime).format('YYYY年MM月DD日 HH:mm')}`;
-    } else if (type === 'voting') {
-      timeText = `投票締切: ${dayjs(contest.votingEndTime).format('YYYY年MM月DD日 HH:mm')}`;
-    } else {
-      timeText = `${dayjs(contest.startTime).format('YYYY年MM月DD日 HH:mm')} 開催`;
-    }
+    if (type === "ongoing")
+      timeText = `期限: ${dayjs(contest.endTime).format("YYYY年MM月DD日 HH:mm")}`;
+    else if (type === "voting")
+      timeText = `投票: ${dayjs(contest.votingEndTime).format("YYYY年MM月DD日 HH:mm")}`;
+    else
+      timeText = `開催日:${dayjs(contest.startTime).format("YYYY年MM月DD日 HH:mm")}`;
 
     return (
-       <Link
-          key={contest.id}
-          href={`/venue/${contest.id}`}
-          className="group relative overflow-hidden bg-white px-4 py-4 transition-colors duration-300 hover:text-white md:px-6 md:py-5 flex flex-col"
-       >
-          <div className="absolute inset-0 z-0 origin-top -translate-y-full bg-[#1DA1F2] transition-transform duration-300 ease-out group-hover:translate-y-0" />
-          
-          <div className="relative z-10 flex flex-row items-center justify-between gap-4">
-             <div>
-                <div className={`self-start inline-block px-2.5 py-0.5 text-xs font-bold rounded-full mb-2 transition-colors duration-300 ${config.bg} ${config.color} group-hover:bg-white group-hover:text-[#1DA1F2]`}>
-                   {config.label}
-                </div>
-                <h4 className="text-lg font-bold text-black transition-colors group-hover:text-white md:text-xl">{contest.name}</h4>
-                <p className="mt-1 text-sm text-gray-500 transition-colors group-hover:text-white/80">
-                {timeText}
-                </p>
-             </div>
-             <div className="flex items-center gap-6">
-                <div className="flex flex-col items-end md:items-start">
-                <span className="text-xs font-medium text-black/60 transition-colors group-hover:text-white/80">
-                   投稿数
-                </span>
-                <span className="text-lg font-bold text-black transition-colors group-hover:text-white">
-                   {contest.totalPosters ?? 0}件
-                </span>
-                </div>
-             </div>
+      <RippleLink
+        key={contest.id}
+        href={`/venue/${contest.id}`}
+        className="block group relative overflow-hidden bg-white py-6 px-3 md:p-8 transition-colors duration-300 hover:bg-gray-100"
+      >
+        <div className="relative z-10 flex flex-row items-center justify-between gap-2 md:gap-4">
+          <div className="min-w-0 flex-1">
+            <div className="mb-1 md:mb-2">
+              <span
+                className={`inline-block rounded-full px-2 py-0.5 text-[10px] md:px-3 md:py-1 md:text-xs font-bold text-white ${config.bg}`}
+              >
+                {config.label}
+              </span>
+            </div>
+            <h4 className="truncate text-base font-bold text-black md:text-2xl">
+              {contest.name}
+            </h4>
+            <p className="mt-0.5 md:mt-1 truncate text-[10px] md:text-sm text-gray-500">
+              {timeText}
+            </p>
           </div>
-       </Link>
+          <div className="flex shrink-0 items-center gap-8">
+            <div className="flex flex-col items-end md:items-start">
+              <span className="text-[10px] md:text-xs font-medium text-black/60">
+                投稿数
+              </span>
+              <span className="text-base md:text-xl font-bold text-black">
+                {contest.totalPosters ?? 0}人
+              </span>
+            </div>
+          </div>
+        </div>
+      </RippleLink>
     );
   };
 
@@ -330,25 +337,25 @@ export default async function VenuePage() {
             <h2 className="text-2xl font-extrabold text-black">日めくりコンテスト</h2>
           </div>
           
-          <div className="flex flex-col border-b border-[#1DA1F2] divide-y divide-[#1DA1F2] mb-4">
-            {dailyOngoing.map(c => renderCard(c, 'ongoing'))}
-            {dailyVoting.map(c => renderCard(c, 'voting'))}
-            {visibleClosed.map(c => renderCard(c, 'closed'))}
+          <div className="flex flex-col border-b border-gray-200 divide-y divide-gray-200 mb-4">
+            {visibleDailies.map(({ contest, type }) => renderCard(contest, type))}
             
-            {dailyOngoing.length === 0 && dailyVoting.length === 0 && visibleClosed.length === 0 && (
+            {visibleDailies.length === 0 && (
               <div className="text-gray-500 text-center py-10 bg-gray-50">
                 <p>現在開催中の日めくり大会はありません。</p>
               </div>
             )}
           </div>
 
-          {hasMoreClosed && (
-            <div className="flex justify-end mt-4 mb-8">
-              <Link href="/history" className="inline-block px-6 py-2.5 rounded-full bg-gray-100 text-gray-700 font-bold text-sm hover:bg-gray-200 transition-colors">
-                全ての結果を見る
-              </Link>
-            </div>
-          )}
+          <div className="flex justify-end mt-4 mb-8">
+            <Link
+              href="/history"
+              className="inline-flex items-center rounded-full bg-[#1DA1F2] px-7 py-3 text-sm font-bold text-white transition hover:bg-[#1788cc]"
+            >
+              全ての大会を見る
+              <ExternalLink className="ml-2 h-4 w-4" />
+            </Link>
+          </div>
         </section>
         
       </div>

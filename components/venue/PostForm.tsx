@@ -412,7 +412,7 @@ export default function PostForm({
   }
 
   return (
-    <div className="w-full rounded-2xl border border-[#d9e1e7] bg-white p-5 shadow-[0_12px_40px_rgba(29,161,242,0.12)] mb-[450px]">
+    <div className="w-full rounded-2xl border border-[#d9e1e7] bg-white p-5 shadow-[0_12px_40px_rgba(29,161,242,0.12)] mb-8">
       {/* ── ログイン未済 ── */}
       {!user && (
         <div className="text-center py-10 text-black/50 bg-gray-50 rounded-xl">

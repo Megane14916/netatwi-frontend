@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import dayjs from 'dayjs';
 import { History } from 'lucide-react';
+import RippleLink from "@/components/RippleLink";
 
 interface Contest {
   id: number;
@@ -13,40 +14,42 @@ interface Contest {
   endTime: string;
   votingEndTime: string;
   totalPosters?: number;
+  type?: string;
 }
 
 export default function HistoryTabs({ contests }: { contests: Contest[] }) {
   const [activeTab, setActiveTab] = useState<'grandprix' | 'daily'>('grandprix');
 
-  const grandprixContests = contests.filter((c) => !c.name.includes('日めくり'));
-  const dailyContests = contests.filter((c) => c.name.includes('日めくり'));
+  const grandprixContests = contests.filter((c) => c.type === 'grandprix' || (!c.type && !c.name.includes('日めくり')));
+  const dailyContests = contests.filter((c) => c.type === 'daily' || (!c.type && c.name.includes('日めくり')));
 
   const renderContestCard = (contest: Contest) => (
-    <Link
+    <RippleLink
       key={contest.id}
       href={`/venue/${contest.id}`}
-      className="group relative overflow-hidden bg-white px-4 py-3 transition-colors duration-300 hover:text-white md:px-6 md:py-4"
+      className="block group relative overflow-hidden bg-white py-6 px-3 md:p-8 transition-colors duration-300 hover:bg-gray-100"
     >
-      <div className="absolute inset-0 z-0 origin-top -translate-y-full bg-[#1DA1F2] transition-transform duration-300 ease-out group-hover:translate-y-0" />
-      <div className="relative z-10 flex flex-row items-center justify-between gap-4">
-        <div>
-          <h4 className="text-lg font-bold text-black transition-colors group-hover:text-white md:text-xl">{contest.name}</h4>
-          <p className="mt-1 text-sm text-gray-500 transition-colors group-hover:text-white/80">
-            {dayjs(contest.startTime).format('YYYY年MM月DD日 HH:mm')} 開催
+      <div className="relative z-10 flex flex-row items-center justify-between gap-2 md:gap-4">
+        <div className="min-w-0 flex-1">
+          <h4 className="truncate text-base font-bold text-black md:text-xl">
+            {contest.name}
+          </h4>
+          <p className="mt-0.5 md:mt-1 truncate text-[10px] md:text-sm text-gray-500">
+            開催日時：{dayjs(contest.startTime).format("YYYY年MM月DD日 HH:mm")}
           </p>
         </div>
-        <div className="flex items-center gap-6">
+        <div className="flex shrink-0 items-center gap-8">
           <div className="flex flex-col items-end md:items-start">
-            <span className="text-xs font-medium text-black/60 transition-colors group-hover:text-white/80">
+            <span className="text-[10px] md:text-xs font-medium text-black/60">
               投稿数
             </span>
-            <span className="text-lg font-bold text-black transition-colors group-hover:text-white">
+            <span className="text-base md:text-lg font-bold text-black">
               {contest.totalPosters ?? 0}件
             </span>
           </div>
         </div>
       </div>
-    </Link>
+    </RippleLink>
   );
 
   return (
@@ -80,31 +83,34 @@ export default function HistoryTabs({ contests }: { contests: Contest[] }) {
           </button>
         </div>
 
-        <div className="flex flex-col border-b border-[#1DA1F2] divide-y divide-[#1DA1F2]">
+        <div className="flex flex-col border-b border-gray-200 divide-y divide-gray-200">
           {activeTab === 'grandprix' && (
             <>
               {grandprixContests.map(renderContestCard)}
-              {/* 第1回 ネタツイグランプリ (note) */}
+              {/* 第1回ネタツイグランプリ (note) */}
               <a
                 href="https://note.com/ed_nt/n/ne39d454eafb1?magazine_key=m725c32beb85d"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group relative overflow-hidden bg-white px-4 py-3 transition-colors duration-300 hover:text-white md:px-6 md:py-4"
+                className="block group relative overflow-hidden bg-white py-6 px-3 md:p-8 transition-colors duration-300 hover:bg-gray-100"
               >
-                <div className="absolute inset-0 z-0 origin-top -translate-y-full bg-[#1DA1F2] transition-transform duration-300 ease-out group-hover:translate-y-0" />
-                <div className="relative z-10 flex flex-row items-center justify-between gap-4">
-                  <div>
-                    <h4 className="text-lg font-bold text-black transition-colors group-hover:text-white md:text-xl">第1回 ネタツイグランプリ</h4>
-                    <p className="mt-1 text-sm text-gray-500 transition-colors group-hover:text-white/80">
+                <div className="relative z-10 flex flex-row items-center justify-between gap-2 md:gap-4">
+                  <div className="min-w-0 flex-1">
+                    <h4 className="truncate text-base font-bold text-black md:text-xl">
+                      第1回ネタツイグランプリ
+                    </h4>
+                    <p className="mt-0.5 md:mt-1 truncate text-[10px] md:text-sm text-gray-500">
                       外部サイト(note.com)へ移動します
                     </p>
                   </div>
-                  <div className="flex items-center gap-6">
+                  <div className="flex shrink-0 items-center gap-8">
                     <div className="flex flex-col items-end md:items-start">
-                      <span className="text-xs font-medium text-black/60 transition-colors group-hover:text-white/80">
+                      <span className="text-[10px] md:text-xs font-medium text-black/60">
                         投稿数
                       </span>
-                      <span className="text-lg font-bold text-black transition-colors group-hover:text-white">324件</span>
+                      <span className="text-base md:text-lg font-bold text-black">
+                        324件
+                      </span>
                     </div>
                   </div>
                 </div>

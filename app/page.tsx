@@ -20,6 +20,7 @@ import { Tweet } from "react-tweet";
 import dayjs from "dayjs";
 import useSWR from "swr";
 import PostForm from "@/components/venue/PostForm";
+import RippleLink from "@/components/RippleLink";
 
 interface Contest {
   id: number;
@@ -308,57 +309,7 @@ function TimelineRail({ direction }: { direction: "up" | "down" }) {
   );
 }
 
-function RippleLink({ href, children, className }: any) {
-  const [ripples, setRipples] = useState<{ x: number; y: number; id: number; size: number; active: boolean }[]>([]);
 
-  const handlePointerDown = (e: React.PointerEvent<HTMLAnchorElement>) => {
-    const elem = e.currentTarget;
-    const rect = elem.getBoundingClientRect();
-    const size = Math.max(rect.width, rect.height);
-    const x = e.clientX - rect.left - size / 2;
-    const y = e.clientY - rect.top - size / 2;
-    
-    setRipples((prev) => [...prev, { x, y, id: Date.now(), size, active: true }]);
-  };
-
-  const handlePointerUp = () => {
-    setRipples((prev) => prev.map((r) => ({ ...r, active: false })));
-  };
-
-  return (
-    <Link
-      href={href}
-      className={`relative overflow-hidden ${className}`}
-      onPointerDown={handlePointerDown}
-      onPointerUp={handlePointerUp}
-      onPointerLeave={handlePointerUp}
-      onPointerCancel={handlePointerUp}
-      onDragStart={handlePointerUp}
-    >
-      {children}
-      {ripples.map((r) => (
-        <span
-          key={r.id}
-          className={`absolute bg-gray-400 rounded-full animate-ripple-expand pointer-events-none transition-opacity duration-500 ${
-            r.active ? "opacity-30" : "opacity-0"
-          }`}
-          style={{
-            top: r.y,
-            left: r.x,
-            width: r.size,
-            height: r.size,
-            transform: "scale(0)",
-          }}
-          onTransitionEnd={(e) => {
-            if (e.propertyName === "opacity" && !r.active) {
-              setRipples((prev) => prev.filter((ripple) => ripple.id !== r.id));
-            }
-          }}
-        />
-      ))}
-    </Link>
-  );
-}
 
 export default function HomePage() {
   const heroTitleMeasureRef = useRef<HTMLSpanElement | null>(null);
@@ -760,8 +711,8 @@ export default function HomePage() {
             type: "ongoing" | "voting" | "closed",
           ) => {
             const typeConfig = {
-              ongoing: { label: "投稿受付中", bg: "bg-[#1DA1F2]" },
-              voting: { label: "投票受付中", bg: "bg-green-500" },
+              ongoing: { label: "投稿期間", bg: "bg-[#1DA1F2]" },
+              voting: { label: "投票期間", bg: "bg-green-500" },
               closed: { label: "結果発表", bg: "bg-yellow-400" },
             };
             const config = typeConfig[type];
@@ -829,7 +780,7 @@ export default function HomePage() {
                     href="/venue"
                     className="inline-flex items-center rounded-full bg-[#1DA1F2] px-7 py-3 text-sm font-bold text-white transition hover:bg-[#1788cc]"
                   >
-                    全ての大会を見る
+                    全ての結果を見る
                     <ExternalLink className="ml-2 h-4 w-4" />
                   </Link>
                 </div>
