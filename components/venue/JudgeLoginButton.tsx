@@ -52,7 +52,7 @@ export default function JudgeLoginButton({ contestId, onLoginSuccess }: JudgeLog
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-2 px-4 py-2 bg-indigo-600/20 text-indigo-400 rounded-full hover:bg-indigo-600/30 transition-colors text-sm font-medium border border-indigo-500/30"
+        className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-black rounded-full hover:bg-gray-200 transition-colors text-sm font-bold border border-gray-200"
       >
         <Gavel className="w-4 h-4" />
         審査員として投票

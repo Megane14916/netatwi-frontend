@@ -177,8 +177,8 @@ const JudgeVoteSelector = ({
   maxScore: number;
 }) => {
   return (
-    <div className="mt-3 bg-gray-50 p-3 rounded-xl border border-gray-200">
-      <div className="flex justify-between items-center mb-2 px-1">
+    <div className="bg-gray-50 px-3 py-2 rounded-xl border border-gray-200 inline-flex flex-col justify-center">
+      <div className="flex justify-between items-center mb-1.5 px-1 gap-3">
         <span className="text-xs text-indigo-600 font-bold flex items-center gap-1">
           <ShieldCheck className="w-3 h-3" /> 審査員評価
         </span>
@@ -220,7 +220,7 @@ const JudgeAwardSelector = ({
   onCommentChange: (val: string) => void;
   disabled: boolean;
 }) => (
-  <div className="mt-3 px-1 border-t border-gray-200 pt-3 w-full">
+  <div className="mt-4 px-1 border-t border-gray-200 pt-4 w-full">
     <label
       className={`flex items-center cursor-pointer ${disabled ? "opacity-50" : ""} group`}
     >
@@ -388,6 +388,7 @@ export default function VenueDetailPage() {
   const isVoteSubmitDisabled = isSubmittingVotes || isVoteDeadlineExceeded;
 
   const [showSuccessBanner, setShowSuccessBanner] = useState(false);
+  const [hideJudgeBanner, setHideJudgeBanner] = useState(false);
 
   // 文字数カウント状態を追加
   const [textCount, setTextCount] = useState<TextCountResult>({
@@ -876,50 +877,60 @@ export default function VenueDetailPage() {
       </div>
 
       <div className="container mx-auto max-w-2xl px-4 pt-10 relative z-20">
-        {/* 投票完了バナー */}
-        {showSuccessBanner && (
-          <div className="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center shadow-lg animate-fade-in-down">
-            <CheckCircle className="h-6 w-6 mr-3 flex-shrink-0 text-green-500" />
-            <div>
-              <p className="font-bold text-lg">投票が完了しました！</p>
-              <p className="text-sm">
-                期間内であれば何度でも投票内容を更新できます。
-              </p>
+        {/* ヘッダー下に浮かせる固定アラート群 */}
+        <div className="fixed top-[72px] left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-2xl flex flex-col gap-2 pointer-events-none">
+          {/* 投票完了バナー */}
+          {showSuccessBanner && (
+            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center shadow-lg animate-fade-in-down pointer-events-auto">
+              <CheckCircle className="h-6 w-6 mr-3 flex-shrink-0 text-green-500" />
+              <div>
+                <p className="font-bold text-lg">投票が完了しました！</p>
+                <p className="text-sm">
+                  期間内であれば何度でも投票内容を更新できます。
+                </p>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {isJudgeMode && contestStatus === "voting" && (
-          <div className="mb-4 bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg flex items-center text-sm sticky top-10 z-40 shadow-sm">
-            {" "}
-            <ShieldCheck className="h-5 w-5 mr-3 flex-shrink-0 text-yellow-600" />{" "}
-            現在、審査員として投票中です。{" "}
-          </div>
-        )}
-        {contestStatus === "ongoing" && isPostDeadlineExceeded && (
-          <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center shadow-sm animate-pulse">
-            {" "}
-            <AlertTriangle className="h-5 w-5 mr-3 flex-shrink-0 text-red-500" />{" "}
-            <div>
-              {" "}
-              <p className="font-bold">投稿受け付けは終了しました</p>{" "}
-              <p className="text-xs opacity-80">
-                集計中または投票フェーズへの移行待ちです。
-              </p>{" "}
-            </div>{" "}
-          </div>
-        )}
-        {contestStatus === "voting" && isVoteDeadlineExceeded && (
-          <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center shadow-sm animate-pulse">
-            <AlertTriangle className="h-5 w-5 mr-3 flex-shrink-0 text-red-500" />
-            <div>
-              <p className="font-bold">投票期間は終了しました</p>
-              <p className="text-xs opacity-80">
-                集計中または結果発表待ちです。
-              </p>
+          {isJudgeMode && contestStatus === "voting" && !hideJudgeBanner && (
+            <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg flex items-center justify-between text-sm shadow-sm pointer-events-auto">
+              <div className="flex items-center">
+                <ShieldCheck className="h-5 w-5 mr-3 flex-shrink-0 text-yellow-600" />
+                <span>現在、審査員として投票中です。</span>
+              </div>
+              <button
+                onClick={() => setHideJudgeBanner(true)}
+                className="ml-4 p-1 text-yellow-600 hover:text-yellow-800 hover:bg-yellow-100 rounded-full transition-colors focus:outline-none"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
-          </div>
-        )}
+          )}
+          {contestStatus === "ongoing" && isPostDeadlineExceeded && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center shadow-sm animate-pulse pointer-events-auto">
+              {" "}
+              <AlertTriangle className="h-5 w-5 mr-3 flex-shrink-0 text-red-500" />{" "}
+              <div>
+                {" "}
+                <p className="font-bold">投稿受け付けは終了しました</p>{" "}
+                <p className="text-xs opacity-80">
+                  集計中または投票フェーズへの移行待ちです。
+                </p>{" "}
+              </div>{" "}
+            </div>
+          )}
+          {contestStatus === "voting" && isVoteDeadlineExceeded && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center shadow-sm animate-pulse pointer-events-auto">
+              <AlertTriangle className="h-5 w-5 mr-3 flex-shrink-0 text-red-500" />
+              <div>
+                <p className="font-bold">投票期間は終了しました</p>
+                <p className="text-xs opacity-80">
+                  集計中または結果発表待ちです。
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* ヘッダーエリア (タイトルとお題のみ) - 背景の中央に配置 */}
         <div className="relative flex flex-col justify-center h-[280px] md:h-[320px] -mt-10 mb-6">
@@ -1120,9 +1131,23 @@ export default function VenueDetailPage() {
                               </div>
                             )}
 
-                            {/* 投票UIとコメント */}
-                            <div className="flex flex-col items-end mt-2">
-                              <div className="flex items-center justify-end gap-2 w-full">
+                            {/* 投票UIとコメントボタン（横並び） */}
+                            <div className="flex items-end justify-between gap-2 w-full mt-2">
+                              {/* 左側: 審査員モード評価点 */}
+                              <div className="flex-grow">
+                                {showVoteUI && isJudgeMode && (
+                                  <JudgeVoteSelector
+                                    postId={post.id}
+                                    currentScore={votes[post.id] || 0}
+                                    onSelect={handleVoteChange}
+                                    disabled={Boolean(isVoteDeadlineExceeded || (user && String(post.user_id) === String(user.id)))}
+                                    maxScore={contest.judgeMaxScore || 10}
+                                  />
+                                )}
+                              </div>
+
+                              {/* 右側: コメントボタン・一般投票ボタン */}
+                              <div className="flex items-center justify-end gap-2 flex-shrink-0">
                                 <button
                                   onClick={() => toggleComments(post.id)}
                                   className={`flex items-center gap-1.5 px-2 py-1 md:px-3 md:py-1.5 rounded-full transition-all group ${
@@ -1152,32 +1177,9 @@ export default function VenueDetailPage() {
                                   />
                                 )}
                               </div>
-
-                              {showVoteUI && isJudgeMode && (
-                                <div className="w-full mt-3">
-                                  <JudgeVoteSelector
-                                    postId={post.id}
-                                    currentScore={votes[post.id] || 0}
-                                    onSelect={handleVoteChange}
-                                    disabled={Boolean(isVoteDeadlineExceeded || (user && String(post.user_id) === String(user.id)))}
-                                    maxScore={contest.judgeMaxScore || 10}
-                                  />
-                                  <JudgeAwardSelector
-                                    postId={post.id}
-                                    isSelected={
-                                      judgeAwardSelection.postId === post.id
-                                    }
-                                    onSelect={handleJudgeAwardSelect}
-                                    comment={judgeAwardSelection.comment}
-                                    onCommentChange={handleJudgeCommentChange}
-                                    disabled={
-                                      Boolean(voteUIDisabled || isVoteDeadlineExceeded || (user && String(post.user_id) === String(user.id)))
-                                    }
-                                  />
-                                </div>
-                              )}
                             </div>
-                            {/* コメント機能 */}
+
+                            {/* コメント機能 (一般) */}
                             <div className={`mt-3 border-t border-gray-200 ${!openComments[post.id] ? "hidden" : ""}`}>
                               <CommentList
                                 postId={post.id}
@@ -1198,6 +1200,24 @@ export default function VenueDetailPage() {
                                 }
                               />
                             </div>
+
+                            {/* 審査員賞/コメント */}
+                            {showVoteUI && isJudgeMode && (
+                              <div className="w-full">
+                                <JudgeAwardSelector
+                                  postId={post.id}
+                                  isSelected={
+                                    judgeAwardSelection.postId === post.id
+                                  }
+                                  onSelect={handleJudgeAwardSelect}
+                                  comment={judgeAwardSelection.comment}
+                                  onCommentChange={handleJudgeCommentChange}
+                                  disabled={
+                                    Boolean(voteUIDisabled || isVoteDeadlineExceeded || (user && String(post.user_id) === String(user.id)))
+                                  }
+                                />
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
