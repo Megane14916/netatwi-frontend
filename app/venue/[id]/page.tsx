@@ -152,14 +152,14 @@ const GeneralVoteButton = ({
   <button
     onClick={() => onToggle(postId, isLiked ? 0 : 1)}
     disabled={disabled}
-    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all group ${
+    className={`flex items-center gap-1.5 px-2 py-1 md:px-3 md:py-1.5 rounded-full transition-all group ${
       isLiked
         ? "text-pink-500 bg-pink-50 border border-pink-200"
         : "text-gray-500 hover:bg-pink-50 hover:text-pink-500 border border-transparent hover:border-pink-200"
     } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
   >
-    <Heart className={`w-5 h-5 ${isLiked ? "fill-current" : ""}`} />
-    <span className="text-sm font-bold">{isLiked ? "いいね！" : "いいね"}</span>
+    <Heart className={`w-4 h-4 md:w-5 md:h-5 ${isLiked ? "fill-current" : ""}`} />
+    <span className="text-xs md:text-sm font-bold">{isLiked ? "いいね！" : "いいね"}</span>
   </button>
 );
 
@@ -323,7 +323,7 @@ export default function VenueDetailPage() {
   const [posts, setPosts] = useState<Post[]>([]);
 
   const [results, setResults] = useState<ResultPost[]>([]);
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc" | "random">("asc");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc" | "random">("desc");
   const [sortedResults, setSortedResults] = useState<ResultPost[]>([]);
   const [judgeAwardsResults, setJudgeAwardsResults] = useState<
     JudgeAwardResult[]
@@ -516,19 +516,21 @@ export default function VenueDetailPage() {
   };
 
   // データ取得
-  const fetchData = async () => {
+  const fetchData = async (silent = false) => {
     try {
-      setLoading(true);
-      setError("");
-      setVoteSubmitMessage(null);
-      setUserHasVoted(false);
-      setPosts([]);
-      setResults([]);
-      setHasPosted(false);
-      setIsEditing(false);
-      setTotalPosters(null);
-      setTotalVoters(null);
-      setTotalJudges(null);
+      if (!silent) {
+        setLoading(true);
+        setError("");
+        setVoteSubmitMessage(null);
+        setUserHasVoted(false);
+        setPosts([]);
+        setResults([]);
+        setHasPosted(false);
+        setIsEditing(false);
+        setTotalPosters(null);
+        setTotalVoters(null);
+        setTotalJudges(null);
+      }
 
       const contestRes = await fetch(
         `${API_PREFIX}/api/contests/${contestId}`,
@@ -628,15 +630,31 @@ export default function VenueDetailPage() {
       }
     } catch (err: any) {
       console.error(err);
-      setError(err.message);
+      if (!silent) setError(err.message);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     if (contestId) fetchData();
   }, [contestId, user]);
+
+  // 集計中の自動リロード用タイマー
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+    const isAggregating = contestStatus === "closed" && results.length > 0 && results.some((r) => r.rank === null);
+
+    if (isAggregating) {
+      intervalId = setInterval(() => {
+        fetchData(true);
+      }, 10000); // 10秒に1回
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [contestStatus, results, contestId]);
 
   useEffect(() => {
     if (!contest) return;
@@ -1067,17 +1085,31 @@ export default function VenueDetailPage() {
                       >
                         <div className="flex items-start gap-3">
                           <div className="flex-none">
-                            <div className="w-10 h-10 rounded-full border border-gray-200 bg-gray-100 flex items-center justify-center">
-                              <User className="w-6 h-6 text-gray-400" />
-                            </div>
+                            {user && String(post.user_id) === String(user.id) ? (
+                                <img 
+                                  src={user.profile_image_url || 'https://via.placeholder.com/40'} 
+                                  alt={user.name} 
+                                  className="w-10 h-10 rounded-full border border-gray-200 object-cover" 
+                                />
+                            ) : (
+                                <div className="w-10 h-10 rounded-full border border-gray-200 bg-gray-100 flex items-center justify-center">
+                                  <User className="w-6 h-6 text-gray-400" />
+                                </div>
+                            )}
                           </div>
                           <div className="flex-grow min-w-0">
                             <div className="flex items-center justify-between mb-1">
-                              <span className="font-bold text-black text-sm hover:underline cursor-pointer">
-                                匿名さん
-                              </span>
+                              {user && String(post.user_id) === String(user.id) ? (
+                                  <span className="font-bold text-black text-sm">
+                                    {user.name}
+                                  </span>
+                              ) : (
+                                  <span className="font-bold text-black text-sm hover:underline cursor-pointer">
+                                    匿名さん
+                                  </span>
+                              )}
                             </div>
-                            <div className="text-[15px] text-black/90 leading-relaxed whitespace-pre-wrap mb-2">
+                            <div className="text-[15px] text-black/90 leading-relaxed whitespace-pre-wrap break-all mb-2">
                               {post.content}
                             </div>
                             {post.images && post.images.length > 0 && (
@@ -1091,7 +1123,7 @@ export default function VenueDetailPage() {
                               <div className="flex items-center justify-end gap-2 w-full">
                                 <button
                                   onClick={() => toggleComments(post.id)}
-                                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all group ${
+                                  className={`flex items-center gap-1.5 px-2 py-1 md:px-3 md:py-1.5 rounded-full transition-all group ${
                                     openComments[post.id] ||
                                     post.hasCommented ||
                                     sessionCommentedPosts[post.id]
@@ -1100,9 +1132,9 @@ export default function VenueDetailPage() {
                                   }`}
                                 >
                                   <MessageSquare
-                                    className={`w-5 h-5 ${openComments[post.id] || post.hasCommented || sessionCommentedPosts[post.id] ? "fill-current" : ""}`}
+                                    className={`w-4 h-4 md:w-5 md:h-5 ${openComments[post.id] || post.hasCommented || sessionCommentedPosts[post.id] ? "fill-current" : ""}`}
                                   />
-                                  <span className="text-sm font-bold">
+                                  <span className="text-xs md:text-sm font-bold">
                                     コメント
                                   </span>
                                 </button>
@@ -1113,7 +1145,7 @@ export default function VenueDetailPage() {
                                     isLiked={votes[post.id] === 1}
                                     onToggle={handleVoteChange}
                                     disabled={
-                                      voteUIDisabled || isVoteDeadlineExceeded
+                                      Boolean(voteUIDisabled || isVoteDeadlineExceeded || (user && String(post.user_id) === String(user.id)))
                                     }
                                   />
                                 )}
@@ -1125,7 +1157,7 @@ export default function VenueDetailPage() {
                                     postId={post.id}
                                     currentScore={votes[post.id] || 0}
                                     onSelect={handleVoteChange}
-                                    disabled={isVoteDeadlineExceeded}
+                                    disabled={Boolean(isVoteDeadlineExceeded || (user && String(post.user_id) === String(user.id)))}
                                     maxScore={contest.judgeMaxScore || 10}
                                   />
                                   <JudgeAwardSelector
@@ -1137,7 +1169,7 @@ export default function VenueDetailPage() {
                                     comment={judgeAwardSelection.comment}
                                     onCommentChange={handleJudgeCommentChange}
                                     disabled={
-                                      voteUIDisabled || isVoteDeadlineExceeded
+                                      Boolean(voteUIDisabled || isVoteDeadlineExceeded || (user && String(post.user_id) === String(user.id)))
                                     }
                                   />
                                 </div>
@@ -1195,7 +1227,7 @@ export default function VenueDetailPage() {
                   現在、結果を集計中です
                 </p>
                 <p className="text-gray-500">
-                  集計が完了し、結果が発表されるまでしばらくお待ちください。
+                  結果が発表されるまでしばらくお待ちください。
                 </p>
               </div>
             ) : (
@@ -1207,7 +1239,7 @@ export default function VenueDetailPage() {
                 )}
 
                 {/* 結果のタイムライン (並び替え考慮のコンテナ) */}
-                <div className="bg-white rounded-2xl border border-[#d9e1e7] shadow-sm overflow-hidden">
+                <div className="-mx-4 md:mx-0 bg-white md:rounded-2xl border-y border-[#d9e1e7] md:border-x shadow-sm overflow-hidden">
                   <div className="bg-gray-50 border-b border-gray-200 px-5 py-3 font-bold text-black flex justify-between items-center">
                     <span>ランキング</span>
                     <select
@@ -1315,12 +1347,12 @@ export default function VenueDetailPage() {
                                 </div>
                               ) : (
                                 <div className="border border-gray-200 rounded-xl overflow-hidden mb-4 bg-white p-4 shadow-sm">
-                                  <p>{award.post.content}</p>
+                                  <p className="whitespace-pre-wrap break-all">{award.post.content}</p>
                                 </div>
                               )}
 
                               {/* Judge Comment */}
-                              <div className="text-black/90 text-base leading-relaxed whitespace-pre-wrap ml-1">
+                              <div className="text-black/90 text-base leading-relaxed whitespace-pre-wrap break-all ml-1">
                                 {award.comment || "（コメントなし）"}
                               </div>
                             </div>

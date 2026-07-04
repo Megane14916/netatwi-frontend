@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 // import Link from 'next/link'; // エラー回避のため削除
-import { Heart, Bookmark, Share2, Award, Crown, MessageSquare } from 'lucide-react';
+import { Heart, Bookmark, Share2, Award, Crown, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
 import ImageGrid from './ImageGrid';
 import TimeAgo from './TimeAgo';
 import Twemoji from './Twemoji';
@@ -66,6 +66,8 @@ export default function ResultPostCard({ post, currentUser, onToggleBookmark, co
 
   const [isLiked, setIsLiked] = useState(initialIsLiked);
   const [likeCount, setLikeCount] = useState(initialLikeCount);
+  const [isCommentsOpen, setIsCommentsOpen] = useState(false);
+  const [isVotersExpanded, setIsVotersExpanded] = useState(false);
 
   // 親から渡されたデータが変わったら同期
   useEffect(() => {
@@ -165,9 +167,9 @@ export default function ResultPostCard({ post, currentUser, onToggleBookmark, co
     if (rank === 3) return <div className="flex items-center text-amber-600 font-bold text-xl"><Crown className="w-6 h-6 mr-1.5 fill-current" /> 3位</div>;
 
     return (
-      <span className="inline-flex items-center justify-center px-4 py-1.5 text-base font-bold rounded-full bg-gray-200 text-gray-600">
+      <div className="flex items-center text-gray-600 font-bold text-xl">
         {rank}位
-      </span>
+      </div>
     );
   };
 
@@ -199,7 +201,7 @@ return (
             
             {/* ユーザー情報 (上揃え: items-start) */}
             <div className="flex items-start justify-between mb-1">
-                <div className="flex items-center gap-1 min-w-0 flex-wrap">
+                <div className="flex items-center gap-1 min-w-0 flex-nowrap whitespace-nowrap">
                     <a href={`/profile/${encodeURIComponent(post.user.screen_name)}`} className="font-bold text-black hover:underline truncate text-base leading-tight">
                       {post.user.name}
                     </a>
@@ -210,7 +212,7 @@ return (
             </div>
 
             {/* 本文 & 画像 */}
-            <div className="text-[15px] text-black/90 leading-relaxed whitespace-pre-wrap">
+            <div className="text-[15px] text-black/90 leading-relaxed whitespace-pre-wrap break-all">
               <Twemoji text={post.content} />
               {post.images && post.images.length > 0 && (
                 <div className="mt-2">
@@ -219,15 +221,19 @@ return (
               )}
             </div>
 
-            {/* アクションバー (右寄せ: シェア -> ブックマーク -> いいね) */}
-            <div className="flex items-center justify-end gap-10 mt-3 text-gray-500">
+            {/* アクションバー */}
+            <div className="flex items-center justify-between w-full mt-3 text-gray-500 sm:w-auto sm:justify-end sm:gap-10">
                 {/* コメント */}
-                <div className="flex items-center group cursor-default" title="コメント数">
-                    <div className={`p-2 rounded-full transition-colors ${post.hasCommented ? 'bg-[#1DA1F2]/10' : 'group-hover:bg-[#1DA1F2]/10'}`}>
-                        <MessageSquare className={`h-5 w-5 ${post.hasCommented ? 'text-[#1DA1F2] fill-current' : 'group-hover:text-[#1DA1F2]'}`} />
+                <button 
+                    onClick={(e) => { e.stopPropagation(); setIsCommentsOpen(!isCommentsOpen); }}
+                    className="flex items-center group focus:outline-none" 
+                    title="コメント"
+                >
+                    <div className={`p-1 sm:p-2 rounded-full transition-colors ${post.hasCommented || isCommentsOpen ? 'bg-[#1DA1F2]/10' : 'group-hover:bg-[#1DA1F2]/10'}`}>
+                        <MessageSquare className={`h-4 w-4 sm:h-5 sm:w-5 ${post.hasCommented || isCommentsOpen ? 'text-[#1DA1F2] fill-current' : 'group-hover:text-[#1DA1F2]'}`} />
                     </div>
-                    <span className={`text-sm font-bold ml-1 ${post.hasCommented ? 'text-[#1DA1F2]' : 'group-hover:text-[#1DA1F2]'}`}>{post.commentCount || 0}</span>
-                </div>
+                    <span className={`text-xs sm:text-sm font-bold ml-1 ${post.hasCommented || isCommentsOpen ? 'text-[#1DA1F2]' : 'group-hover:text-[#1DA1F2]'}`}>{post.commentCount || 0}</span>
+                </button>
 
                 {/* いいね */}
                 <button 
@@ -235,10 +241,10 @@ return (
                     disabled={!currentUser || Boolean(contestScoringMethod === 'judge' && isJudgeForThisPost)}
                     className={`flex items-center group focus:outline-none ${(contestScoringMethod === 'judge' && isJudgeForThisPost) ? 'opacity-50 cursor-not-allowed' : ''}`} 
                     title={(contestScoringMethod === 'judge' && isJudgeForThisPost) ? "審査員はいいねできません" : "いいね"}>
-                    <div className={`p-2 rounded-full transition-colors ${isLiked ? 'bg-pink-500/10 hover:bg-pink-500/20' : 'hover:bg-pink-500/10'}`}>
-                        <Heart className={`h-5 w-5 ${isLiked ? 'text-pink-500 fill-current' : 'group-hover:text-pink-500'}`} />
+                    <div className={`p-1 sm:p-2 rounded-full transition-colors ${isLiked ? 'bg-pink-500/10 hover:bg-pink-500/20' : 'hover:bg-pink-500/10'}`}>
+                        <Heart className={`h-4 w-4 sm:h-5 sm:w-5 ${isLiked ? 'text-pink-500 fill-current' : 'group-hover:text-pink-500'}`} />
                     </div>
-                    <span className={`text-sm font-bold ml-1 ${isLiked ? 'text-pink-500' : 'group-hover:text-pink-500'}`}>
+                    <span className={`text-xs sm:text-sm font-bold ml-1 ${isLiked ? 'text-pink-500' : 'group-hover:text-pink-500'}`}>
                         {contestScoringMethod === 'judge' ? likeCount : post.score}
                     </span>
                 </button>
@@ -250,10 +256,10 @@ return (
                     className="flex items-center group focus:outline-none"
                     title={currentUser ? (isBookmarked ? 'ブックマークを外す' : 'ブックマーク') : 'ログインが必要です'}
                 >
-                    <div className={`p-2 rounded-full transition-colors ${isBookmarked ? 'text-blue-500' : 'group-hover:bg-blue-500/10 group-hover:text-blue-500'}`}>
-                        <Bookmark className={`h-5 w-5 ${isBookmarked ? 'fill-current' : ''}`} />
+                    <div className={`p-1 sm:p-2 rounded-full transition-colors ${isBookmarked ? 'text-blue-500' : 'group-hover:bg-blue-500/10 group-hover:text-blue-500'}`}>
+                        <Bookmark className={`h-4 w-4 sm:h-5 sm:w-5 ${isBookmarked ? 'fill-current' : ''}`} />
                     </div>
-                    <span className={`text-sm ml-1 ${isBookmarked ? 'text-blue-500' : 'group-hover:text-blue-500'}`}>{bookmarkCount}</span>
+                    <span className={`text-xs sm:text-sm ml-1 ${isBookmarked ? 'text-blue-500' : 'group-hover:text-blue-500'}`}>{bookmarkCount}</span>
                 </button>
 
                 {/* シェア (右端) */}
@@ -262,8 +268,8 @@ return (
                     className="flex items-center group focus:outline-none"
                     title="Xでシェア"
                 >
-                    <div className="p-2 rounded-full group-hover:bg-green-500/10 transition-colors">
-                        <Share2 className="h-5 w-5 group-hover:text-green-500" />
+                    <div className="p-1 sm:p-2 rounded-full group-hover:bg-green-500/10 transition-colors">
+                        <Share2 className="h-4 w-4 sm:h-5 sm:w-5 group-hover:text-green-500" />
                     </div>
                 </button>
             </div>
@@ -277,37 +283,51 @@ return (
                 if (displayVoters.length === 0) return null;
                 
                 return (
-                  <div className="mt-3 pt-2 border-t border-gray-100 text-xs text-black/50">
-                  <div className="flex flex-wrap items-center leading-relaxed gap-y-1">
-                      <span className="mr-2 font-semibold">投票した人:</span>
-                      {displayVoters.map((voter, vIndex) => (
-                      <span key={vIndex} className="inline-flex items-center">
-                        {voter.is_judge ? (
-                        <span className="bg-yellow-50 text-yellow-700 px-1.5 py-0.5 rounded mr-1 flex items-center border border-yellow-200">
-                            <a href={`/profile/${encodeURIComponent(voter.screen_name)}`} className="hover:underline font-bold">
-                            {voter.name}
+                  <div 
+                    onClick={() => setIsVotersExpanded(!isVotersExpanded)}
+                    className="mt-3 pt-2 border-t border-gray-100 text-xs text-black/50 cursor-pointer group"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className={`leading-relaxed ${isVotersExpanded ? '' : 'line-clamp-1 break-all'}`}>
+                          <span className="mr-2 font-semibold inline">投票:</span>
+                          {displayVoters.map((voter, vIndex) => (
+                          <span key={vIndex} className="inline">
+                            {voter.is_judge ? (
+                            <span className="inline mr-1">
+                                <a href={`/profile/${encodeURIComponent(voter.screen_name)}`} className="hover:underline text-black/60 hover:text-black/80 inline" onClick={(e) => e.stopPropagation()}>
+                                {voter.name}
+                                </a>
+                                <span className="ml-1 text-black/60 inline">({voter.count})</span>
+                            </span>
+                            ) : (
+                            <a href={`/profile/${encodeURIComponent(voter.screen_name)}`} className="hover:underline text-black/60 hover:text-black/80 inline" onClick={(e) => e.stopPropagation()}>
+                                {voter.name}
                             </a>
-                            <span className="ml-1 font-bold">({voter.count})</span>
+                            )}
+                            
+                            {vIndex < displayVoters.length - 1 && (
+                            <span className="mx-1.5 text-black/30 inline">/</span>
+                            )}
                         </span>
-                        ) : (
-                        <a href={`/profile/${encodeURIComponent(voter.screen_name)}`} className="hover:underline text-black/60 hover:text-black/80">
-                            {voter.name}
-                        </a>
-                        )}
-                        
-                        {vIndex < displayVoters.length - 1 && (
-                        <span className="mx-1.5 text-black/30">/</span>
-                        )}
-                    </span>
-                    ))}
-                </div>
-                </div>
+                        ))}
+                      </div>
+                      <div className="flex-none ml-2 pt-0.5 text-black/30 group-hover:text-black/50 transition-colors">
+                        {isVotersExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      </div>
+                    </div>
+                  </div>
                 );
             })()}
             
             {/* コメント機能 */}
             {!hideVotersAndComments && (
-                <CommentList postId={post.post_id} currentUser={currentUser} contestStatus="closed" />
+                <CommentList 
+                    postId={post.post_id} 
+                    currentUser={currentUser} 
+                    contestStatus="closed" 
+                    isOpenProp={isCommentsOpen}
+                    onClose={() => setIsCommentsOpen(false)}
+                />
             )}
         </div>
       </div>

@@ -48,7 +48,7 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, Props>(({
     editable: editable,
     editorProps: {
       attributes: {
-        class: `prose prose-sm sm:prose-base focus:outline-none text-black min-h-[100px] w-full max-w-none ${className || ''}`,
+        class: `prose prose-sm sm:prose-base focus:outline-none text-black min-h-[100px] w-full max-w-none break-all ${className || ''}`,
       },
     },
     immediatelyRender: false,
@@ -129,8 +129,17 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, Props>(({
 
   if (!editor) return null;
 
+  const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const text = e.clipboardData.getData('text/plain');
+    if (editor && text) {
+      const formattedText = text.replace(/(?:\r\n|\r|\n)/g, '<br>');
+      editor.commands.insertContent(formattedText);
+    }
+  };
+
   return (
-    <div className="w-full rounded-md p-0 cursor-text relative" onClick={() => editor.commands.focus()}>
+    <div className="w-full rounded-md p-0 cursor-text relative" onClick={() => editor.commands.focus()} onPaste={handlePaste}>
       <EditorContent editor={editor} />
       {editor.isEmpty && (
         <div className="absolute top-0 left-0 text-gray-400 pointer-events-none select-none">

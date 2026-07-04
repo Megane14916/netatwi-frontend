@@ -24,12 +24,13 @@ interface CommentListProps {
   currentUser: any;
   contestStatus: string;
   isAlwaysOpen?: boolean;
+  isOpenProp?: boolean;
   onClose?: () => void;
   onCommentAdded?: () => void;
   onCommentDeleted?: () => void;
 }
 
-export default function CommentList({ postId, currentUser, contestStatus, isAlwaysOpen = false, onClose, onCommentAdded, onCommentDeleted }: CommentListProps) {
+export default function CommentList({ postId, currentUser, contestStatus, isAlwaysOpen = false, isOpenProp = false, onClose, onCommentAdded, onCommentDeleted }: CommentListProps) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -68,10 +69,8 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
   };
 
   useEffect(() => {
-    if (isOpen || isAlwaysOpen) {
-      fetchComments();
-    }
-  }, [postId, isOpen, isAlwaysOpen]);
+    fetchComments();
+  }, [postId]);
 
   const hasCommented = comments.some(c => c.user_id === currentUser?.id);
 
@@ -139,38 +138,20 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
 
   const showTopClose = !(currentUser && !hasCommented);
 
-  if (!isOpen && !isAlwaysOpen) {
-    return (
-      <div className="flex justify-center w-full mt-4">
-        <button 
-          onClick={() => setIsOpen(true)}
-          className="flex items-center justify-center space-x-2 text-[#1DA1F2] bg-white border border-[#1DA1F2] hover:bg-blue-50 text-sm transition py-1 px-6 rounded-full font-bold shadow-sm w-full"
-        >
-          <MessageSquare className="w-4 h-4" />
-          <span>コメント</span>
-        </button>
-      </div>
-    );
+  if (!isOpen && !isAlwaysOpen && !isOpenProp) {
+    return null;
   }
 
   return (
-    <div className={`mt-4 pt-4 ${isAlwaysOpen ? 'border-t-0 pt-0 mt-0' : 'border-t border-gray-200'}`}>
-      {showTopClose && onClose ? (
-        <div className="flex justify-start mb-2">
-           <button onClick={onClose} className="text-gray-400 hover:text-black p-1.5 hover:bg-gray-100 rounded-full transition-colors flex items-center justify-center">
-             <X className="w-5 h-5" />
-           </button>
-        </div>
-      ) : (
-        showTopClose && !isAlwaysOpen && (
-          <div className="flex justify-start mb-2">
-             <button onClick={() => setIsOpen(false)} className="text-gray-400 hover:text-black p-1.5 hover:bg-gray-100 rounded-full transition-colors flex items-center justify-center">
-               <X className="w-5 h-5" />
-             </button>
-          </div>
-        )
+    <div className={`relative ${isAlwaysOpen ? '' : (showTopClose ? 'mt-4' : 'mt-4 pt-4 border-t border-gray-200')}`}>
+      {showTopClose && (onClose || !isAlwaysOpen) && (
+        <button 
+          onClick={() => onClose ? onClose() : setIsOpen(false)} 
+          className="absolute -left-12 top-2 text-gray-400 hover:text-black p-1.5 hover:bg-gray-100 rounded-full transition-colors flex items-center justify-center z-10"
+        >
+          <X className="w-5 h-5" />
+        </button>
       )}
-
       {currentUser && !hasCommented && (
         <form onSubmit={handleSubmit} className="mb-4">
           {error && <p className="text-red-500 text-xs mb-2">{error}</p>}
@@ -215,11 +196,12 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
         </form>
       )}
 
-      <div className="divide-y divide-gray-100 mb-4 border-y border-gray-100 mt-4">
-        {visibleComments.map(comment => (
+      <div className={`divide-y divide-gray-100 mb-4 border-b border-gray-100 ${showTopClose ? 'border-t' : 'border-t mt-4'}`}>
+        {visibleComments.map((comment, idx) => (
           <div key={comment.id} className="bg-white py-4 px-2">
             <div className="flex justify-between items-start">
               <div className="flex items-center space-x-2">
+
                 <img src={comment.user.profile_image_url || 'https://via.placeholder.com/40'} alt="" className="w-6 h-6 rounded-full border border-gray-200" />
                 <span className="font-bold text-sm text-black">{comment.user.name}</span>
                 {comment.is_judge && (
