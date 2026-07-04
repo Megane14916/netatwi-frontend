@@ -1178,28 +1178,26 @@ export default function VenueDetailPage() {
                               )}
                             </div>
                             {/* コメント機能 */}
-                            {openComments[post.id] && (
-                              <div className="mt-3 border-t border-gray-200">
-                                <CommentList
-                                  postId={post.id}
-                                  currentUser={user}
-                                  contestStatus="voting"
-                                  isAlwaysOpen={true}
-                                  onClose={() =>
-                                    setOpenComments((prev) => ({
-                                      ...prev,
-                                      [post.id]: false,
-                                    }))
-                                  }
-                                  onCommentAdded={() =>
-                                    handleCommentAdded(post.id)
-                                  }
-                                  onCommentDeleted={() =>
-                                    handleCommentDeleted(post.id)
-                                  }
-                                />
-                              </div>
-                            )}
+                            <div className={`mt-3 border-t border-gray-200 ${!openComments[post.id] ? "hidden" : ""}`}>
+                              <CommentList
+                                postId={post.id}
+                                currentUser={user}
+                                contestStatus="voting"
+                                isAlwaysOpen={true}
+                                onClose={() =>
+                                  setOpenComments((prev) => ({
+                                    ...prev,
+                                    [post.id]: false,
+                                  }))
+                                }
+                                onCommentAdded={() =>
+                                  handleCommentAdded(post.id)
+                                }
+                                onCommentDeleted={() =>
+                                  handleCommentDeleted(post.id)
+                                }
+                              />
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -1223,7 +1221,7 @@ export default function VenueDetailPage() {
                 投稿がありませんでした。
               </div>
             ) : results.some((r) => r.rank === null) ? (
-              <div className="text-center py-20 bg-gray-50 rounded-2xl border border-gray-200 shadow-sm mt-8">
+              <div className="text-center py-20 bg-gray-50 rounded-2xl border border-gray-200 shadow-sm mt-8 px-4">
                 <Loader2 className="w-10 h-10 animate-spin text-[#1DA1F2] mx-auto mb-4" />
                 <p className="text-xl font-bold text-gray-700 mb-2">
                   現在、結果を集計中です

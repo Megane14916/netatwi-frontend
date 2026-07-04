@@ -229,7 +229,7 @@ return (
                     className="flex items-center group focus:outline-none" 
                     title="コメント"
                 >
-                    <div className={`p-1 sm:p-2 rounded-full transition-colors ${post.hasCommented || isCommentsOpen ? 'bg-[#1DA1F2]/10' : 'group-hover:bg-[#1DA1F2]/10'}`}>
+                    <div className={`p-2 rounded-full transition-colors ${post.hasCommented || isCommentsOpen ? 'bg-[#1DA1F2]/10' : 'group-hover:bg-[#1DA1F2]/10'}`}>
                         <MessageSquare className={`h-4 w-4 sm:h-5 sm:w-5 ${post.hasCommented || isCommentsOpen ? 'text-[#1DA1F2] fill-current' : 'group-hover:text-[#1DA1F2]'}`} />
                     </div>
                     <span className={`text-xs sm:text-sm font-bold ml-1 ${post.hasCommented || isCommentsOpen ? 'text-[#1DA1F2]' : 'group-hover:text-[#1DA1F2]'}`}>{post.commentCount || 0}</span>
@@ -241,7 +241,7 @@ return (
                     disabled={!currentUser || Boolean(contestScoringMethod === 'judge' && isJudgeForThisPost)}
                     className={`flex items-center group focus:outline-none ${(contestScoringMethod === 'judge' && isJudgeForThisPost) ? 'opacity-50 cursor-not-allowed' : ''}`} 
                     title={(contestScoringMethod === 'judge' && isJudgeForThisPost) ? "審査員はいいねできません" : "いいね"}>
-                    <div className={`p-1 sm:p-2 rounded-full transition-colors ${isLiked ? 'bg-pink-500/10 hover:bg-pink-500/20' : 'hover:bg-pink-500/10'}`}>
+                    <div className={`p-2 rounded-full transition-colors ${isLiked ? 'bg-pink-500/10 hover:bg-pink-500/20' : 'hover:bg-pink-500/10'}`}>
                         <Heart className={`h-4 w-4 sm:h-5 sm:w-5 ${isLiked ? 'text-pink-500 fill-current' : 'group-hover:text-pink-500'}`} />
                     </div>
                     <span className={`text-xs sm:text-sm font-bold ml-1 ${isLiked ? 'text-pink-500' : 'group-hover:text-pink-500'}`}>
@@ -256,7 +256,7 @@ return (
                     className="flex items-center group focus:outline-none"
                     title={currentUser ? (isBookmarked ? 'ブックマークを外す' : 'ブックマーク') : 'ログインが必要です'}
                 >
-                    <div className={`p-1 sm:p-2 rounded-full transition-colors ${isBookmarked ? 'text-blue-500' : 'group-hover:bg-blue-500/10 group-hover:text-blue-500'}`}>
+                    <div className={`p-2 rounded-full transition-colors ${isBookmarked ? 'text-blue-500' : 'group-hover:bg-blue-500/10 group-hover:text-blue-500'}`}>
                         <Bookmark className={`h-4 w-4 sm:h-5 sm:w-5 ${isBookmarked ? 'fill-current' : ''}`} />
                     </div>
                     <span className={`text-xs sm:text-sm ml-1 ${isBookmarked ? 'text-blue-500' : 'group-hover:text-blue-500'}`}>{bookmarkCount}</span>
@@ -268,7 +268,7 @@ return (
                     className="flex items-center group focus:outline-none"
                     title="Xでシェア"
                 >
-                    <div className="p-1 sm:p-2 rounded-full group-hover:bg-green-500/10 transition-colors">
+                    <div className="p-2 rounded-full group-hover:bg-green-500/10 transition-colors">
                         <Share2 className="h-4 w-4 sm:h-5 sm:w-5 group-hover:text-green-500" />
                     </div>
                 </button>

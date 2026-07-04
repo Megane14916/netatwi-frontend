@@ -42,19 +42,32 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
   const newTextareaRef = useRef<HTMLTextAreaElement>(null);
   const editTextareaRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => {
-    if (newTextareaRef.current) {
-      newTextareaRef.current.style.height = 'auto';
-      newTextareaRef.current.style.height = `${newTextareaRef.current.scrollHeight}px`;
+  const adjustHeight = (el: HTMLTextAreaElement | null) => {
+    if (!el) return;
+    el.style.height = 'auto';
+    if (el.scrollHeight > 0) {
+      el.style.height = `${el.scrollHeight}px`;
     }
+  };
+
+  useEffect(() => {
+    adjustHeight(newTextareaRef.current);
   }, [newComment]);
 
   useEffect(() => {
-    if (editTextareaRef.current && editingCommentId !== null) {
-      editTextareaRef.current.style.height = 'auto';
-      editTextareaRef.current.style.height = `${editTextareaRef.current.scrollHeight}px`;
-    }
+    adjustHeight(editTextareaRef.current);
   }, [editContent, editingCommentId]);
+
+  useEffect(() => {
+    if (!newTextareaRef.current) return;
+    const observer = new ResizeObserver(() => {
+      if (newTextareaRef.current && newTextareaRef.current.scrollHeight > 0 && newComment === '') {
+         adjustHeight(newTextareaRef.current);
+      }
+    });
+    observer.observe(newTextareaRef.current);
+    return () => observer.disconnect();
+  }, [newComment]);
 
   const fetchComments = async () => {
     try {
@@ -153,7 +166,7 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
         </button>
       )}
       {currentUser && !hasCommented && (
-        <form onSubmit={handleSubmit} className="mb-4">
+        <form onSubmit={handleSubmit} className="mb-4 mt-4">
           {error && <p className="text-red-500 text-xs mb-2">{error}</p>}
           <div className="flex items-start gap-2">
             <img src={currentUser.profile_image_url || 'https://via.placeholder.com/40'} alt="" className="w-8 h-8 rounded-full border border-gray-200 flex-shrink-0" />
@@ -243,7 +256,7 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
                 </div>
               </div>
             ) : (
-              <p className="text-black/90 text-[15px] mt-2 whitespace-pre-wrap leading-relaxed">{comment.content}</p>
+              <p className="text-black/90 text-[15px] mt-2 whitespace-pre-wrap leading-relaxed break-all">{comment.content}{'\u200B'}</p>
             )}
           </div>
         ))}
