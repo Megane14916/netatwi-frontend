@@ -39,6 +39,44 @@ export default function ImageGrid({ images }: ImageGridProps) {
   const openLightbox = (index: number) => setLightboxIndex(index);
   const closeLightbox = () => setLightboxIndex(null);
   
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchOffset, setTouchOffset] = useState<number>(0);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchOffset(0);
+    setTouchStart(e.targetTouches[0].clientX);
+    setIsDragging(true);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (touchStart === null || lightboxIndex === null) return;
+    const currentTouch = e.targetTouches[0].clientX;
+    const diff = currentTouch - touchStart;
+    
+    // 最初/最後の画像でこれ以上進めない場合の抵抗
+    if ((lightboxIndex === 0 && diff > 0) || (lightboxIndex === count - 1 && diff < 0)) {
+      setTouchOffset(diff * 0.3);
+    } else {
+      setTouchOffset(diff);
+    }
+  };
+
+  const onTouchEndEvent = () => {
+    setIsDragging(false);
+    if (touchStart === null) return;
+
+    if (touchOffset < -minSwipeDistance && lightboxIndex !== null && lightboxIndex < count - 1) {
+      setLightboxIndex(lightboxIndex + 1);
+    } else if (touchOffset > minSwipeDistance && lightboxIndex !== null && lightboxIndex > 0) {
+      setLightboxIndex(lightboxIndex - 1);
+    }
+    
+    setTouchOffset(0);
+    setTouchStart(null);
+  };
+
   const nextImage = (e: React.MouseEvent | KeyboardEvent) => {
     e.stopPropagation();
     if (lightboxIndex !== null && lightboxIndex < images.length - 1) {
@@ -125,28 +163,46 @@ export default function ImageGrid({ images }: ImageGridProps) {
 
       {/* ライトボックス */}
       {lightboxIndex !== null && (
-        <div className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center backdrop-blur-sm" onClick={closeLightbox}>
-          <button onClick={closeLightbox} className="absolute top-4 left-4 text-white/70 hover:text-white p-2 bg-black/20 rounded-full hover:bg-white/10 transition-colors z-[110]">
+        <div 
+          className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center backdrop-blur-sm" 
+          onClick={closeLightbox}
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEndEvent}
+        >
+          <button onClick={closeLightbox} className="absolute top-[72px] left-4 text-white/70 hover:text-white p-2 bg-black/20 rounded-full hover:bg-white/10 transition-colors z-[110]">
             <X className="w-8 h-8" />
           </button>
           {lightboxIndex > 0 && (
-            <button onClick={prevImage} className="absolute left-4 text-white/70 hover:text-white p-2 bg-black/20 rounded-full hover:bg-white/10 transition-colors z-[110]">
+            <button onClick={prevImage} className="hidden sm:block absolute left-4 text-white/70 hover:text-white p-2 bg-black/20 rounded-full hover:bg-white/10 transition-colors z-[110]">
                 <ChevronLeft className="w-10 h-10" />
             </button>
           )}
-          <div className="relative w-full h-full flex items-center justify-center p-4 md:p-10" onClick={(e) => e.stopPropagation()}>
-              <img 
-                  src={images[lightboxIndex]} 
-                  alt={`lightbox-${lightboxIndex}`} 
-                  className="max-w-full max-h-full object-contain shadow-2xl select-none"
-              />
+          <div 
+            className="relative w-full h-full overflow-hidden" 
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div 
+              className={`flex h-full w-full ${isDragging ? '' : 'transition-transform duration-300 ease-out'}`}
+              style={{ transform: `translateX(calc(-${lightboxIndex * 100}% + ${touchOffset}px))` }}
+            >
+              {images.map((src, idx) => (
+                <div key={idx} className="flex-none w-full h-full flex items-center justify-center p-4 md:p-10">
+                  <img 
+                      src={src} 
+                      alt={`lightbox-${idx}`} 
+                      className="max-w-full max-h-full object-contain shadow-2xl select-none pointer-events-none"
+                  />
+                </div>
+              ))}
+            </div>
           </div>
           {lightboxIndex < count - 1 && (
-             <button onClick={nextImage} className="absolute right-4 text-white/70 hover:text-white p-2 bg-black/20 rounded-full hover:bg-white/10 transition-colors z-[110]">
+             <button onClick={nextImage} className="hidden sm:block absolute right-4 text-white/70 hover:text-white p-2 bg-black/20 rounded-full hover:bg-white/10 transition-colors z-[110]">
                 <ChevronRight className="w-10 h-10" />
             </button>
           )}
-          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-white/80 font-medium text-sm bg-black/50 px-3 py-1 rounded-full">
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-white/80 font-medium text-sm bg-black/50 px-3 py-1 rounded-full pointer-events-none">
              {lightboxIndex + 1} / {count}
           </div>
         </div>
