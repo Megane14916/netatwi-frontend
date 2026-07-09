@@ -155,7 +155,7 @@ const GeneralVoteButton = ({
     className={`flex items-center gap-1.5 px-2 py-1 md:px-3 md:py-1.5 rounded-full transition-all group ${
       isLiked
         ? "text-pink-500 bg-pink-50 border border-pink-200"
-        : "text-gray-500 hover:bg-pink-50 hover:text-pink-500 border border-transparent hover:border-pink-200"
+        : "text-gray-500 dark:text-gray-400 hover:bg-pink-50 hover:text-pink-500 border border-transparent hover:border-pink-200"
     } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
   >
     <Heart className={`w-4 h-4 md:w-5 md:h-5 ${isLiked ? "fill-current" : ""}`} />
@@ -177,12 +177,12 @@ const JudgeVoteSelector = ({
   maxScore: number;
 }) => {
   return (
-    <div className="bg-gray-50 px-3 py-2 rounded-xl border border-gray-200 inline-flex flex-col justify-center">
+    <div className="bg-gray-50 dark:bg-gray-950 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 inline-flex flex-col justify-center">
       <div className="flex justify-between items-center mb-1.5 px-1 gap-3">
         <span className="text-xs text-indigo-600 font-bold flex items-center gap-1">
           <ShieldCheck className="w-3 h-3" /> 審査員評価
         </span>
-        <span className="text-xs text-gray-500">満点: {maxScore}</span>
+        <span className="text-xs text-gray-500 dark:text-gray-400">満点: {maxScore}</span>
       </div>
       <div className="flex items-center gap-2">
         <input
@@ -196,10 +196,10 @@ const JudgeVoteSelector = ({
             onSelect(postId, isNaN(val) ? 0 : Math.min(val, maxScore));
           }}
           disabled={disabled}
-          className="w-20 bg-white border border-indigo-200 rounded-lg px-2 py-1 text-right text-black focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 shadow-sm"
+          className="w-20 bg-white dark:bg-black border border-indigo-200 rounded-lg px-2 py-1 text-right text-black dark:text-white focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 shadow-sm"
           placeholder="0"
         />
-        <span className="text-sm text-gray-500 font-medium">点</span>
+        <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">点</span>
       </div>
     </div>
   );
@@ -220,7 +220,7 @@ const JudgeAwardSelector = ({
   onCommentChange: (val: string) => void;
   disabled: boolean;
 }) => (
-  <div className="mt-4 px-1 border-t border-gray-200 pt-4 w-full">
+  <div className="mt-4 px-1 border-t border-gray-200 dark:border-gray-800 pt-4 w-full">
     <label
       className={`flex items-center cursor-pointer ${disabled ? "opacity-50" : ""} group`}
     >
@@ -230,10 +230,10 @@ const JudgeAwardSelector = ({
         checked={isSelected}
         onChange={() => onSelect(postId)}
         disabled={disabled}
-        className="w-4 h-4 text-yellow-500 border-gray-300 focus:ring-yellow-500 flex-shrink-0 cursor-pointer"
+        className="w-4 h-4 text-yellow-500 border-gray-300 dark:border-gray-700 focus:ring-yellow-500 flex-shrink-0 cursor-pointer"
       />
       <span
-        className={`ml-2 text-xs font-bold flex items-center transition-colors ${isSelected ? "text-yellow-600" : "text-gray-500 group-hover:text-yellow-600"}`}
+        className={`ml-2 text-xs font-bold flex items-center transition-colors ${isSelected ? "text-yellow-600" : "text-gray-500 dark:text-gray-400 group-hover:text-yellow-600"}`}
       >
         <Trophy className="w-3.5 h-3.5 mr-1" /> 審査員賞に選ぶ
       </span>
@@ -244,7 +244,7 @@ const JudgeAwardSelector = ({
           value={comment}
           onChange={(e) => onCommentChange(e.target.value)}
           placeholder="選評コメントを入力してください..."
-          className="w-full bg-white border border-yellow-300 rounded-lg p-3 text-sm text-black focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 shadow-sm resize-y min-h-[80px]"
+          className="w-full bg-white dark:bg-black border border-yellow-300 rounded-lg p-3 text-sm text-black dark:text-white focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 shadow-sm resize-y min-h-[80px]"
           disabled={disabled}
         />
       </div>
@@ -260,13 +260,13 @@ const MyPostDisplay = ({
   isDeadlinePassed,
   user,
 }: any) => (
-  <div className={`mb-4 ${isEditing ? "pb-4 border-b border-gray-200" : ""}`}>
+  <div className={`mb-4 ${isEditing ? "pb-4 border-b border-gray-200 dark:border-gray-800" : ""}`}>
     <div className="flex items-start gap-3">
       <div className="flex-none">
         <img
           src={user?.profile_image_url || "https://via.placeholder.com/40"}
           alt={user?.screen_name}
-          className="w-10 h-10 rounded-full border border-gray-200 object-cover bg-white"
+          className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-800 object-cover bg-white dark:bg-black"
           onError={(e) =>
             (e.currentTarget.src = "https://via.placeholder.com/40")
           }
@@ -275,14 +275,14 @@ const MyPostDisplay = ({
       <div className="flex-grow min-w-0">
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center">
-            <span className="font-bold text-black mr-1">
+            <span className="font-bold text-black dark:text-white mr-1">
               {user?.name || user?.screen_name}
             </span>
-            <span className="text-gray-500 text-sm">@{user?.screen_name}</span>
+            <span className="text-gray-500 dark:text-gray-400 text-sm">@{user?.screen_name}</span>
           </div>
           <TimeAgo timestamp={post.created_at} />
         </div>
-        <div className="mt-1 text-[15px] text-black/90 leading-relaxed whitespace-pre-wrap">
+        <div className="mt-1 text-[15px] text-black/90 dark:text-white/90 leading-relaxed whitespace-pre-wrap">
           <Twemoji text={post.content} />
         </div>
         {post.images && (
@@ -835,25 +835,25 @@ export default function VenueDetailPage() {
 
   if (loading)
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center text-black">
+      <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center text-black dark:text-white">
         <Loader2 className="w-8 h-8 animate-spin text-[#1DA1F2]" />
       </div>
     );
   if (error)
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center text-red-500">
+      <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center text-red-500">
         {error}
       </div>
     );
   if (!contest)
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center text-black">
+      <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center text-black dark:text-white">
         大会が見つかりません。
       </div>
     );
 
   return (
-    <div className="relative min-h-screen bg-white text-black flex flex-col overflow-clip">
+    <div className="relative min-h-screen bg-white dark:bg-black text-black dark:text-white flex flex-col overflow-clip">
       {/* Top Parallel Background */}
       <div className="absolute left-0 top-0 w-full h-[280px] md:h-[320px] overflow-hidden z-0 select-none pointer-events-none">
         <div className="absolute inset-0 bg-[linear-gradient(15deg,#1DA1F2,#70c8f7)] overflow-hidden flex items-center justify-center">
@@ -962,7 +962,7 @@ export default function VenueDetailPage() {
                 />
               )}
             {isJudgeMode && (
-              <span className="px-3 py-1.5 bg-black text-white text-xs md:text-sm rounded-full font-bold shadow-sm border border-gray-200">
+              <span className="px-3 py-1.5 bg-black dark:bg-white text-white dark:text-black text-xs md:text-sm rounded-full font-bold shadow-sm border border-gray-200 dark:border-gray-800">
                 審査員モード
               </span>
             )}
@@ -977,7 +977,7 @@ export default function VenueDetailPage() {
                 "_blank",
               );
             }}
-            className="inline-flex items-center gap-1.5 rounded-full bg-black px-4 py-2 text-[13px] md:text-[14px] font-bold text-white transition hover:bg-black/80 whitespace-nowrap shadow-none border border-transparent"
+            className="inline-flex items-center gap-1.5 rounded-full bg-black dark:bg-white px-4 py-2 text-[13px] md:text-[14px] font-bold text-white dark:text-black transition hover:bg-black/80 dark:hover:bg-gray-200 whitespace-nowrap shadow-none border border-transparent"
           >
             <Share2 className="w-4 h-4" />
             Xでポスト
@@ -986,7 +986,7 @@ export default function VenueDetailPage() {
 
         {/* 各種バッジ・ルール */}
         <div className="mb-8 pl-1">
-          <div className="flex flex-col gap-2 text-[15px] font-medium text-black/80 mb-5">
+          <div className="flex flex-col gap-2 text-[15px] font-medium text-black/80 dark:text-white/80 mb-5">
             {(contestStatus === "ongoing" || contestStatus === "upcoming") && (
               <div className="flex items-center">
                 <Clock className="w-5 h-5 mr-2.5 text-[#1DA1F2]" />
@@ -1084,17 +1084,17 @@ export default function VenueDetailPage() {
         {contestStatus === "voting" && (
           <div className="mb-24">
             {!contest.isVotingVisible && !isJudgeMode ? (
-              <div className="text-center py-20 text-black/50 bg-gray-50 rounded-2xl border border-gray-200 shadow-sm">
+              <div className="text-center py-20 text-black/50 dark:text-white/50 bg-gray-50 dark:bg-gray-950 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
                 現在投票期間中のため、投稿は非公開です。
               </div>
             ) : (
-              <div className="-mx-4 md:mx-0 bg-white md:rounded-2xl border-y border-[#d9e1e7] md:border-x shadow-sm overflow-hidden divide-y divide-gray-100">
+              <div className="-mx-4 md:mx-0 bg-white dark:bg-black md:rounded-2xl border-y border-[#d9e1e7] dark:border-gray-800 md:border-x shadow-sm overflow-hidden divide-y divide-gray-100 dark:divide-gray-800">
                 {posts.length > 0 ? (
                   posts.map((post) => {
                     return (
                       <div
                         key={post.id}
-                        className="p-4 sm:p-5 transition-colors hover:bg-gray-50"
+                        className="p-4 sm:p-5 transition-colors hover:bg-gray-50 dark:hover:bg-gray-900"
                       >
                         <div className="flex items-start gap-3">
                           <div className="flex-none">
@@ -1102,27 +1102,27 @@ export default function VenueDetailPage() {
                                 <img 
                                   src={user.profile_image_url || 'https://via.placeholder.com/40'} 
                                   alt={user.name} 
-                                  className="w-10 h-10 rounded-full border border-gray-200 object-cover" 
+                                  className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-800 object-cover" 
                                 />
                             ) : (
-                                <div className="w-10 h-10 rounded-full border border-gray-200 bg-gray-100 flex items-center justify-center">
-                                  <User className="w-6 h-6 text-gray-400" />
+                                <div className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
+                                  <User className="w-6 h-6 text-gray-400 dark:text-gray-600" />
                                 </div>
                             )}
                           </div>
                           <div className="flex-grow min-w-0">
                             <div className="flex items-center justify-between mb-1">
                               {user && String(post.user_id) === String(user.id) ? (
-                                  <span className="font-bold text-black text-sm">
+                                  <span className="font-bold text-black dark:text-white text-sm">
                                     {user.name}
                                   </span>
                               ) : (
-                                  <span className="font-bold text-black text-sm hover:underline cursor-pointer">
+                                  <span className="font-bold text-black dark:text-white text-sm hover:underline cursor-pointer">
                                     匿名さん
                                   </span>
                               )}
                             </div>
-                            <div className="text-[15px] text-black/90 leading-relaxed whitespace-pre-wrap break-all mb-2">
+                            <div className="text-[15px] text-black/90 dark:text-white/90 leading-relaxed whitespace-pre-wrap break-all mb-2">
                               {post.content}
                             </div>
                             {post.images && post.images.length > 0 && (
@@ -1155,7 +1155,7 @@ export default function VenueDetailPage() {
                                     post.hasCommented ||
                                     sessionCommentedPosts[post.id]
                                       ? "text-[#1DA1F2] bg-[#1DA1F2]/10 border border-[#1DA1F2]/20"
-                                      : "text-gray-500 hover:bg-[#1DA1F2]/10 hover:text-[#1DA1F2] border border-transparent hover:border-[#1DA1F2]/20"
+                                      : "text-gray-500 dark:text-gray-400 hover:bg-[#1DA1F2]/10 hover:text-[#1DA1F2] border border-transparent hover:border-[#1DA1F2]/20"
                                   }`}
                                 >
                                   <MessageSquare
@@ -1180,7 +1180,7 @@ export default function VenueDetailPage() {
                             </div>
 
                             {/* コメント機能 (一般) */}
-                            <div className={`mt-3 border-t border-gray-200 ${!openComments[post.id] ? "hidden" : ""}`}>
+                            <div className={`mt-3 border-t border-gray-200 dark:border-gray-800 ${!openComments[post.id] ? "hidden" : ""}`}>
                               <CommentList
                                 postId={post.id}
                                 currentUser={user}
@@ -1224,7 +1224,7 @@ export default function VenueDetailPage() {
                     );
                   })
                 ) : (
-                  <div className="text-center py-16 text-black/50">
+                  <div className="text-center py-16 text-black/50 dark:text-white/50">
                     投稿がありません。
                   </div>
                 )}
@@ -1237,30 +1237,30 @@ export default function VenueDetailPage() {
         {contestStatus === "closed" && (
           <div className="space-y-8 pb-12">
             {results.length === 0 ? (
-              <div className="text-center py-20 text-gray-500 bg-gray-50 rounded-2xl border border-gray-200">
+              <div className="text-center py-20 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-950 rounded-2xl border border-gray-200 dark:border-gray-800">
                 投稿がありませんでした。
               </div>
             ) : results.some((r) => r.rank === null) ? (
-              <div className="text-center py-20 bg-gray-50 rounded-2xl border border-gray-200 shadow-sm mt-8 px-4">
+              <div className="text-center py-20 bg-gray-50 dark:bg-gray-950 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm mt-8 px-4">
                 <Loader2 className="w-10 h-10 animate-spin text-[#1DA1F2] mx-auto mb-4" />
-                <p className="text-xl font-bold text-gray-700 mb-2">
+                <p className="text-xl font-bold text-gray-700 dark:text-gray-300 mb-2">
                   現在、結果を集計中です
                 </p>
-                <p className="text-gray-500">
+                <p className="text-gray-500 dark:text-gray-400">
                   結果が発表されるまでしばらくお待ちください。
                 </p>
               </div>
             ) : (
               <>
                 {contest.resultCommentTop && (
-                  <div className="whitespace-pre-wrap text-black/80 leading-relaxed px-2">
+                  <div className="whitespace-pre-wrap text-black/80 dark:text-white/80 leading-relaxed px-2">
                     {contest.resultCommentTop}
                   </div>
                 )}
 
                 {/* 結果のタイムライン (並び替え考慮のコンテナ) */}
-                <div className="-mx-4 md:mx-0 bg-white md:rounded-2xl border-y border-[#d9e1e7] md:border-x shadow-sm overflow-hidden">
-                  <div className="bg-gray-50 border-b border-gray-200 px-5 py-3 font-bold text-black flex justify-between items-center">
+                <div className="-mx-4 md:mx-0 bg-white dark:bg-black md:rounded-2xl border-y border-[#d9e1e7] dark:border-gray-800 md:border-x shadow-sm overflow-hidden">
+                  <div className="bg-gray-50 dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 px-5 py-3 font-bold text-black dark:text-white flex justify-between items-center">
                     <span>ランキング</span>
                     <select
                       value={sortOrder}
@@ -1269,14 +1269,14 @@ export default function VenueDetailPage() {
                           e.target.value as "asc" | "desc" | "random",
                         )
                       }
-                      className="text-sm bg-white border border-gray-200 rounded px-2 py-1 focus:outline-none focus:border-[#1DA1F2]"
+                      className="text-sm bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded px-2 py-1 focus:outline-none focus:border-[#1DA1F2]"
                     >
                       <option value="asc">昇順</option>
                       <option value="desc">降順</option>
                       <option value="random">ランダム</option>
                     </select>
                   </div>
-                  <div className="divide-y divide-gray-100">
+                  <div className="divide-y divide-gray-100 dark:divide-gray-800">
                     {sortedResults.map((result, index) => {
                       let showBorder = false;
                       if (sortOrder === "asc") {
@@ -1320,7 +1320,7 @@ export default function VenueDetailPage() {
                 {contest.scoringMethod !== "general" &&
                   judgeAwardsResults.length > 0 && (
                     <div className="mt-24">
-                      <h2 className="text-3xl font-bold text-black mb-12 mt-24 flex items-center px-2">
+                      <h2 className="text-3xl font-bold text-black dark:text-white mb-12 mt-24 flex items-center px-2">
                         <Award className="w-8 h-8 mr-3 text-[#1DA1F2]" />
                         審査員賞
                       </h2>
@@ -1341,23 +1341,23 @@ export default function VenueDetailPage() {
                                       award.judge.profile_image_url ||
                                       "https://via.placeholder.com/40"
                                     }
-                                    className="w-10 h-10 rounded-full border border-gray-200 object-cover bg-white"
+                                    className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-800 object-cover bg-white dark:bg-black"
                                   />
                                 </Link>
                                 <Link
                                   href={`/profile/${encodeURIComponent(award.judge.screen_name)}`}
-                                  className="text-xl font-bold text-black hover:underline"
+                                  className="text-xl font-bold text-black dark:text-white hover:underline"
                                 >
                                   {award.judge.name}
                                 </Link>
-                                <span className="text-xl font-bold text-black">
+                                <span className="text-xl font-bold text-black dark:text-white">
                                   賞
                                 </span>
                               </div>
 
                               {/* Post */}
                               {fullPost ? (
-                                <div className="border border-gray-200 rounded-xl overflow-hidden mb-4 bg-white shadow-sm">
+                                <div className="border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden mb-4 bg-white dark:bg-black shadow-sm">
                                   <ResultPostCard
                                     post={fullPost}
                                     currentUser={user}
@@ -1366,13 +1366,13 @@ export default function VenueDetailPage() {
                                   />
                                 </div>
                               ) : (
-                                <div className="border border-gray-200 rounded-xl overflow-hidden mb-4 bg-white p-4 shadow-sm">
+                                <div className="border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden mb-4 bg-white dark:bg-black p-4 shadow-sm">
                                   <p className="whitespace-pre-wrap break-all">{award.post.content}</p>
                                 </div>
                               )}
 
                               {/* Judge Comment */}
-                              <div className="text-black/90 text-base leading-relaxed whitespace-pre-wrap break-all ml-1">
+                              <div className="text-black/90 dark:text-white/90 text-base leading-relaxed whitespace-pre-wrap break-all ml-1">
                                 {award.comment || "（コメントなし）"}
                               </div>
                             </div>
@@ -1384,7 +1384,7 @@ export default function VenueDetailPage() {
 
                 {contest.resultCommentBottom && (
                   <div
-                    className={`whitespace-pre-wrap text-black/80 leading-relaxed px-2 ${contest.scoringMethod !== "general" && judgeAwardsResults.length > 0 ? "mt-12 pt-12 border-t border-gray-200" : "mt-12"}`}
+                    className={`whitespace-pre-wrap text-black/80 dark:text-white/80 leading-relaxed px-2 ${contest.scoringMethod !== "general" && judgeAwardsResults.length > 0 ? "mt-12 pt-12 border-t border-gray-200 dark:border-gray-800" : "mt-12"}`}
                   >
                     {contest.resultCommentBottom}
                   </div>
@@ -1397,7 +1397,7 @@ export default function VenueDetailPage() {
 
       {/* 投票確定ボタン (固定) */}
       {showVoteUI && (
-        <div className="sticky bottom-0 w-full z-50 bg-white/90 backdrop-blur-md border-t border-gray-200 p-4 flex justify-center mt-auto">
+        <div className="sticky bottom-0 w-full z-50 bg-white dark:bg-black/90 backdrop-blur-md border-t border-gray-200 dark:border-gray-800 p-4 flex justify-center mt-auto">
           <button
             onClick={handleSubmitVotes}
             disabled={isSubmittingVotes}

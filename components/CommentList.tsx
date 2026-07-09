@@ -156,11 +156,11 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
   }
 
   return (
-    <div className={`relative ${isAlwaysOpen ? '' : (showTopClose ? 'mt-4' : 'mt-4 pt-4 border-t border-gray-200')}`}>
+    <div className={`relative ${isAlwaysOpen ? '' : (showTopClose ? 'mt-4' : 'mt-4 pt-4 border-t border-gray-200 dark:border-gray-800')}`}>
       {showTopClose && (onClose || !isAlwaysOpen) && (
         <button 
           onClick={() => onClose ? onClose() : setIsOpen(false)} 
-          className="absolute -left-12 top-2 text-gray-400 hover:text-black p-1.5 hover:bg-gray-100 rounded-full transition-colors flex items-center justify-center z-10"
+          className="absolute -left-12 top-2 text-gray-400 dark:text-gray-600 hover:text-black p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors flex items-center justify-center z-10"
         >
           <X className="w-5 h-5" />
         </button>
@@ -169,7 +169,7 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
         <form onSubmit={handleSubmit} className="mb-4 mt-4">
           {error && <p className="text-red-500 text-xs mb-2">{error}</p>}
           <div className="flex items-start gap-2">
-            <img src={currentUser.profile_image_url || 'https://via.placeholder.com/40'} alt="" className="w-8 h-8 rounded-full border border-gray-200 flex-shrink-0" />
+            <img src={currentUser.profile_image_url || 'https://via.placeholder.com/40'} alt="" className="w-8 h-8 rounded-full border border-gray-200 dark:border-gray-800 flex-shrink-0" />
             <div className="flex-grow flex flex-col space-y-2 relative">
               <textarea
                 ref={newTextareaRef}
@@ -178,10 +178,10 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
                 placeholder="コメントを入力... (140文字まで)"
                 maxLength={140}
                 rows={1}
-                className="w-full bg-transparent border-0 rounded-lg py-1.5 px-0 text-[15px] text-black placeholder-gray-400 focus:outline-none focus:ring-0 resize-none overflow-hidden"
+                className="w-full bg-transparent border-0 rounded-lg py-1.5 px-0 text-[15px] text-black dark:text-white placeholder-gray-400 focus:outline-none focus:ring-0 resize-none overflow-hidden"
               />
-              <div className="flex justify-between items-center border-t border-gray-100 pt-2 mt-1">
-                <span className={`text-xs font-bold ${newComment.length >= 140 ? 'text-red-500' : 'text-gray-400'}`}>
+              <div className="flex justify-between items-center border-t border-gray-100 dark:border-gray-800 pt-2 mt-1">
+                <span className={`text-xs font-bold ${newComment.length >= 140 ? 'text-red-500' : 'text-gray-400 dark:text-gray-600'}`}>
                   {newComment.length}/140
                 </span>
                 <div className="flex items-center space-x-2">
@@ -189,7 +189,7 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
                     <button
                       type="button"
                       onClick={() => onClose ? onClose() : setIsOpen(false)}
-                      className="text-xs text-black/60 px-4 py-1.5 rounded-full bg-gray-100 hover:bg-gray-200 font-bold transition-colors"
+                      className="text-xs text-black/60 dark:text-white/60 px-4 py-1.5 rounded-full bg-gray-100 dark:bg-gray-900 hover:bg-gray-200 dark:hover:bg-gray-700 font-bold transition-colors"
                     >
                       キャンセル
                     </button>
@@ -209,20 +209,20 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
         </form>
       )}
 
-      <div className={`divide-y divide-gray-100 mb-4 border-b border-gray-100 ${showTopClose ? 'border-t' : 'border-t mt-4'}`}>
+      <div className={`divide-y divide-gray-100 dark:divide-gray-800 mb-4 border-b border-gray-100 dark:border-gray-800 ${showTopClose ? 'border-t' : 'border-t mt-4'}`}>
         {visibleComments.map((comment, idx) => (
-          <div key={comment.id} className="bg-white py-4 px-2">
+          <div key={comment.id} className="bg-transparent py-4 px-2">
             <div className="flex justify-between items-start">
               <div className="flex items-center space-x-2">
 
-                <img src={comment.user.profile_image_url || 'https://via.placeholder.com/40'} alt="" className="w-6 h-6 rounded-full border border-gray-200" />
-                <span className="font-bold text-sm text-black">{comment.user.name}</span>
+                <img src={comment.user.profile_image_url || 'https://via.placeholder.com/40'} alt="" className="w-6 h-6 rounded-full border border-gray-200 dark:border-gray-800" />
+                <span className="font-bold text-sm text-black dark:text-white">{comment.user.name}</span>
                 {comment.is_judge && (
                   <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded border border-indigo-200 font-bold">
                     審査員
                   </span>
                 )}
-                <span className="text-xs text-black/50"><TimeAgo timestamp={comment.created_at} /></span>
+                <span className="text-xs text-black/50 dark:text-white/50"><TimeAgo timestamp={comment.created_at} /></span>
               </div>
               
               {currentUser?.id === comment.user_id && (
@@ -230,10 +230,10 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
                   <button onClick={() => {
                     setEditingCommentId(comment.id);
                     setEditContent(comment.content);
-                  }} className="text-gray-400 hover:text-[#1DA1F2]">
+                  }} className="text-gray-400 dark:text-gray-600 hover:text-[#1DA1F2]">
                     <Edit2 className="w-3.5 h-3.5" />
                   </button>
-                  <button onClick={() => handleDelete(comment.id)} className="text-gray-400 hover:text-red-500">
+                  <button onClick={() => handleDelete(comment.id)} className="text-gray-400 dark:text-gray-600 hover:text-red-500">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -247,21 +247,21 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
                   value={editContent}
                   onChange={(e) => setEditContent(e.target.value)}
                   maxLength={140}
-                  className="w-full bg-white border-0 rounded-lg p-2 text-[15px] text-black outline-none resize-none overflow-hidden placeholder-gray-400 focus:ring-0"
+                  className="w-full bg-transparent border-0 rounded-lg p-2 text-[15px] text-black dark:text-white outline-none resize-none overflow-hidden placeholder-gray-400 focus:ring-0"
                   rows={1}
                 />
                 <div className="flex justify-end space-x-2 mt-2">
-                  <button onClick={() => setEditingCommentId(null)} className="text-xs text-black/60 px-4 py-1.5 rounded-full bg-gray-100 hover:bg-gray-200 font-bold transition-colors">キャンセル</button>
+                  <button onClick={() => setEditingCommentId(null)} className="text-xs text-black/60 dark:text-white/60 px-4 py-1.5 rounded-full bg-gray-100 dark:bg-gray-900 hover:bg-gray-200 dark:hover:bg-gray-700 font-bold transition-colors">キャンセル</button>
                   <button onClick={() => handleEditSubmit(comment.id)} className="text-xs bg-[#1DA1F2] hover:bg-[#1788cc] text-white px-5 py-1.5 rounded-full font-bold transition-colors shadow-sm">更新</button>
                 </div>
               </div>
             ) : (
-              <p className="text-black/90 text-[15px] mt-2 whitespace-pre-wrap leading-relaxed break-all">{comment.content}{'\u200B'}</p>
+              <p className="text-black/90 dark:text-white/90 text-[15px] mt-2 whitespace-pre-wrap leading-relaxed break-all">{comment.content}{'\u200B'}</p>
             )}
           </div>
         ))}
         {visibleComments.length === 0 && contestStatus === 'closed' && (
-            <p className="text-gray-400 text-sm italic text-center py-2">
+            <p className="text-gray-400 dark:text-gray-600 text-sm italic text-center py-2">
               まだコメントはありません
             </p>
         )}

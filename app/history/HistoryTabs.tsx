@@ -27,23 +27,23 @@ export default function HistoryTabs({ contests }: { contests: Contest[] }) {
     <RippleLink
       key={contest.id}
       href={`/venue/${contest.id}`}
-      className="block group relative overflow-hidden bg-white py-6 px-3 md:p-8 transition-colors duration-300 hover:bg-gray-100"
+      className="block group relative overflow-hidden bg-white dark:bg-black py-6 px-3 md:p-8 transition-colors duration-300 hover:bg-gray-100 dark:hover:bg-gray-800"
     >
       <div className="relative z-10 flex flex-row items-center justify-between gap-2 md:gap-4">
         <div className="min-w-0 flex-1">
-          <h4 className="truncate text-base font-bold text-black md:text-xl">
+          <h4 className="truncate text-base font-bold text-black dark:text-white md:text-xl">
             {contest.name}
           </h4>
-          <p className="mt-0.5 md:mt-1 truncate text-[10px] md:text-sm text-gray-500">
+          <p className="mt-0.5 md:mt-1 truncate text-[10px] md:text-sm text-gray-500 dark:text-gray-400">
             開催日時：{dayjs(contest.startTime).format("YYYY年MM月DD日 HH:mm")}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-8">
           <div className="flex flex-col items-end md:items-start">
-            <span className="text-[10px] md:text-xs font-medium text-black/60">
+            <span className="text-[10px] md:text-xs font-medium text-black/60 dark:text-white/60">
               投稿数
             </span>
-            <span className="text-base md:text-lg font-bold text-black">
+            <span className="text-base md:text-lg font-bold text-black dark:text-white">
               {contest.totalPosters ?? 0}件
             </span>
           </div>
@@ -53,19 +53,19 @@ export default function HistoryTabs({ contests }: { contests: Contest[] }) {
   );
 
   return (
-    <div className="bg-white min-h-screen text-black">
+    <div className="bg-white dark:bg-black min-h-screen text-black dark:text-white">
       <div className="container mx-auto max-w-[672px] px-4 py-8">
         <h1 className="text-3xl font-bold mb-6 pb-2 flex items-center">
           <History className="h-8 w-8 mr-3 text-[#1DA1F2]" />
           過去ログ
         </h1>
 
-        <div className="flex mb-6 border-b border-gray-200">
+        <div className="flex mb-6 border-b border-gray-200 dark:border-gray-800">
           <button
             className={`flex-1 py-3 text-center font-bold text-lg transition-colors ${
               activeTab === 'grandprix'
                 ? 'text-[#1DA1F2] border-b-4 border-[#1DA1F2]'
-                : 'text-gray-400 hover:text-gray-600'
+                : 'text-gray-400 dark:text-gray-600 hover:text-gray-600'
             }`}
             onClick={() => setActiveTab('grandprix')}
           >
@@ -75,7 +75,7 @@ export default function HistoryTabs({ contests }: { contests: Contest[] }) {
             className={`flex-1 py-3 text-center font-bold text-lg transition-colors ${
               activeTab === 'daily'
                 ? 'text-[#1DA1F2] border-b-4 border-[#1DA1F2]'
-                : 'text-gray-400 hover:text-gray-600'
+                : 'text-gray-400 dark:text-gray-600 hover:text-gray-600'
             }`}
             onClick={() => setActiveTab('daily')}
           >
@@ -83,7 +83,7 @@ export default function HistoryTabs({ contests }: { contests: Contest[] }) {
           </button>
         </div>
 
-        <div className="flex flex-col border-b border-gray-200 divide-y divide-gray-200">
+        <div className="flex flex-col border-b border-gray-200 dark:border-gray-800 divide-y divide-gray-200 dark:divide-gray-800">
           {activeTab === 'grandprix' && (
             <>
               {grandprixContests.map(renderContestCard)}
@@ -92,23 +92,23 @@ export default function HistoryTabs({ contests }: { contests: Contest[] }) {
                 href="https://note.com/ed_nt/n/ne39d454eafb1?magazine_key=m725c32beb85d"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block group relative overflow-hidden bg-white py-6 px-3 md:p-8 transition-colors duration-300 hover:bg-gray-100"
+                className="block group relative overflow-hidden bg-white dark:bg-black py-6 px-3 md:p-8 transition-colors duration-300 hover:bg-gray-100 dark:hover:bg-gray-800"
               >
                 <div className="relative z-10 flex flex-row items-center justify-between gap-2 md:gap-4">
                   <div className="min-w-0 flex-1">
-                    <h4 className="truncate text-base font-bold text-black md:text-xl">
+                    <h4 className="truncate text-base font-bold text-black dark:text-white md:text-xl">
                       第1回ネタツイグランプリ
                     </h4>
-                    <p className="mt-0.5 md:mt-1 truncate text-[10px] md:text-sm text-gray-500">
+                    <p className="mt-0.5 md:mt-1 truncate text-[10px] md:text-sm text-gray-500 dark:text-gray-400">
                       外部サイト(note.com)へ移動します
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-8">
                     <div className="flex flex-col items-end md:items-start">
-                      <span className="text-[10px] md:text-xs font-medium text-black/60">
+                      <span className="text-[10px] md:text-xs font-medium text-black/60 dark:text-white/60">
                         投稿数
                       </span>
-                      <span className="text-base md:text-lg font-bold text-black">
+                      <span className="text-base md:text-lg font-bold text-black dark:text-white">
                         324件
                       </span>
                     </div>
@@ -123,7 +123,7 @@ export default function HistoryTabs({ contests }: { contests: Contest[] }) {
               {dailyContests.length > 0 ? (
                 dailyContests.map(renderContestCard)
               ) : (
-                <div className="text-gray-500 text-center py-10 bg-gray-50">
+                <div className="text-gray-500 dark:text-gray-400 text-center py-10 bg-gray-50 dark:bg-gray-950">
                   <p>終了した日めくり大会はまだありません。</p>
                 </div>
               )}

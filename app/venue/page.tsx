@@ -173,7 +173,7 @@ export default async function VenuePage() {
       <RippleLink
         key={contest.id}
         href={`/venue/${contest.id}`}
-        className="block group relative overflow-hidden bg-white py-6 px-3 md:p-8 transition-colors duration-300 hover:bg-gray-100"
+        className="block group relative overflow-hidden bg-white dark:bg-black py-6 px-3 md:p-8 transition-colors duration-300 hover:bg-gray-100 dark:hover:bg-gray-800"
       >
         <div className="relative z-10 flex flex-row items-center justify-between gap-2 md:gap-4">
           <div className="min-w-0 flex-1">
@@ -184,19 +184,19 @@ export default async function VenuePage() {
                 {config.label}
               </span>
             </div>
-            <h4 className="truncate text-base font-bold text-black md:text-2xl">
+            <h4 className="truncate text-base font-bold text-black dark:text-white md:text-2xl">
               {contest.name}
             </h4>
-            <p className="mt-0.5 md:mt-1 truncate text-[10px] md:text-sm text-gray-500">
+            <p className="mt-0.5 md:mt-1 truncate text-[10px] md:text-sm text-gray-500 dark:text-gray-400">
               {timeText}
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-8">
             <div className="flex flex-col items-end md:items-start">
-              <span className="text-[10px] md:text-xs font-medium text-black/60">
+              <span className="text-[10px] md:text-xs font-medium text-black/60 dark:text-white/60">
                 投稿数
               </span>
-              <span className="text-base md:text-xl font-bold text-black">
+              <span className="text-base md:text-xl font-bold text-black dark:text-white">
                 {contest.totalPosters ?? 0}人
               </span>
             </div>
@@ -207,7 +207,7 @@ export default async function VenuePage() {
   };
 
   return (
-    <div className="relative min-h-screen bg-white text-black flex flex-col overflow-clip pb-20">
+    <div className="relative min-h-screen bg-white dark:bg-black text-black dark:text-white flex flex-col overflow-clip pb-20">
       
       {/* グランプリエリア */}
       {gpFinals && (() => {
@@ -230,10 +230,10 @@ export default async function VenuePage() {
         }
 
         return (
-          <div className="relative w-full bg-white">
+          <div className="relative w-full bg-white dark:bg-black">
             
             {/* 上部 バナー */}
-            <div className="relative z-30 w-full bg-gray-50 text-gray-800 text-center py-3.5 px-4 text-[15px] font-bold">
+            <div className="relative z-30 w-full bg-gray-50 dark:bg-gray-950 text-gray-800 dark:text-gray-200 text-center py-3.5 px-4 text-[15px] font-bold">
               {bannerLink ? (
                 <Link href={bannerLink} className="hover:underline flex items-center justify-center gap-1.5 transition-opacity hover:opacity-80">
                   {bannerText} <ChevronRight className="w-4 h-4" />
@@ -284,7 +284,6 @@ export default async function VenuePage() {
                   </div>
               </div>
             </div>
-
             {/* タイムライン */}
             <div className="mt-2 mb-12 w-full flex justify-center overflow-hidden">
               <div className="flex w-full">
@@ -298,7 +297,7 @@ export default async function VenuePage() {
                     ? 'bg-[#1DA1F2] text-white' 
                     : isPast 
                       ? 'bg-[#1DA1F2]/20 text-[#1DA1F2]' 
-                      : 'bg-gray-100 text-gray-400';
+                      : 'bg-gray-100 dark:bg-gray-900 text-gray-400 dark:text-gray-600';
 
                   const cut = 12;
                   const clipPath = isFirst 
@@ -334,14 +333,14 @@ export default async function VenuePage() {
         <section>
           <div className="flex items-center gap-3 mb-6 pb-2">
             <Calendar className="w-7 h-7 text-[#1DA1F2]" />
-            <h2 className="text-2xl font-extrabold text-black">日めくりコンテスト</h2>
+            <h2 className="text-2xl font-extrabold text-black dark:text-white">日めくりコンテスト</h2>
           </div>
           
-          <div className="flex flex-col border-b border-gray-200 divide-y divide-gray-200 mb-4">
+          <div className="flex flex-col border-b border-gray-200 dark:border-gray-800 divide-y divide-gray-200 dark:divide-gray-800 mb-4">
             {visibleDailies.map(({ contest, type }) => renderCard(contest, type))}
             
             {visibleDailies.length === 0 && (
-              <div className="text-gray-500 text-center py-10 bg-gray-50">
+              <div className="text-gray-500 dark:text-gray-400 text-center py-10 bg-gray-50 dark:bg-gray-950">
                 <p>現在開催中の日めくり大会はありません。</p>
               </div>
             )}

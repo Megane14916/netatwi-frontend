@@ -71,13 +71,13 @@ const MyPostDisplay = ({
   isDeadlinePassed,
   user,
 }: MyPostDisplayProps) => (
-  <div className={`mb-4 ${isEditing ? "pb-4 border-b border-gray-200" : ""}`}>
+  <div className={`mb-4 ${isEditing ? "pb-4 border-b border-gray-200 dark:border-gray-800" : ""}`}>
     <div className="flex items-start gap-3">
       <div className="flex-none">
         <img
           src={user?.profile_image_url || "https://via.placeholder.com/40"}
           alt={user?.screen_name}
-          className="w-10 h-10 rounded-full border border-gray-200 object-cover bg-white"
+          className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-800 object-cover bg-white dark:bg-black"
           onError={(e) =>
             (e.currentTarget.src = "https://via.placeholder.com/40")
           }
@@ -86,14 +86,14 @@ const MyPostDisplay = ({
       <div className="flex-grow min-w-0">
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center">
-            <span className="font-bold text-black mr-1">
+            <span className="font-bold text-black dark:text-white mr-1">
               {user?.name || user?.screen_name}
             </span>
-            <span className="text-gray-500 text-sm">@{user?.screen_name}</span>
+            <span className="text-gray-500 dark:text-gray-400 text-sm">@{user?.screen_name}</span>
           </div>
           <TimeAgo timestamp={post.created_at} />
         </div>
-        <div className="mt-1 text-[15px] text-black/90 leading-relaxed whitespace-pre-wrap break-all">
+        <div className="mt-1 text-[15px] text-black/90 dark:text-white/90 leading-relaxed whitespace-pre-wrap break-all">
           <Twemoji text={post.content} />
         </div>
         {post.images && (
@@ -404,24 +404,24 @@ export default function PostForm({
 
   if (isLoadingInfo) {
     return (
-      <div className="w-full rounded-2xl border border-[#d9e1e7] bg-white p-5 shadow-[0_12px_40px_rgba(29,161,242,0.12)] mb-8 flex justify-center items-center py-10">
+      <div className="w-full rounded-2xl border border-[#d9e1e7] dark:border-gray-800 bg-white dark:bg-black p-5 shadow-[0_12px_40px_rgba(29,161,242,0.12)] mb-8 flex justify-center items-center py-10">
         <Loader2 className="w-6 h-6 animate-spin text-[#1DA1F2]" />
       </div>
     );
   }
 
   return (
-    <div className="w-full rounded-2xl border border-[#d9e1e7] bg-white p-5 shadow-[0_12px_40px_rgba(29,161,242,0.12)] mb-8">
+    <div className="w-full rounded-2xl border border-[#d9e1e7] dark:border-gray-800 bg-white dark:bg-black p-5 shadow-[0_12px_40px_rgba(29,161,242,0.12)] mb-8">
       {/* ── ログイン未済 ── */}
       {!user && (
-        <div className="text-center py-10 text-black/50 bg-gray-50 rounded-xl">
+        <div className="text-center py-10 text-black/50 dark:text-white/50 bg-gray-50 dark:bg-gray-950 rounded-xl">
           ログインすると投稿できます。
         </div>
       )}
 
       {/* ── 決勝進出資格なし ── */}
       {user && !canPost && (
-        <div className="text-center py-10 text-black/50 bg-gray-50 rounded-xl">
+        <div className="text-center py-10 text-black/50 dark:text-white/50 bg-gray-50 dark:bg-gray-950 rounded-xl">
           予選通過者のみ投稿できます。
         </div>
       )}
@@ -449,7 +449,7 @@ export default function PostForm({
 
           {/* アバター + エディタ */}
           <div className="mb-4 flex items-start gap-3">
-            <div className="mt-0.5 flex-none w-10 h-10 rounded-full bg-gray-200 overflow-hidden border border-gray-200">
+            <div className="mt-0.5 flex-none w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-800 overflow-hidden border border-gray-200 dark:border-gray-800">
               <img
                 src={user.profile_image_url || "https://via.placeholder.com/40"}
                 alt={user.screen_name}
@@ -470,7 +470,7 @@ export default function PostForm({
                     : "いまどうしてる？"
                 }
                 editable={!isPostDeadlineExceeded && !isSubmitting}
-                className={`w-full text-lg text-black ${isPostDeadlineExceeded ? "opacity-50" : ""}`}
+                className={`w-full text-lg text-black dark:text-white ${isPostDeadlineExceeded ? "opacity-50" : ""}`}
               />
             </div>
           </div>
@@ -483,12 +483,12 @@ export default function PostForm({
                   <img
                     src={url}
                     alt="preview"
-                    className="w-full h-32 object-cover rounded-xl border border-gray-200"
+                    className="w-full h-32 object-cover rounded-xl border border-gray-200 dark:border-gray-800"
                   />
                   <button
                     type="button"
                     onClick={() => removeImage(idx)}
-                    className="absolute top-2 right-2 bg-black/70 text-white rounded-full p-1.5 hover:bg-black transition-colors backdrop-blur-sm"
+                    className="absolute top-2 right-2 bg-black/70 dark:bg-white/70 text-white rounded-full p-1.5 hover:bg-black transition-colors backdrop-blur-sm"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -498,7 +498,7 @@ export default function PostForm({
           )}
 
           {/* ツールバー */}
-          <div className="flex items-center justify-between border-t border-gray-100 pt-3 mt-4">
+          <div className="flex items-center justify-between border-t border-gray-100 dark:border-gray-800 pt-3 mt-4">
             {/* 左: 画像・絵文字ボタン */}
             <div className="flex items-center gap-1 text-[#1DA1F2]">
               <input
@@ -519,7 +519,7 @@ export default function PostForm({
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isPostDeadlineExceeded || previewUrls.length >= 4}
-                  className={`rounded-full p-2 hover:bg-blue-50 transition-colors ${
+                  className={`rounded-full p-2 hover:bg-blue-50 dark:hover:bg-[#1DA1F2]/10 transition-colors ${
                     previewUrls.length >= 4
                       ? "opacity-50 cursor-not-allowed"
                       : ""
@@ -534,7 +534,7 @@ export default function PostForm({
                 ref={emojiButtonRef}
                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                 disabled={isPostDeadlineExceeded}
-                className="rounded-full p-2 hover:bg-blue-50 transition-colors"
+                className="rounded-full p-2 hover:bg-blue-50 dark:hover:bg-[#1DA1F2]/10 transition-colors"
               >
                 <Smile className="h-5 w-5" />
               </button>
@@ -555,7 +555,7 @@ export default function PostForm({
                     setNewPostContent(myPost?.content || "");
                     setPreviewUrls(myPost?.images || []);
                   }}
-                  className="hidden md:inline-flex items-center rounded-full bg-gray-100 md:px-5 md:py-2 md:text-sm font-bold text-black transition hover:bg-gray-200 shadow-sm"
+                  className="hidden md:inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-900 md:px-5 md:py-2 md:text-sm font-bold text-black dark:text-white transition hover:bg-gray-200 dark:hover:bg-gray-700 shadow-sm"
                 >
                   キャンセル
                 </button>

@@ -125,7 +125,7 @@ export default function ImageGrid({ images }: ImageGridProps) {
                     onLoad={handleImageLoad}
                     onClick={() => openLightbox(0)}
                     style={getSingleImageStyle()}
-                    className="w-full h-full transition-opacity hover:opacity-90 bg-gray-800"
+                    className="w-full h-full transition-opacity hover:opacity-90 bg-gray-800 dark:bg-gray-200"
                 />
             </div>
         )}
@@ -133,27 +133,27 @@ export default function ImageGrid({ images }: ImageGridProps) {
         {count > 1 && (
           <div className="grid grid-cols-2 gap-0.5 w-full aspect-video rounded-xl overflow-hidden">
             {count === 2 && images.map((src, idx) => (
-               <div key={idx} className="relative h-full w-full cursor-pointer bg-gray-800" onClick={() => openLightbox(idx)}>
+               <div key={idx} className="relative h-full w-full cursor-pointer bg-gray-800 dark:bg-gray-200" onClick={() => openLightbox(idx)}>
                   <img src={src} alt={`image-${idx}`} className="absolute inset-0 w-full h-full object-cover hover:opacity-90 transition-opacity" />
                </div>
             ))}
             {count === 3 && (
                 <>
-                    <div className="relative h-full w-full cursor-pointer bg-gray-800" onClick={() => openLightbox(0)}>
+                    <div className="relative h-full w-full cursor-pointer bg-gray-800 dark:bg-gray-200" onClick={() => openLightbox(0)}>
                         <img src={images[0]} alt="image-0" className="absolute inset-0 w-full h-full object-cover hover:opacity-90 transition-opacity" />
                     </div>
                     <div className="flex flex-col gap-0.5 h-full w-full">
-                        <div className="relative h-full w-full cursor-pointer bg-gray-800" onClick={() => openLightbox(1)}>
+                        <div className="relative h-full w-full cursor-pointer bg-gray-800 dark:bg-gray-200" onClick={() => openLightbox(1)}>
                              <img src={images[1]} alt="image-1" className="absolute inset-0 w-full h-full object-cover hover:opacity-90 transition-opacity" />
                         </div>
-                        <div className="relative h-full w-full cursor-pointer bg-gray-800" onClick={() => openLightbox(2)}>
+                        <div className="relative h-full w-full cursor-pointer bg-gray-800 dark:bg-gray-200" onClick={() => openLightbox(2)}>
                              <img src={images[2]} alt="image-2" className="absolute inset-0 w-full h-full object-cover hover:opacity-90 transition-opacity" />
                         </div>
                     </div>
                 </>
             )}
             {count === 4 && images.map((src, idx) => (
-                 <div key={idx} className="relative h-full w-full cursor-pointer bg-gray-800" onClick={() => openLightbox(idx)}>
+                 <div key={idx} className="relative h-full w-full cursor-pointer bg-gray-800 dark:bg-gray-200" onClick={() => openLightbox(idx)}>
                     <img src={src} alt={`image-${idx}`} className="absolute inset-0 w-full h-full object-cover hover:opacity-90 transition-opacity" />
                  </div>
             ))}
@@ -164,17 +164,17 @@ export default function ImageGrid({ images }: ImageGridProps) {
       {/* ライトボックス */}
       {lightboxIndex !== null && (
         <div 
-          className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center backdrop-blur-sm" 
+          className="fixed inset-0 z-[100] bg-black/90 dark:bg-white/90 flex items-center justify-center backdrop-blur-sm" 
           onClick={closeLightbox}
           onTouchStart={onTouchStart}
           onTouchMove={onTouchMove}
           onTouchEnd={onTouchEndEvent}
         >
-          <button onClick={closeLightbox} className="absolute top-[72px] left-4 text-white/70 hover:text-white p-2 bg-black/20 rounded-full hover:bg-white/10 transition-colors z-[110]">
+          <button onClick={closeLightbox} className="absolute top-[72px] left-4 text-white/70 hover:text-white p-2 bg-black/20 dark:bg-white/20 rounded-full hover:bg-white/10 transition-colors z-[110]">
             <X className="w-8 h-8" />
           </button>
           {lightboxIndex > 0 && (
-            <button onClick={prevImage} className="hidden sm:block absolute left-4 text-white/70 hover:text-white p-2 bg-black/20 rounded-full hover:bg-white/10 transition-colors z-[110]">
+            <button onClick={prevImage} className="hidden sm:block absolute left-4 text-white/70 hover:text-white p-2 bg-black/20 dark:bg-white/20 rounded-full hover:bg-white/10 transition-colors z-[110]">
                 <ChevronLeft className="w-10 h-10" />
             </button>
           )}
@@ -198,11 +198,11 @@ export default function ImageGrid({ images }: ImageGridProps) {
             </div>
           </div>
           {lightboxIndex < count - 1 && (
-             <button onClick={nextImage} className="hidden sm:block absolute right-4 text-white/70 hover:text-white p-2 bg-black/20 rounded-full hover:bg-white/10 transition-colors z-[110]">
+             <button onClick={nextImage} className="hidden sm:block absolute right-4 text-white/70 hover:text-white p-2 bg-black/20 dark:bg-white/20 rounded-full hover:bg-white/10 transition-colors z-[110]">
                 <ChevronRight className="w-10 h-10" />
             </button>
           )}
-          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-white/80 font-medium text-sm bg-black/50 px-3 py-1 rounded-full pointer-events-none">
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-white/80 font-medium text-sm bg-black/50 dark:bg-white/50 px-3 py-1 rounded-full pointer-events-none">
              {lightboxIndex + 1} / {count}
           </div>
         </div>

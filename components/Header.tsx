@@ -2,19 +2,26 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
-import { Crown, Twitter, LogOut, User as UserIcon, ChevronDown, Bell, Loader2 } from 'lucide-react';
+import { Crown, Twitter, LogOut, User as UserIcon, ChevronDown, Bell, Loader2, Moon, Sun } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useTheme } from 'next-themes';
 import Link from 'next/link';
 import logoImg from '../assets/logo.png';
 
 export default function Header() {
   const { user, loading, login, logout } = useAuth();
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const mobileDropdownRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleLogin = async () => {
     setIsLoggingIn(true);
@@ -101,12 +108,12 @@ export default function Header() {
 
 
   return (
-    <header className="px-4 lg:px-6 h-12 md:h-16 flex items-center justify-between border-b border-gray-200 sticky top-0 z-50 bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/60 text-black">
+    <header className="px-4 lg:px-6 h-12 md:h-16 flex items-center justify-between border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50 bg-white/80 dark:bg-gray-950/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/60 dark:supports-[backdrop-filter]:bg-gray-950/60 text-black dark:text-white transition-colors duration-300">
       
       {/* モバイル版 左側: 通知アイコン (ログイン時のみスペース確保) */}
       {user && (
         <div className="flex md:hidden items-center basis-1/3 justify-start">
-          <Link href="/notifications" className="relative p-1 md:p-2 text-black hover:text-gray-700 transition-colors">
+          <Link href="/notifications" className="relative p-1 md:p-2 text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
             <Bell className="w-4 h-4 md:w-5 md:h-5" />
             {unreadCount > 0 && (
               <span className="absolute top-0 right-0 md:top-1 md:right-1 w-3 h-3 md:w-4 md:h-4 bg-red-500 text-white text-[8px] md:text-[10px] font-bold rounded-full flex items-center justify-center">
@@ -129,11 +136,11 @@ export default function Header() {
       <div className={`flex items-center justify-end md:basis-auto gap-4 sm:gap-6 ${user ? 'basis-1/3' : ''}`}>
         {/* ナビゲーションリンク (中画面以上) */}
         <nav className="hidden md:flex gap-4 sm:gap-6 items-center">
-          <Link href="/venue" className={`text-sm font-medium hover:text-gray-700 transition-colors ${pathname === '/venue' ? 'text-black underline underline-offset-4' : 'text-black'}`}>会場</Link>
-          <Link href="/history" className={`text-sm font-medium hover:text-gray-700 transition-colors ${pathname === '/history' ? 'text-black underline underline-offset-4' : 'text-black'}`}>過去ログ</Link>
-          <Link href="/users" className={`text-sm font-medium hover:text-gray-700 transition-colors ${pathname === '/users' ? 'text-black underline underline-offset-4' : 'text-black'}`}>ユーザー</Link>
-          <Link href="/rules" className={`text-sm font-medium hover:text-gray-700 transition-colors ${pathname === '/rules' ? 'text-black underline underline-offset-4' : 'text-black'}`}>ルール</Link>
-          <Link href="/#news" onClick={handleNewsClick} className="text-sm font-medium hover:text-gray-700 transition-colors text-black">ニュース</Link>
+          <Link href="/venue" className={`text-sm font-medium hover:text-gray-700 dark:hover:text-gray-300 transition-colors ${pathname === '/venue' ? 'text-black dark:text-white underline underline-offset-4' : 'text-black dark:text-white'}`}>会場</Link>
+          <Link href="/history" className={`text-sm font-medium hover:text-gray-700 dark:hover:text-gray-300 transition-colors ${pathname === '/history' ? 'text-black dark:text-white underline underline-offset-4' : 'text-black dark:text-white'}`}>過去ログ</Link>
+          <Link href="/users" className={`text-sm font-medium hover:text-gray-700 dark:hover:text-gray-300 transition-colors ${pathname === '/users' ? 'text-black dark:text-white underline underline-offset-4' : 'text-black dark:text-white'}`}>ユーザー</Link>
+          <Link href="/rules" className={`text-sm font-medium hover:text-gray-700 dark:hover:text-gray-300 transition-colors ${pathname === '/rules' ? 'text-black dark:text-white underline underline-offset-4' : 'text-black dark:text-white'}`}>ルール</Link>
+          <Link href="/#news" onClick={handleNewsClick} className="text-sm font-medium hover:text-gray-700 dark:hover:text-gray-300 transition-colors text-black dark:text-white">ニュース</Link>
         </nav>
 
         {/* ログイン状態に応じた表示 */}
@@ -143,7 +150,7 @@ export default function Header() {
           <> 
             {/* PC版 通知アイコンと「通知」テキスト */}
             <div className="hidden md:block">
-              <Link href="/notifications" className="relative flex items-center p-2 text-black hover:text-gray-700 transition-colors">
+              <Link href="/notifications" className="relative flex items-center p-2 text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
                 <div className="relative">
                   <Bell className="w-5 h-5" />
                   {unreadCount > 0 && (
@@ -160,7 +167,7 @@ export default function Header() {
             <div className="relative hidden md:block" ref={dropdownRef}>
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="flex items-center text-sm font-medium text-black hover:text-gray-700 focus:outline-none"
+                className="flex items-center text-sm font-medium text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none transition-colors"
               >
                 <img
                     src={user.profile_image_url || `https://via.placeholder.com/24`}
@@ -172,13 +179,20 @@ export default function Header() {
                 <ChevronDown className={`h-4 w-4 ml-1 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
               {isDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-gray-100 rounded-md shadow-lg py-1 border border-gray-200 z-50">
+                <div className="absolute right-0 mt-2 w-48 bg-gray-100 dark:bg-gray-800 rounded-md shadow-lg py-1 border border-gray-200 dark:border-gray-700 z-50">
                   <Link
                     href={`/profile/${encodeURIComponent(user.screen_name)}`}
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 hover:text-black w-full text-left"
+                    className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-black dark:hover:text-white w-full text-left transition-colors"
                   >
                     マイページ
                   </Link>
+                  <button
+                    onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                    className="flex items-center justify-between px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-black dark:hover:text-white w-full text-left transition-colors"
+                  >
+                    <span>{mounted && theme === 'dark' ? 'ライトモード' : 'ダークモード'}</span>
+                    {mounted && theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                  </button>
                   <button
                     onClick={async () => {
                         setIsDropdownOpen(false);
@@ -202,14 +216,21 @@ export default function Header() {
                    />
               </button>
                {isDropdownOpen && (
-                <div className="absolute top-full right-0 mt-2 w-48 bg-gray-100 rounded-md shadow-lg py-1 border border-gray-200 z-50">
-                  <Link href="/venue" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 hover:text-black">会場</Link>
-                  <Link href="/history" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 hover:text-black">過去ログ</Link>
-                  <Link href="/users" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 hover:text-black">ユーザー</Link>
-                  <Link href="/rules" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 hover:text-black">ルール</Link>
-                  <Link href="/#news" onClick={handleNewsClick} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 hover:text-black">ニュース</Link>
-                  <Link href={`/profile/${encodeURIComponent(user.screen_name)}`} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 hover:text-black">マイページ</Link>
-                  <button onClick={async () => { setIsDropdownOpen(false); await logout(); }} className="block px-4 py-2 text-sm text-red-500 hover:bg-gray-200 hover:text-red-600 w-full text-left">ログアウト</button>
+                <div className="absolute top-full right-0 mt-2 w-48 bg-gray-100 dark:bg-gray-800 rounded-md shadow-lg py-1 border border-gray-200 dark:border-gray-700 z-50">
+                  <Link href="/venue" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-black dark:hover:text-white transition-colors">会場</Link>
+                  <Link href="/history" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-black dark:hover:text-white transition-colors">過去ログ</Link>
+                  <Link href="/users" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-black dark:hover:text-white transition-colors">ユーザー</Link>
+                  <Link href="/rules" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-black dark:hover:text-white transition-colors">ルール</Link>
+                  <Link href="/#news" onClick={handleNewsClick} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-black dark:hover:text-white transition-colors">ニュース</Link>
+                  <Link href={`/profile/${encodeURIComponent(user.screen_name)}`} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-black dark:hover:text-white transition-colors">マイページ</Link>
+                  <button
+                    onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                    className="flex items-center justify-between px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-black dark:hover:text-white w-full text-left transition-colors"
+                  >
+                    <span>{mounted && theme === 'dark' ? 'ライトモード' : 'ダークモード'}</span>
+                    {mounted && theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                  </button>
+                  <button onClick={async () => { setIsDropdownOpen(false); await logout(); }} className="block px-4 py-2 text-sm text-red-500 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-red-600 dark:hover:text-red-400 w-full text-left transition-colors">ログアウト</button>
                 </div>
               )}
           </div>

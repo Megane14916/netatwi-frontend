@@ -128,22 +128,22 @@ function HeroTimelineGroup() {
       {timelinePostsMock.map((post) => (
         <article
           key={post.id}
-          className="flex h-[160px] w-full flex-col justify-center border-b border-gray-200 bg-white p-3 transition-colors hover:bg-gray-50 sm:p-4"
+          className="flex h-[160px] w-full flex-col justify-center border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-black p-3 transition-colors hover:bg-gray-50 dark:hover:bg-gray-900 sm:p-4"
         >
           <div className="flex items-start gap-2 sm:gap-3">
             <div className="flex-none">
               <div className="block transition-opacity hover:opacity-80">
-                <div className="h-8 w-8 rounded-full border border-gray-200 bg-gray-300 sm:h-10 sm:w-10" />
+                <div className="h-8 w-8 rounded-full border border-gray-200 dark:border-gray-800 bg-gray-300 dark:bg-gray-700 sm:h-10 sm:w-10" />
               </div>
             </div>
             <div className="min-w-0 flex-grow">
               <div className="mb-1 flex items-start justify-between">
                 <div className="flex min-w-0 flex-wrap items-center gap-1">
-                  <span className="truncate text-sm font-bold leading-tight text-black hover:underline sm:text-base">
+                  <span className="truncate text-sm font-bold leading-tight text-black dark:text-white hover:underline sm:text-base">
                     {post.userName}
                   </span>
                   <span
-                    className="truncate text-xs text-gray-500 sm:text-sm"
+                    className="truncate text-xs text-gray-500 dark:text-gray-400 sm:text-sm"
                     style={{ flexShrink: 1000 }}
                   >
                     {post.screenName}
@@ -151,7 +151,7 @@ function HeroTimelineGroup() {
                 </div>
               </div>
               <div>
-                <p className="whitespace-pre-wrap text-xs text-black/90 sm:text-sm">
+                <p className="whitespace-pre-wrap text-xs text-black/90 dark:text-white/90 sm:text-sm">
                   {post.body}
                 </p>
               </div>
@@ -248,7 +248,7 @@ function HeroTimelineRail() {
 
   return (
     <div
-      className="pt-12 h-full w-full bg-white overflow-hidden"
+      className="pt-12 h-full w-full bg-white dark:bg-black overflow-hidden"
       style={{
         maskImage:
           "linear-gradient(to bottom, transparent, white 5%, white 100%)",
@@ -257,7 +257,7 @@ function HeroTimelineRail() {
       }}
     >
       <div
-        className="flex flex-col w-full max-w-full border-l border-gray-200 lg:w-[600px]"
+        className="flex flex-col w-full max-w-full border-l border-gray-200 dark:border-gray-800 lg:w-[600px]"
         style={{
           transform: `translateY(calc(100vh - ${step * 160}px))`,
           transition: isTransitioning
@@ -285,23 +285,23 @@ function TimelineRail({ direction }: { direction: "up" | "down" }) {
         {timeline.map((post, index) => (
           <article
             key={`${post.id}-${index}`}
-            className="w-[270px] rounded-2xl border border-black/10 bg-white p-4 shadow-[0_8px_20px_rgba(0,0,0,0.06)]"
+            className="w-[270px] rounded-2xl border border-black/10 dark:border-white/10 bg-white dark:bg-black p-4 shadow-[0_8px_20px_rgba(0,0,0,0.06)]"
           >
             <div className="mb-2 flex items-center gap-2">
-              <div className="h-8 w-8 rounded-full bg-gray-300" />
+              <div className="h-8 w-8 rounded-full bg-gray-300 dark:bg-gray-700" />
               <div className="min-w-0">
-                <p className="truncate text-sm font-bold text-black">
+                <p className="truncate text-sm font-bold text-black dark:text-white">
                   {post.userName}
                 </p>
-                <p className="truncate text-xs text-black/55">
+                <p className="truncate text-xs text-black/55 dark:text-white/55">
                   {post.screenName}
                 </p>
               </div>
             </div>
-            <p className="mb-2 text-sm leading-relaxed text-black/85">
+            <p className="mb-2 text-sm leading-relaxed text-black/85 dark:text-white/85">
               {post.body}
             </p>
-            <p className="text-xs text-black/50">{post.postedAt}</p>
+            <p className="text-xs text-black/50 dark:text-white/50">{post.postedAt}</p>
           </article>
         ))}
       </div>
@@ -413,8 +413,8 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="relative bg-white text-black">
-      <section className="relative z-0 flex h-[calc(100vh-4rem)] min-h-[640px] items-center bg-white">
+    <div className="relative bg-white dark:bg-black text-black dark:text-white">
+      <section className="relative z-0 flex h-[calc(100vh-4rem)] min-h-[640px] items-center bg-white dark:bg-black">
         {/* Top Left Separator */}
         <svg
           className="pointer-events-none absolute left-0 top-0 z-10 w-[50vw] lg:w-[33.333vw]"
@@ -450,12 +450,12 @@ export default function HomePage() {
               <span
                 ref={heroTitleMeasureRef}
                 aria-hidden="true"
-                className="pointer-events-none absolute left-0 top-0 whitespace-nowrap text-[1.75rem] font-normal text-black opacity-0 md:text-4xl"
+                className="pointer-events-none absolute left-0 top-0 whitespace-nowrap text-[1.75rem] font-normal text-black dark:text-white opacity-0 md:text-4xl"
               >
                 ネタツイグランプリ
               </span>
               <span
-                className="block whitespace-nowrap text-[1.75rem] font-normal text-black md:text-4xl"
+                className="block whitespace-nowrap text-[1.75rem] font-normal text-black dark:text-white md:text-4xl"
                 style={
                   heroTitleFontSize
                     ? { fontSize: `${heroTitleFontSize}px` }
@@ -468,11 +468,11 @@ export default function HomePage() {
                 ref={heroTaglinesRef}
                 className="mt-4 inline-flex flex-col items-start"
               >
-                <span className="block text-[2.5rem] font-black leading-none text-black/80 md:text-7xl lg:text-[5.25rem]">
+                <span className="block text-[2.5rem] font-black leading-none text-black/80 dark:text-white md:text-7xl lg:text-[5.25rem]">
                   <span className="block md:inline">Tiny</span>
                   <span className="block md:inline md:ml-2">Tweets.</span>
                 </span>
-                <span className="mt-2 block text-[2.5rem] font-black leading-none text-black/80 md:text-7xl lg:text-[5.25rem]">
+                <span className="mt-2 block text-[2.5rem] font-black leading-none text-black/80 dark:text-white md:text-7xl lg:text-[5.25rem]">
                   <span className="block md:inline">Huge</span>
                   <span className="block md:inline md:ml-2">Laughs.</span>
                 </span>
@@ -494,19 +494,19 @@ export default function HomePage() {
           return (
             <section className="relative z-20 pt-[186px] pb-24 md:pt-20 md:pb-20 animate-pulse">
               <div className="mx-auto w-full max-w-7xl px-6 md:px-10">
-                <div className="h-6 w-24 rounded-full bg-gray-200"></div>
-                <div className="mt-4 h-12 w-3/4 max-w-md rounded-md bg-gray-200 md:h-14"></div>
+                <div className="h-6 w-24 rounded-full bg-gray-200 dark:bg-gray-800"></div>
+                <div className="mt-4 h-12 w-3/4 max-w-md rounded-md bg-gray-200 dark:bg-gray-800 md:h-14"></div>
                 <div className="mt-5 flex gap-4">
-                  <div className="h-4 w-32 rounded-md bg-gray-200"></div>
-                  <div className="h-4 w-32 rounded-md bg-gray-200"></div>
+                  <div className="h-4 w-32 rounded-md bg-gray-200 dark:bg-gray-800"></div>
+                  <div className="h-4 w-32 rounded-md bg-gray-200 dark:bg-gray-800"></div>
                 </div>
                 <div className="mt-3 space-y-2">
-                  <div className="h-4 w-64 rounded-md bg-gray-200"></div>
-                  <div className="h-4 w-64 rounded-md bg-gray-200"></div>
+                  <div className="h-4 w-64 rounded-md bg-gray-200 dark:bg-gray-800"></div>
+                  <div className="h-4 w-64 rounded-md bg-gray-200 dark:bg-gray-800"></div>
                 </div>
                 <div className="mt-7 flex gap-3">
-                  <div className="h-10 w-32 rounded-full bg-gray-200 md:h-12 md:w-40"></div>
-                  <div className="h-10 w-32 rounded-full bg-gray-200 md:h-12 md:w-40"></div>
+                  <div className="h-10 w-32 rounded-full bg-gray-200 dark:bg-gray-800 md:h-12 md:w-40"></div>
+                  <div className="h-10 w-32 rounded-full bg-gray-200 dark:bg-gray-800 md:h-12 md:w-40"></div>
                 </div>
               </div>
             </section>
@@ -598,7 +598,7 @@ export default function HomePage() {
                 <h2 className="mt-4 text-3xl font-extrabold leading-tight md:text-5xl">
                   {renderGPTitle(displayName)}
                 </h2>
-                <p className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm font-medium text-black/80 md:text-base">
+                <p className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm font-medium text-black/80 dark:text-white/80 md:text-base">
                   <span className="inline-flex items-center gap-1.5">
                     <Users className="h-4 w-4 text-[#1DA1F2]" />
                     参加人数:{" "}
@@ -616,7 +616,7 @@ export default function HomePage() {
                     </span>
                   )}
                 </p>
-                <div className="mt-3 space-y-1 text-sm text-black/70 md:text-base">
+                <div className="mt-3 space-y-1 text-sm text-black/70 dark:text-white/70 md:text-base">
                   {gpQualifier && (
                     <p>
                       予選投稿締切: {formatDateTime(gpQualifier.endTime)}
@@ -640,7 +640,7 @@ export default function HomePage() {
                   {step === 2 && gpQualifier && (
                     <Link
                       href={`/venue/${gpQualifier.id}`}
-                      className="inline-flex shrink-0 items-center rounded-full bg-gray-200 px-5 py-2.5 text-sm font-bold text-gray-700 transition hover:bg-gray-300 md:px-7 md:py-3"
+                      className="inline-flex shrink-0 items-center rounded-full bg-gray-200 dark:bg-gray-800 px-5 py-2.5 text-sm font-bold text-gray-700 dark:text-gray-300 transition hover:bg-gray-300 dark:hover:bg-gray-600 md:px-7 md:py-3"
                     >
                       予選結果を見る
                     </Link>
@@ -666,19 +666,19 @@ export default function HomePage() {
             <section className="relative z-20 pt-12 pb-20 animate-pulse">
               <div className="mx-auto max-w-7xl px-6 md:px-10">
                 <div className="mb-6">
-                  <div className="h-6 w-64 rounded-md bg-gray-200 md:h-8"></div>
+                  <div className="h-6 w-64 rounded-md bg-gray-200 dark:bg-gray-800 md:h-8"></div>
                 </div>
-                <div className="flex flex-col border-b border-gray-200 divide-y divide-gray-200">
+                <div className="flex flex-col border-b border-gray-200 dark:border-gray-800 divide-y divide-gray-200 dark:divide-gray-800">
                   {[1, 2, 3].map((i) => (
                     <div key={i} className="py-6 px-3 md:p-8 flex flex-row items-center justify-between gap-2 md:gap-4">
                       <div className="min-w-0">
-                        <div className="h-5 w-20 rounded-full bg-gray-200 mb-1 md:h-6 md:w-24 md:mb-2"></div>
-                        <div className="h-5 w-32 rounded-md bg-gray-200 md:h-8 md:w-48"></div>
-                        <div className="mt-1 h-3 w-24 rounded-md bg-gray-200 md:mt-2 md:h-4 md:w-32"></div>
+                        <div className="h-5 w-20 rounded-full bg-gray-200 dark:bg-gray-800 mb-1 md:h-6 md:w-24 md:mb-2"></div>
+                        <div className="h-5 w-32 rounded-md bg-gray-200 dark:bg-gray-800 md:h-8 md:w-48"></div>
+                        <div className="mt-1 h-3 w-24 rounded-md bg-gray-200 dark:bg-gray-800 md:mt-2 md:h-4 md:w-32"></div>
                       </div>
                       <div className="shrink-0 flex flex-col items-end md:items-start">
-                        <div className="h-3 w-8 rounded-md bg-gray-200 mb-1 md:w-10"></div>
-                        <div className="h-5 w-10 rounded-md bg-gray-200 md:h-6 md:w-12"></div>
+                        <div className="h-3 w-8 rounded-md bg-gray-200 dark:bg-gray-800 mb-1 md:w-10"></div>
+                        <div className="h-5 w-10 rounded-md bg-gray-200 dark:bg-gray-800 md:h-6 md:w-12"></div>
                       </div>
                     </div>
                   ))}
@@ -729,7 +729,7 @@ export default function HomePage() {
               <RippleLink
                 key={contest.id}
                 href={`/venue/${contest.id}`}
-                className="group relative overflow-hidden bg-white py-6 px-3 md:p-8 transition-colors duration-300 hover:bg-gray-100"
+                className="group relative overflow-hidden bg-white dark:bg-black py-6 px-3 md:p-8 transition-colors duration-300 hover:bg-gray-100 dark:hover:bg-gray-800"
               >
                 <div className="relative z-10 flex flex-row items-center justify-between gap-2 md:gap-4">
                   <div className="min-w-0 flex-1">
@@ -740,19 +740,19 @@ export default function HomePage() {
                         {config.label}
                       </span>
                     </div>
-                    <h4 className="truncate text-base font-bold text-black md:text-2xl">
+                    <h4 className="truncate text-base font-bold text-black dark:text-white md:text-2xl">
                       {contest.name}
                     </h4>
-                    <p className="mt-0.5 md:mt-1 truncate text-[10px] md:text-sm text-gray-500">
+                    <p className="mt-0.5 md:mt-1 truncate text-[10px] md:text-sm text-gray-500 dark:text-gray-400">
                       {timeText}
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-8">
                     <div className="flex flex-col items-end md:items-start">
-                      <span className="text-[10px] md:text-xs font-medium text-black/60">
+                      <span className="text-[10px] md:text-xs font-medium text-black/60 dark:text-white/60">
                         投稿数
                       </span>
-                      <span className="text-base md:text-xl font-bold text-black">
+                      <span className="text-base md:text-xl font-bold text-black dark:text-white">
                         {contest.totalPosters ?? 0}件
                       </span>
                     </div>
@@ -766,11 +766,11 @@ export default function HomePage() {
             <section className="relative z-20 pt-12 pb-20">
               <div className="mx-auto max-w-7xl px-6 md:px-10">
                 <div className="mb-6 text-left">
-                  <h3 className="text-2xl font-bold text-black md:text-[40px]">
+                  <h3 className="text-2xl font-bold text-black dark:text-white md:text-[40px]">
                     日めくり
                   </h3>
                 </div>
-                <div className="flex flex-col border-b border-gray-200 divide-y divide-gray-200">
+                <div className="flex flex-col border-b border-gray-200 dark:border-gray-800 divide-y divide-gray-200 dark:divide-gray-800">
                   {visibleDailies.map((c) =>
                     renderDailyCard(c, categorizeDaily(c)),
                   )}
@@ -802,7 +802,7 @@ export default function HomePage() {
           {/* 右側の斜め区切り */}
           <polygon points="0,26.8 100,0 100,26.8" fill="currentColor" />
           {/* 左側の三角形 (右向き ▶) */}
-          <polygon points="0,0 50,13.4 0,26.8" fill="#f3f4f6" />
+          <polygon points="0,0 50,13.4 0,26.8" className="fill-gray-100 dark:fill-gray-900" />
         </svg>
         <div className="absolute top-[25%] md:top-[40%] left-0 w-full -translate-y-[calc(50%+20px)] md:-translate-y-[calc(50%+50px)] flex justify-center px-4 pointer-events-none">
           <Image src={logoImage} alt="ネタツイグランプリ" className="w-[200px] md:w-[400px] h-auto object-contain drop-shadow-md" />
@@ -843,20 +843,20 @@ export default function HomePage() {
         </div>
       </section>
 
-      <div className="w-full bg-white text-[#1DA1F2]" aria-hidden="true" style={{ marginTop: "-1px" }}>
+      <div className="w-full bg-white dark:bg-black text-[#1DA1F2]" aria-hidden="true" style={{ marginTop: "-1px" }}>
         <svg viewBox="0 0 100 26.8" className="block w-full">
           {/* 左側の斜め区切り (/) */}
           <polygon points="0,0 100,0 0,26.8" fill="currentColor" />
           {/* 右側の三角形 (左向き ◀) */}
-          <polygon points="100,0 50,13.4 100,26.8" fill="#f3f4f6" />
+          <polygon points="100,0 50,13.4 100,26.8" className="fill-gray-100 dark:fill-gray-900" />
         </svg>
       </div>
 
       {/* ニュースセクション */}
-      <section id="news" className="bg-white py-24 md:py-16">
+      <section id="news" className="bg-white dark:bg-black py-24 md:py-16">
         <div className="mx-auto max-w-[1200px]">
           <div className="mb-8 flex items-center justify-between px-6 md:px-10">
-            <h2 className="text-2xl font-bold text-black md:text-[40px]">
+            <h2 className="text-2xl font-bold text-black dark:text-white md:text-[40px]">
               最新のニュース
             </h2>
             <a
@@ -885,14 +885,14 @@ export default function HomePage() {
               <>
                 {[1, 2, 3].map((i) => (
                   <div key={i} className="snap-start flex-none w-[280px] md:w-[400px]">
-                    <div className="w-full h-[400px] rounded-xl bg-gray-200 animate-pulse"></div>
+                    <div className="w-full h-[400px] rounded-xl bg-gray-200 dark:bg-gray-800 animate-pulse"></div>
                   </div>
                 ))}
               </>
             ) : newsError ? (
-              <p className="text-black">エラーが発生しました</p>
+              <p className="text-black dark:text-white">エラーが発生しました</p>
             ) : newsList.length === 0 ? (
-              <p className="text-black">ニュースはありません</p>
+              <p className="text-black dark:text-white">ニュースはありません</p>
             ) : (
               newsList.map((news) => (
                 <div
@@ -912,25 +912,25 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="bg-white px-0 pt-0 pb-0">
-        <div className="relative w-full overflow-hidden rounded-t-[12.5vw] md:rounded-t-[6vw] bg-gray-100 px-6 pb-24 pt-12 md:px-16 lg:px-24">
+      <section className="bg-white dark:bg-black px-0 pt-0 pb-0">
+        <div className="relative w-full overflow-hidden rounded-t-[12.5vw] md:rounded-t-[6vw] bg-gray-100 dark:bg-gray-900 px-6 pb-24 pt-12 md:px-16 lg:px-24">
           <div className="relative z-10">
-            <h2 className="text-2xl font-bold text-black md:text-[40px]">
+            <h2 className="text-2xl font-bold text-black dark:text-white md:text-[40px]">
               過去のグランプリの結果
             </h2>
 
-            <div className="mt-12 flex flex-col border-b border-gray-400 divide-y divide-gray-400">
+            <div className="mt-12 flex flex-col border-b border-gray-400 dark:border-gray-800 divide-y divide-gray-400 dark:divide-gray-800">
               {contestsLoading ? (
                 [1, 2].map((i) => (
                   <div key={i} className="py-6 px-3 md:p-8 flex flex-row items-center justify-between gap-2 md:gap-4 animate-pulse">
                     <div className="min-w-0">
-                      <div className="h-5 w-20 rounded-full bg-gray-200 mb-1 md:h-6 md:w-24 md:mb-2"></div>
-                      <div className="h-5 w-32 rounded-md bg-gray-200 md:h-8 md:w-48"></div>
-                      <div className="mt-1 h-3 w-24 rounded-md bg-gray-200 md:mt-2 md:h-4 md:w-32"></div>
+                      <div className="h-5 w-20 rounded-full bg-gray-200 dark:bg-gray-800 mb-1 md:h-6 md:w-24 md:mb-2"></div>
+                      <div className="h-5 w-32 rounded-md bg-gray-200 dark:bg-gray-800 md:h-8 md:w-48"></div>
+                      <div className="mt-1 h-3 w-24 rounded-md bg-gray-200 dark:bg-gray-800 md:mt-2 md:h-4 md:w-32"></div>
                     </div>
                     <div className="shrink-0 flex flex-col items-end md:items-start">
-                      <div className="h-3 w-8 rounded-md bg-gray-200 mb-1 md:w-10"></div>
-                      <div className="h-5 w-10 rounded-md bg-gray-200 md:h-6 md:w-12"></div>
+                      <div className="h-3 w-8 rounded-md bg-gray-200 dark:bg-gray-800 mb-1 md:w-10"></div>
+                      <div className="h-5 w-10 rounded-md bg-gray-200 dark:bg-gray-800 md:h-6 md:w-12"></div>
                     </div>
                   </div>
                 ))
@@ -952,23 +952,23 @@ export default function HomePage() {
                   <RippleLink
                     key={c.id}
                     href={`/venue/${c.id}`}
-                    className="group relative overflow-hidden bg-gray-100 py-6 px-3 md:p-8 transition-colors duration-300 hover:bg-gray-200"
+                    className="group relative overflow-hidden bg-gray-100 dark:bg-gray-900 py-6 px-3 md:p-8 transition-colors duration-300 hover:bg-gray-200 dark:hover:bg-gray-700"
                   >
                     <div className="relative z-10 flex flex-row items-center justify-between gap-2 md:gap-4">
                       <div className="min-w-0 flex-1">
-                        <h3 className="truncate text-base font-bold text-black md:text-2xl">
+                        <h3 className="truncate text-base font-bold text-black dark:text-white md:text-2xl">
                           {c.name}
                         </h3>
-                        <p className="mt-0.5 md:mt-1 truncate text-[10px] md:text-sm text-gray-500">
+                        <p className="mt-0.5 md:mt-1 truncate text-[10px] md:text-sm text-gray-500 dark:text-gray-400">
                           開催日時：{dayjs(c.startTime).format("YYYY年MM月DD日 HH:mm")}
                         </p>
                       </div>
                       <div className="flex shrink-0 items-center gap-8">
                         <div className="flex flex-col items-end md:items-start">
-                          <span className="text-[10px] md:text-xs font-medium text-black/60">
+                          <span className="text-[10px] md:text-xs font-medium text-black/60 dark:text-white/60">
                             投稿数
                           </span>
-                          <span className="text-base md:text-xl font-bold text-black">
+                          <span className="text-base md:text-xl font-bold text-black dark:text-white">
                             {c.totalPosters ?? 0}件
                           </span>
                         </div>
@@ -982,23 +982,23 @@ export default function HomePage() {
                 href="https://note.com/ed_nt/n/ne39d454eafb1?magazine_key=m725c32beb85d"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group relative overflow-hidden bg-gray-100 py-6 px-3 md:p-8 transition-colors duration-300 hover:bg-gray-200"
+                className="group relative overflow-hidden bg-gray-100 dark:bg-gray-900 py-6 px-3 md:p-8 transition-colors duration-300 hover:bg-gray-200 dark:hover:bg-gray-700"
               >
                 <div className="relative z-10 flex flex-row items-center justify-between gap-2 md:gap-4">
                   <div className="min-w-0 flex-1">
-                    <h3 className="truncate text-base font-bold text-black md:text-2xl">
+                    <h3 className="truncate text-base font-bold text-black dark:text-white md:text-2xl">
                       第1回 ネタツイグランプリ
                     </h3>
-                    <p className="mt-0.5 md:mt-1 truncate text-[10px] md:text-sm text-gray-500">
+                    <p className="mt-0.5 md:mt-1 truncate text-[10px] md:text-sm text-gray-500 dark:text-gray-400">
                       外部サイト(note.com)へ移動します
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-4 md:gap-8">
                     <div className="flex flex-col items-end md:items-start">
-                      <span className="text-[10px] md:text-xs font-medium text-black/60">
+                      <span className="text-[10px] md:text-xs font-medium text-black/60 dark:text-white/60">
                         投稿数
                       </span>
-                      <span className="text-base md:text-xl font-bold text-black">
+                      <span className="text-base md:text-xl font-bold text-black dark:text-white">
                         324件
                       </span>
                     </div>
@@ -1014,14 +1014,14 @@ export default function HomePage() {
               if (contestsLoading) {
                 return (
                   <div className="mt-16 animate-pulse">
-                    <div className="mb-6 h-6 w-64 rounded-md bg-gray-200 md:h-8"></div>
-                    <div className="flex flex-col border-b border-gray-300 divide-y divide-gray-300">
+                    <div className="mb-6 h-6 w-64 rounded-md bg-gray-200 dark:bg-gray-800 md:h-8"></div>
+                    <div className="flex flex-col border-b border-gray-300 dark:border-gray-700 divide-y divide-gray-300 dark:divide-gray-700">
                       {[1, 2, 3].map((i) => (
                         <div key={i} className="px-4 py-3 md:px-6 md:py-4 flex flex-row items-center justify-between gap-4">
-                          <div className="h-5 w-40 rounded-md bg-gray-200 md:h-6"></div>
+                          <div className="h-5 w-40 rounded-md bg-gray-200 dark:bg-gray-800 md:h-6"></div>
                           <div className="flex flex-col items-end md:items-start">
-                            <div className="h-3 w-10 rounded-md bg-gray-200 mb-1"></div>
-                            <div className="h-5 w-10 rounded-md bg-gray-200 md:h-6"></div>
+                            <div className="h-3 w-10 rounded-md bg-gray-200 dark:bg-gray-800 mb-1"></div>
+                            <div className="h-5 w-10 rounded-md bg-gray-200 dark:bg-gray-800 md:h-6"></div>
                           </div>
                         </div>
                       ))}
@@ -1043,31 +1043,31 @@ export default function HomePage() {
 
                 return (
                   <div className="mt-16">
-                    <h3 className="mb-6 text-2xl font-bold text-black md:text-[40px]">
+                    <h3 className="mb-6 text-2xl font-bold text-black dark:text-white md:text-[40px]">
                       日めくりの結果
                     </h3>
-                    <div className="flex flex-col border-b border-gray-300 divide-y divide-gray-300">
+                    <div className="flex flex-col border-b border-gray-300 dark:border-gray-700 divide-y divide-gray-300 dark:divide-gray-700">
                       {closedDailies.map((c) => (
                         <RippleLink
                           key={c.id}
                           href={`/venue/${c.id}`}
-                          className="group relative overflow-hidden bg-gray-100 py-6 px-3 md:p-8 transition-colors duration-300 hover:bg-gray-200"
+                          className="group relative overflow-hidden bg-gray-100 dark:bg-gray-900 py-6 px-3 md:p-8 transition-colors duration-300 hover:bg-gray-200 dark:hover:bg-gray-700"
                         >
                           <div className="relative z-10 flex flex-row items-center justify-between gap-2 md:gap-4">
                             <div className="min-w-0 flex-1">
-                              <h4 className="truncate text-base font-bold text-black md:text-xl">
+                              <h4 className="truncate text-base font-bold text-black dark:text-white md:text-xl">
                                 {c.name}
                               </h4>
-                              <p className="mt-0.5 md:mt-1 truncate text-[10px] md:text-sm text-gray-500">
+                              <p className="mt-0.5 md:mt-1 truncate text-[10px] md:text-sm text-gray-500 dark:text-gray-400">
                                 開催日時：{dayjs(c.startTime).format("YYYY年MM月DD日 HH:mm")}
                               </p>
                             </div>
                             <div className="flex shrink-0 items-center gap-8">
                               <div className="flex flex-col items-end md:items-start">
-                                <span className="text-[10px] md:text-xs font-medium text-black/60">
+                                <span className="text-[10px] md:text-xs font-medium text-black/60 dark:text-white/60">
                                   投稿数
                                 </span>
-                                <span className="text-base md:text-lg font-bold text-black">
+                                <span className="text-base md:text-lg font-bold text-black dark:text-white">
                                   {c.totalPosters ?? 0}件
                                 </span>
                               </div>

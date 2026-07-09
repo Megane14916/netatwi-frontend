@@ -2,11 +2,11 @@
 // 基本的なルール説明を記載
 export default function RulesPage() {
     return (
-        <div className="bg-white min-h-screen text-black">
+        <div className="bg-white dark:bg-black min-h-screen text-black dark:text-white">
             <div className="container mx-auto max-w-[672px] px-4 py-8">
                 <h1 className="text-3xl font-bold mb-6 border-b border-[#1DA1F2] pb-2">大会ルール</h1>
 
-                <div className="space-y-6 text-black">
+                <div className="space-y-6 text-black dark:text-white">
                     <section>
                         <h2 className="text-2xl font-semibold mb-3 text-[#1DA1F2]">基本ルール</h2>
                         <ul className="list-disc list-inside space-y-2 pl-4">

@@ -3,6 +3,7 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { AuthProvider } from "@/context/AuthContext";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import Script from "next/script"; // Scriptコンポーネントをインポート
 import { Noto_Sans_JP, Inter } from "next/font/google";
 
@@ -54,14 +55,21 @@ export default function RootLayout({
           </>
         )}
       </head>
-      <body className={`${notoSansJP.variable} ${inter.variable} bg-gray-950 text-white flex flex-col min-h-screen`}>
-        <AuthProvider>
-          {/* ヘッダーの裏に配置するページトップ用の白い背景 */}
-          <div className="absolute top-0 left-0 right-0 h-16 bg-white z-0"></div>
-          <Header />
-          <main className="flex-grow flex flex-col">{children}</main>
-          <Footer />
-        </AuthProvider>
+      <body className={`${notoSansJP.variable} ${inter.variable} bg-white text-black dark:bg-gray-950 dark:text-white flex flex-col min-h-screen transition-colors duration-300`}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <AuthProvider>
+            {/* ヘッダーの裏に配置するページトップ用の白い背景 */}
+            <div className="absolute top-0 left-0 right-0 h-16 bg-white dark:bg-gray-950 z-0 transition-colors duration-300"></div>
+            <Header />
+            <main className="flex-grow flex flex-col">{children}</main>
+            <Footer />
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

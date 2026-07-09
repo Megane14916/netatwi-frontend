@@ -49,7 +49,7 @@ const ProgressRing: React.FC<ProgressRingProps> = ({ permillage, remaining }) =>
         />
       </svg>
       {remaining <= 20 && (
-        <span className={`absolute text-[10px] font-bold ${remaining < 0 ? 'text-red-500' : 'text-gray-400'}`}>
+        <span className={`absolute text-[10px] font-bold ${remaining < 0 ? 'text-red-500' : 'text-gray-400 dark:text-gray-600'}`}>
           {Math.floor(remaining / 2)}
         </span>
       )}

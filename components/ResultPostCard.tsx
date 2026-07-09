@@ -163,22 +163,22 @@ export default function ResultPostCard({ post, currentUser, onToggleBookmark, co
     if (!rank) return null;
     
     if (rank === 1) return <div className="flex items-center text-yellow-500 font-bold text-xl"><Crown className="w-6 h-6 mr-1.5 fill-current" /> 1位</div>;
-    if (rank === 2) return <div className="flex items-center text-gray-400 font-bold text-xl"><Crown className="w-6 h-6 mr-1.5 fill-current" /> 2位</div>;
+    if (rank === 2) return <div className="flex items-center text-gray-400 dark:text-gray-600 font-bold text-xl"><Crown className="w-6 h-6 mr-1.5 fill-current" /> 2位</div>;
     if (rank === 3) return <div className="flex items-center text-amber-600 font-bold text-xl"><Crown className="w-6 h-6 mr-1.5 fill-current" /> 3位</div>;
 
     return (
-      <div className="flex items-center text-gray-600 font-bold text-xl">
+      <div className="flex items-center text-gray-600 dark:text-gray-400 font-bold text-xl">
         {rank}位
       </div>
     );
   };
 
 return (
-    <div className="p-4 sm:p-5 transition-colors hover:bg-gray-50">
+    <div className="p-4 sm:p-5 transition-colors hover:bg-gray-50 dark:hover:bg-gray-900">
       {/* 1行目: 順位と審査員賞 (中央揃え) */}
       <div className="flex items-center gap-3 mb-3">
          {getRankBadge(post.rank)}
-         <span className="text-lg font-bold text-gray-600 ml-1">{post.score}pt</span>
+         <span className="text-lg font-bold text-gray-600 dark:text-gray-400 ml-1">{post.score}pt</span>
       </div>
 
       {/* 2行目: メインコンテンツ (アバター + ユーザー情報 + 投稿内容) */}
@@ -190,7 +190,7 @@ return (
                 <img 
                   src={post.user.profile_image_url || 'https://via.placeholder.com/40'} 
                   alt={post.user.screen_name} 
-                  className="w-10 h-10 rounded-full border border-gray-200 object-cover bg-white"
+                  className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-800 object-cover bg-white dark:bg-black"
                   onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/40')}
                 />
             </a>
@@ -202,17 +202,17 @@ return (
             {/* ユーザー情報 (上揃え: items-start) */}
             <div className="flex items-start justify-between mb-1">
                 <div className="flex items-center gap-1 min-w-0 flex-nowrap whitespace-nowrap">
-                    <a href={`/profile/${encodeURIComponent(post.user.screen_name)}`} className="font-bold text-black hover:underline truncate text-base leading-tight">
+                    <a href={`/profile/${encodeURIComponent(post.user.screen_name)}`} className="font-bold text-black dark:text-white hover:underline truncate text-base leading-tight">
                       {post.user.name}
                     </a>
-                    <span className="text-sm text-black/50 truncate" style={{ flexShrink: 1000 }}>@{post.user.screen_name}</span>
-                    <span className="text-sm text-black/30 flex-shrink-0">·</span>
-                    <span className="text-sm text-black/50"><TimeAgo timestamp={post.created_at} /></span>
+                    <span className="text-sm text-black/50 dark:text-white/50 truncate" style={{ flexShrink: 1000 }}>@{post.user.screen_name}</span>
+                    <span className="text-sm text-black/30 dark:text-white/30 flex-shrink-0">·</span>
+                    <span className="text-sm text-black/50 dark:text-white/50"><TimeAgo timestamp={post.created_at} /></span>
                 </div>
             </div>
 
             {/* 本文 & 画像 */}
-            <div className="text-[15px] text-black/90 leading-relaxed whitespace-pre-wrap break-all">
+            <div className="text-[15px] text-black/90 dark:text-white/90 leading-relaxed whitespace-pre-wrap break-all">
               <Twemoji text={post.content} />
               {post.images && post.images.length > 0 && (
                 <div className="mt-2">
@@ -222,7 +222,7 @@ return (
             </div>
 
             {/* アクションバー */}
-            <div className="flex items-center justify-between w-full mt-3 text-gray-500 sm:w-auto sm:justify-end sm:gap-10">
+            <div className="flex items-center justify-between w-full mt-3 text-gray-500 dark:text-gray-400 sm:w-auto sm:justify-end sm:gap-10">
                 {/* コメント */}
                 <button 
                     onClick={(e) => { e.stopPropagation(); setIsCommentsOpen(!isCommentsOpen); }}
@@ -285,7 +285,7 @@ return (
                 return (
                   <div 
                     onClick={() => setIsVotersExpanded(!isVotersExpanded)}
-                    className="mt-3 pt-2 border-t border-gray-100 text-xs text-black/50 cursor-pointer group"
+                    className="mt-3 pt-2 border-t border-gray-100 dark:border-gray-800 text-xs text-black/50 dark:text-white/50 cursor-pointer group"
                   >
                     <div className="flex items-start justify-between">
                       <div className={`leading-relaxed ${isVotersExpanded ? '' : 'line-clamp-1 break-all'}`}>
@@ -294,24 +294,24 @@ return (
                           <span key={vIndex} className="inline">
                             {voter.is_judge ? (
                             <span className="inline mr-1">
-                                <a href={`/profile/${encodeURIComponent(voter.screen_name)}`} className="hover:underline text-black/60 hover:text-black/80 inline" onClick={(e) => e.stopPropagation()}>
+                                <a href={`/profile/${encodeURIComponent(voter.screen_name)}`} className="hover:underline text-black/60 dark:text-white/60 hover:text-black/80 inline" onClick={(e) => e.stopPropagation()}>
                                 {voter.name}
                                 </a>
-                                <span className="ml-1 text-black/60 inline">({voter.count})</span>
+                                <span className="ml-1 text-black/60 dark:text-white/60 inline">({voter.count})</span>
                             </span>
                             ) : (
-                            <a href={`/profile/${encodeURIComponent(voter.screen_name)}`} className="hover:underline text-black/60 hover:text-black/80 inline" onClick={(e) => e.stopPropagation()}>
+                            <a href={`/profile/${encodeURIComponent(voter.screen_name)}`} className="hover:underline text-black/60 dark:text-white/60 hover:text-black/80 inline" onClick={(e) => e.stopPropagation()}>
                                 {voter.name}
                             </a>
                             )}
                             
                             {vIndex < displayVoters.length - 1 && (
-                            <span className="mx-1.5 text-black/30 inline">/</span>
+                            <span className="mx-1.5 text-black/30 dark:text-white/30 inline">/</span>
                             )}
                         </span>
                         ))}
                       </div>
-                      <div className="flex-none ml-2 pt-0.5 text-black/30 group-hover:text-black/50 transition-colors">
+                      <div className="flex-none ml-2 pt-0.5 text-black/30 dark:text-white/30 group-hover:text-black/50 dark:group-hover:text-white/50 transition-colors">
                         {isVotersExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                       </div>
                     </div>

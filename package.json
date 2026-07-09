@@ -18,6 +18,7 @@
     "emoji-picker-react": "^4.9.2",
     "lucide-react": "^0.555.0",
     "next": "^14.2.33",
+    "next-themes": "^0.4.6",
     "react": "^18",
     "react-dom": "^18",
     "react-tweet": "^3.3.1",

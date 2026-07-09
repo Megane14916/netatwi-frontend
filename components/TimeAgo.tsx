@@ -38,7 +38,7 @@ const TimeAgo = ({ timestamp }: { timestamp: string }) => {
     return () => clearInterval(intervalId);
   }, [timestamp]); // timestampが変わった場合にも再設定
 
-  return <span className="text-gray-500 text-sm whitespace-nowrap">{timeAgo}</span>;
+  return <span className="text-gray-500 dark:text-gray-400 text-sm whitespace-nowrap">{timeAgo}</span>;
 };
 
 export default TimeAgo;
