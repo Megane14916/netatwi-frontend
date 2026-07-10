@@ -1,11 +1,12 @@
-import { Timer, Zap, Calendar, CheckSquare, Trophy, Users, CheckCircle, UserStar, ChevronRight, ExternalLink } from 'lucide-react';
+"use client";
+
+import { Timer, Zap, Calendar, CheckSquare, Trophy, Users, CheckCircle, UserStar, ChevronRight, ExternalLink, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import dayjs from 'dayjs';
 import RippleLink from "@/components/RippleLink";
 import Countdown from '@/components/venue/Countdown';
 import React from 'react';
-
-const API_URL = process.env.BACKEND_URL || 'http://127.0.0.1:5001';
+import useSWR from 'swr';
 
 interface Contest {
   id: number;
@@ -78,18 +79,10 @@ const GP_STEPS = [
   "決勝結果"
 ];
 
-async function getContestsData(): Promise<ContestsResponse> {
-  try {
-    const res = await fetch(`${API_URL}/api/contests`, {
-      next: { revalidate: 60 },
-    });
-    if (!res.ok) throw new Error('Failed to fetch contests');
-    return res.json();
-  } catch (error) {
-    console.error(error);
-    return { ongoing: [], voting: [], upcoming: [], closed: [], latestResult: null };
-  }
-}
+const fetcher = (url: string) => fetch(url).then(res => {
+  if (!res.ok) throw new Error('Failed to fetch');
+  return res.json();
+});
 
 const renderTitle = (name: string) => {
   if (!name.includes('ネタツイグランプリ')) return name;
@@ -103,8 +96,19 @@ const renderTitle = (name: string) => {
   );
 };
 
-export default async function VenuePage() {
-  const data = await getContestsData();
+export default function VenuePage() {
+  const { data, isLoading } = useSWR<ContestsResponse>('/api/contests', fetcher);
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center bg-white dark:bg-black">
+        <Loader2 className="w-8 h-8 animate-spin text-[#1DA1F2]" />
+      </div>
+    );
+  }
+
+  if (!data) return null;
+
   const { ongoing, voting, upcoming, closed } = data;
   const allContests = [...ongoing, ...voting, ...upcoming, ...closed];
 
