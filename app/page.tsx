@@ -919,7 +919,7 @@ export default function HomePage() {
               過去のグランプリの結果
             </h2>
 
-            <div className="mt-12 flex flex-col border-b border-gray-400 dark:border-gray-800 divide-y divide-gray-400 dark:divide-gray-800">
+            <div className="mt-12 flex flex-col border-b border-gray-300 dark:border-gray-700 divide-y divide-gray-300 dark:divide-gray-700">
               {contestsLoading ? (
                 [1, 2].map((i) => (
                   <div key={i} className="py-6 px-3 md:p-8 flex flex-row items-center justify-between gap-2 md:gap-4 animate-pulse">
