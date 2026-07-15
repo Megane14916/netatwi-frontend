@@ -60,7 +60,7 @@ export function UserListRow({ user, index }: { user: UserProps; index: number })
         
         {/* Daily Stats */}
         <div className="flex flex-col md:flex-row items-center md:items-center gap-1 md:gap-2 border-l border-gray-300 dark:border-gray-700 pl-3 md:pl-4">
-          <span className="text-[10px] md:text-xs font-bold text-black/50 dark:text-white/50">日めくり</span>
+          <span className="text-[10px] md:text-xs font-bold text-black/50 dark:text-white/50">デイリー</span>
           <div className="flex flex-col md:flex-row items-start md:items-center gap-0.5 md:gap-2">
             <span className="flex items-center gap-0.5 text-[10px] sm:text-xs md:text-sm font-bold text-black dark:text-white leading-none">
               🥇 {user.stats.daily_1st}

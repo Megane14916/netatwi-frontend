@@ -116,7 +116,7 @@ export default function NotificationsPage() {
                         {notification.sender 
                           ? notification.sender.name 
                           : notification.type.startsWith('contest_')
-                            ? (notification.contest?.type === 'daily' ? '日めくり' : 'グランプリ')
+                            ? (notification.contest?.type === 'daily' ? 'デイリー' : 'グランプリ')
                             : 'システム'
                         }
                       </span>

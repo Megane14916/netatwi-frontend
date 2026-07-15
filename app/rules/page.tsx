@@ -77,10 +77,10 @@ export default function RulesPage() {
                         </div>
                     </section>
 
-                    {/* 日めくりコンテストについて */}
+                    {/* デイリーコンテストについて */}
                     <section>
                         <h2 className="text-2xl font-bold mb-6 text-[#1DA1F2]">
-                            日めくりコンテストについて
+                            デイリーコンテストについて
                         </h2>
                         <div className="space-y-6">
                             <div>

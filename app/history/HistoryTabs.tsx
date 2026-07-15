@@ -20,8 +20,8 @@ interface Contest {
 export default function HistoryTabs({ contests }: { contests: Contest[] }) {
   const [activeTab, setActiveTab] = useState<'grandprix' | 'daily'>('grandprix');
 
-  const grandprixContests = contests.filter((c) => c.type === 'grandprix' || (!c.type && !c.name.includes('日めくり')));
-  const dailyContests = contests.filter((c) => c.type === 'daily' || (!c.type && c.name.includes('日めくり')));
+  const grandprixContests = contests.filter((c) => c.type === 'grandprix' || (!c.type && !c.name.includes('デイリー')));
+  const dailyContests = contests.filter((c) => c.type === 'daily' || (!c.type && c.name.includes('デイリー')));
 
   const renderContestCard = (contest: Contest) => (
     <RippleLink
@@ -79,7 +79,7 @@ export default function HistoryTabs({ contests }: { contests: Contest[] }) {
             }`}
             onClick={() => setActiveTab('daily')}
           >
-            日めくり
+            デイリー
           </button>
         </div>
 
@@ -124,7 +124,7 @@ export default function HistoryTabs({ contests }: { contests: Contest[] }) {
                 dailyContests.map(renderContestCard)
               ) : (
                 <div className="text-gray-500 dark:text-gray-400 text-center py-10 bg-gray-50 dark:bg-gray-950">
-                  <p>終了した日めくり大会はまだありません。</p>
+                  <p>終了したデイリー大会はまだありません。</p>
                 </div>
               )}
             </>

@@ -136,7 +136,7 @@ export default function VenuePage() {
     }
   }
 
-  // 日めくり: type === 'daily' のもののみ
+  // デイリー: type === 'daily' のもののみ
   const dailyContests = allContests.filter(c => c.type === 'daily');
   
   const categorizeDaily = (c: Contest) => {
@@ -333,11 +333,11 @@ export default function VenuePage() {
       })()}
 
       <div className="container mx-auto max-w-[672px] px-4 mt-12">
-        {/* 日めくりエリア */}
+        {/* デイリーエリア */}
         <section>
           <div className="flex items-center gap-3 mb-6 pb-2">
             <Calendar className="w-7 h-7 text-[#1DA1F2]" />
-            <h2 className="text-2xl font-extrabold text-black dark:text-white">日めくりコンテスト</h2>
+            <h2 className="text-2xl font-extrabold text-black dark:text-white">デイリーコンテスト</h2>
           </div>
           
           <div className="flex flex-col border-b border-gray-200 dark:border-gray-800 divide-y divide-gray-200 dark:divide-gray-800 mb-4">
@@ -345,7 +345,7 @@ export default function VenuePage() {
             
             {visibleDailies.length === 0 && (
               <div className="text-gray-500 dark:text-gray-400 text-center py-10 bg-gray-50 dark:bg-gray-950">
-                <p>現在開催中の日めくり大会はありません。</p>
+                <p>現在開催中のデイリー大会はありません。</p>
               </div>
             )}
           </div>

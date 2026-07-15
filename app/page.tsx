@@ -45,44 +45,7 @@ interface ContestsResponse {
   closed: Contest[];
 }
 
-interface TimelinePostMock {
-  id: number;
-  userName: string;
-  screenName: string;
-  body: string;
-  postedAt: string;
-}
 
-const timelinePostsMock: TimelinePostMock[] = [
-  {
-    id: 1,
-    userName: "匿名さん",
-    screenName: "@user_a",
-    body: "このお題、深夜テンションで考えると急に天才になった気がする。",
-    postedAt: "1時間前",
-  },
-  {
-    id: 2,
-    userName: "匿名さん",
-    screenName: "@user_b",
-    body: "投票してたら笑いすぎて、結局どれも優勝させたくなってしまう。",
-    postedAt: "2時間前",
-  },
-  {
-    id: 3,
-    userName: "匿名さん",
-    screenName: "@user_c",
-    body: "「文字数が足りない」より「勢いが足りない」が一番こわい。",
-    postedAt: "3時間前",
-  },
-  {
-    id: 4,
-    userName: "匿名さん",
-    screenName: "@user_d",
-    body: "結果発表の日だけ通知音をドラムロールにしてほしい。",
-    postedAt: "5時間前",
-  },
-];
 
 const getGPStep = (
   gpFinals: Contest,
@@ -122,192 +85,11 @@ const formatDateTime = (dt: string | null) => {
   return dayjs(dt).format("MM/DD HH:mm");
 };
 
-function HeroTimelineGroup() {
-  return (
-    <div className="flex flex-col">
-      {timelinePostsMock.map((post) => (
-        <article
-          key={post.id}
-          className="flex h-[160px] w-full flex-col justify-center border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-black p-3 transition-colors hover:bg-gray-50 dark:hover:bg-gray-900 sm:p-4"
-        >
-          <div className="flex items-start gap-2 sm:gap-3">
-            <div className="flex-none">
-              <div className="block transition-opacity hover:opacity-80">
-                <div className="h-8 w-8 rounded-full border border-gray-200 dark:border-gray-800 bg-gray-300 dark:bg-gray-700 sm:h-10 sm:w-10" />
-              </div>
-            </div>
-            <div className="min-w-0 flex-grow">
-              <div className="mb-1 flex items-start justify-between">
-                <div className="flex min-w-0 flex-wrap items-center gap-1">
-                  <span className="truncate text-sm font-bold leading-tight text-black dark:text-white hover:underline sm:text-base">
-                    {post.userName}
-                  </span>
-                  <span
-                    className="truncate text-xs text-gray-500 dark:text-gray-400 sm:text-sm"
-                    style={{ flexShrink: 1000 }}
-                  >
-                    {post.screenName}
-                  </span>
-                </div>
-              </div>
-              <div>
-                <p className="whitespace-pre-wrap text-xs text-black/90 dark:text-white/90 sm:text-sm">
-                  {post.body}
-                </p>
-              </div>
-              <div className="mt-3 flex items-center justify-between text-gray-400">
-                <button
-                  type="button"
-                  aria-label="コメント"
-                  className="group -ml-2 flex items-center focus:outline-none"
-                >
-                  <div className="rounded-full p-1.5 transition-colors group-hover:bg-blue-500/10 group-hover:text-blue-500 sm:p-2">
-                    <MessageCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  aria-label="リポスト"
-                  className="group flex items-center focus:outline-none"
-                >
-                  <div className="rounded-full p-1.5 transition-colors group-hover:bg-green-500/10 group-hover:text-green-500 sm:p-2">
-                    <Repeat2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  aria-label="いいね"
-                  className="group flex items-center focus:outline-none"
-                >
-                  <div className="rounded-full p-1.5 transition-colors group-hover:bg-pink-500/10 group-hover:text-pink-500 sm:p-2">
-                    <Heart className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  aria-label="インプレッション"
-                  className="group flex items-center focus:outline-none"
-                >
-                  <div className="rounded-full p-1.5 transition-colors group-hover:bg-blue-500/10 group-hover:text-blue-500 sm:p-2">
-                    <BarChart2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  aria-label="ブックマーク"
-                  className="group -mr-2 flex items-center focus:outline-none"
-                >
-                  <div className="rounded-full p-1.5 transition-colors group-hover:bg-blue-500/10 group-hover:text-blue-500 sm:p-2">
-                    <Bookmark className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  </div>
-                </button>
-              </div>
-            </div>
-          </div>
-        </article>
-      ))}
-    </div>
-  );
-}
 
-function HeroTimelineRail() {
-  const [step, setStep] = useState(0);
-  const [isTransitioning, setIsTransitioning] = useState(true);
 
-  useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
 
-    const tick = () => {
-      setStep((prev) => {
-        // シームレスな無限ループ：ステップ16に達したら、見た目が全く同じ1グループ前(ステップ12)に一瞬で戻す
-        if (prev === 16) {
-          setIsTransitioning(false);
-          setTimeout(() => {
-            setIsTransitioning(true);
-            setStep(13);
-          }, 50);
-          return 12;
-        }
-        return prev + 1;
-      });
 
-      // ▼ ここの数値を変更するとスクロールの間隔が変わります
-      const minDelay = 500; // 最小間隔 (0.1秒)
-      const maxDelay = 2000; // 最大間隔 (0.3秒)
-      const nextDelay =
-        Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
 
-      timeoutId = setTimeout(tick, nextDelay);
-    };
-
-    const initialDelay = 50; // マウント直後に動き出すように短く設定
-    timeoutId = setTimeout(tick, initialDelay);
-
-    return () => clearTimeout(timeoutId);
-  }, []);
-
-  return (
-    <div
-      className="pt-12 h-full w-full bg-white dark:bg-black overflow-hidden"
-      style={{
-        maskImage:
-          "linear-gradient(to bottom, transparent, white 5%, white 100%)",
-        WebkitMaskImage:
-          "linear-gradient(to bottom, transparent, white 5%, white 100%)",
-      }}
-    >
-      <div
-        className="flex flex-col w-full max-w-full border-l border-gray-200 dark:border-gray-800 lg:w-[600px]"
-        style={{
-          transform: `translateY(calc(100vh - ${step * 160}px))`,
-          transition: isTransitioning
-            ? "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
-            : "none",
-        }}
-      >
-        <HeroTimelineGroup />
-        <HeroTimelineGroup />
-        <HeroTimelineGroup />
-        <HeroTimelineGroup />
-        <HeroTimelineGroup />
-        <HeroTimelineGroup />
-      </div>
-    </div>
-  );
-}
-
-function TimelineRail({ direction }: { direction: "up" | "down" }) {
-  const timeline = [...timelinePostsMock, ...timelinePostsMock];
-
-  return (
-    <div className={`timeline-rail timeline-${direction}`}>
-      <div className="timeline-track">
-        {timeline.map((post, index) => (
-          <article
-            key={`${post.id}-${index}`}
-            className="w-[270px] rounded-2xl border border-black/10 dark:border-white/10 bg-white dark:bg-black p-4 shadow-[0_8px_20px_rgba(0,0,0,0.06)]"
-          >
-            <div className="mb-2 flex items-center gap-2">
-              <div className="h-8 w-8 rounded-full bg-gray-300 dark:bg-gray-700" />
-              <div className="min-w-0">
-                <p className="truncate text-sm font-bold text-black dark:text-white">
-                  {post.userName}
-                </p>
-                <p className="truncate text-xs text-black/55 dark:text-white/55">
-                  {post.screenName}
-                </p>
-              </div>
-            </div>
-            <p className="mb-2 text-sm leading-relaxed text-black/85 dark:text-white/85">
-              {post.body}
-            </p>
-            <p className="text-xs text-black/50 dark:text-white/50">{post.postedAt}</p>
-          </article>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 
 
@@ -423,10 +205,7 @@ export default function HomePage() {
           <polygon points="0,0 100,0 0,26.8" fill="#1DA1F2" />
         </svg>
 
-        {/* Right Timeline */}
-        <div className="absolute bottom-0 right-0 top-0 z-0 w-[55.56vw] overflow-hidden lg:w-[600px]">
-          <HeroTimelineRail />
-        </div>
+
 
         {/* Bottom Right Separator (Triangle) */}
         <svg
@@ -450,12 +229,12 @@ export default function HomePage() {
               <span
                 ref={heroTitleMeasureRef}
                 aria-hidden="true"
-                className="pointer-events-none absolute left-0 top-0 whitespace-nowrap text-[1.75rem] font-normal text-black dark:text-white opacity-0 md:text-4xl"
+                className="pointer-events-none absolute left-0 top-0 whitespace-nowrap text-[2.25rem] font-normal text-black dark:text-white opacity-0 md:text-4xl"
               >
                 ネタツイグランプリ
               </span>
               <span
-                className="block whitespace-nowrap text-[1.75rem] font-normal text-black dark:text-white md:text-4xl"
+                className="block whitespace-nowrap text-[2.25rem] font-normal text-black dark:text-white md:text-4xl"
                 style={
                   heroTitleFontSize
                     ? { fontSize: `${heroTitleFontSize}px` }
@@ -468,11 +247,11 @@ export default function HomePage() {
                 ref={heroTaglinesRef}
                 className="mt-4 inline-flex flex-col items-start"
               >
-                <span className="block text-[2.5rem] font-black leading-none text-black/80 dark:text-white md:text-7xl lg:text-[5.25rem]">
+                <span className="block text-[3.25rem] font-black leading-none text-black/80 dark:text-white md:text-7xl lg:text-[5.25rem]">
                   <span className="block md:inline">Tiny</span>
                   <span className="block md:inline md:ml-2">Tweets.</span>
                 </span>
-                <span className="mt-2 block text-[2.5rem] font-black leading-none text-black/80 dark:text-white md:text-7xl lg:text-[5.25rem]">
+                <span className="mt-2 block text-[3.25rem] font-black leading-none text-black/80 dark:text-white md:text-7xl lg:text-[5.25rem]">
                   <span className="block md:inline">Huge</span>
                   <span className="block md:inline md:ml-2">Laughs.</span>
                 </span>
@@ -767,7 +546,7 @@ export default function HomePage() {
               <div className="mx-auto max-w-7xl px-6 md:px-10">
                 <div className="mb-6 text-left">
                   <h3 className="text-2xl font-bold text-black dark:text-white md:text-[40px]">
-                    日めくり
+                    デイリー
                   </h3>
                 </div>
                 <div className="flex flex-col border-b border-gray-200 dark:border-gray-800 divide-y divide-gray-200 dark:divide-gray-800">
@@ -816,17 +595,17 @@ export default function HomePage() {
           </h3>
           <div className="mx-auto inline-block max-w-4xl text-left text-base leading-relaxed md:text-lg">
             <p className="mb-2">
-              ネタツイグランプリとは、実力派ネタツイッタラー7名（予定）による審査オンリーの、インプレッション数や流行に縛られない、おもしろさのみで競うネタツイの賞レースである。
+              ネタツイグランプリとは、実力派ネタツイッタラー8名による審査オンリーの、インプレッション数や流行に縛られない、おもしろさのみで競うネタツイの賞レースである。
             </p>
             <p className="mb-2">予選・決勝形式について 予選は誰でも参加することができ、決勝には予選で上位1/3の結果を残した者のみ進出することができる。</p>
             <p className="mb-2">
               なお、予選では画像を使用することができず、逆に決勝では画像を１枚以上使用しなければならない。
             </p>
             <p className="mb-2">
-               日めくり（仮） 今回のネタツイグランプリでは、審査期間中に、予選・決勝とは別で『日めくり（仮）』という大会が毎日開催される。
+              今回のネタツイグランプリでは、審査期間中に、予選・決勝とは別で『デイリー』という大会が毎日開催される。
             </p>
             <p className="mb-2">
-              『日めくり（仮）』では、ユーザーによる「いいね」の数で順位が決まるため、本番とはまた違った勝ち方が求められる。
+              『デイリー』では、ユーザーによる「いいね」の数で順位が決まるため、本番とはまた違った勝ち方が求められる。
             </p>
             <p className="mb-2">
               全28回、熾烈なネタツイバトルが勃発する。 
@@ -1009,7 +788,7 @@ export default function HomePage() {
               )}
             </div>
 
-            {/* 日めくりの結果 */}
+            {/* デイリーの結果 */}
             {(() => {
               if (contestsLoading) {
                 return (
@@ -1044,7 +823,7 @@ export default function HomePage() {
                 return (
                   <div className="mt-16">
                     <h3 className="mb-6 text-2xl font-bold text-black dark:text-white md:text-[40px]">
-                      日めくりの結果
+                      デイリーの結果
                     </h3>
                     <div className="flex flex-col border-b border-gray-300 dark:border-gray-700 divide-y divide-gray-300 dark:divide-gray-700">
                       {closedDailies.map((c) => (

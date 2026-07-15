@@ -391,7 +391,7 @@ export default function AdminPage() {
                                     <label className="block text-sm font-medium text-gray-300 mb-2">コンテストタイプ</label>
                                     <div className="flex space-x-4">
                                         <label className="flex items-center text-sm text-gray-300 cursor-pointer"><input type="radio" name="type" value="grandprix" checked={createForm.type === 'grandprix'} onChange={(e) => handleCreateFormChange('type', e.target.value)} className="mr-2" />グランプリ</label>
-                                        <label className="flex items-center text-sm text-gray-300 cursor-pointer"><input type="radio" name="type" value="daily" checked={createForm.type === 'daily'} onChange={(e) => handleCreateFormChange('type', e.target.value)} className="mr-2" />日めくり</label>
+                                        <label className="flex items-center text-sm text-gray-300 cursor-pointer"><input type="radio" name="type" value="daily" checked={createForm.type === 'daily'} onChange={(e) => handleCreateFormChange('type', e.target.value)} className="mr-2" />デイリー</label>
                                     </div>
                                 </div>
                             </div>
