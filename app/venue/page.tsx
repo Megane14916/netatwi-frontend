@@ -237,7 +237,7 @@ export default function VenuePage() {
           <div className="relative w-full bg-white dark:bg-black">
             
             {/* 上部 バナー */}
-            <div className="relative z-30 w-full bg-gray-50 dark:bg-gray-950 text-gray-800 dark:text-gray-200 text-center py-3.5 px-4 text-[15px] font-bold">
+            <div className="relative z-30 w-full bg-gray-50 dark:bg-gray-950 text-gray-800 dark:text-gray-200 text-center py-3.5 px-4 text-[12px] md:text-[15px] font-bold">
               {bannerLink ? (
                 <Link href={bannerLink} className="hover:underline flex items-center justify-center gap-1.5 transition-opacity hover:opacity-80">
                   {bannerText} <ChevronRight className="w-4 h-4" />
@@ -337,7 +337,7 @@ export default function VenuePage() {
         <section>
           <div className="flex items-center gap-3 mb-6 pb-2">
             <Calendar className="w-7 h-7 text-[#1DA1F2]" />
-            <h2 className="text-2xl font-extrabold text-black dark:text-white">デイリーコンテスト</h2>
+            <h2 className="text-2xl font-bold text-black dark:text-white">デイリー</h2>
           </div>
           
           <div className="flex flex-col border-b border-gray-200 dark:border-gray-800 divide-y divide-gray-200 dark:divide-gray-800 mb-4">
