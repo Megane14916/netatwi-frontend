@@ -141,24 +141,28 @@ export default function VenuePage() {
   
   const categorizeDaily = (c: Contest) => {
     const now = dayjs();
+    if (c.startTime && now.isBefore(dayjs(c.startTime))) return 'upcoming';
     if (c.endTime && now.isBefore(dayjs(c.endTime))) return 'ongoing';
     if (c.votingEndTime && now.isBefore(dayjs(c.votingEndTime))) return 'voting';
     return 'closed';
   };
 
+  const dailyUpcoming = dailyContests.filter(c => categorizeDaily(c) === 'upcoming').sort((a,b) => dayjs(b.startTime).unix() - dayjs(a.startTime).unix());
   const dailyOngoing = dailyContests.filter(c => categorizeDaily(c) === 'ongoing').sort((a,b) => dayjs(b.startTime).unix() - dayjs(a.startTime).unix());
   const dailyVoting = dailyContests.filter(c => categorizeDaily(c) === 'voting').sort((a,b) => dayjs(b.startTime).unix() - dayjs(a.startTime).unix());
   const dailyClosed = dailyContests.filter(c => categorizeDaily(c) === 'closed').sort((a,b) => dayjs(b.startTime).unix() - dayjs(a.startTime).unix());
 
   const categorizedDaily = [
+    ...dailyUpcoming.map(c => ({ contest: c, type: 'upcoming' as const })),
     ...dailyOngoing.map(c => ({ contest: c, type: 'ongoing' as const })),
     ...dailyVoting.map(c => ({ contest: c, type: 'voting' as const })),
     ...dailyClosed.map(c => ({ contest: c, type: 'closed' as const }))
   ];
   const visibleDailies = categorizedDaily.slice(0, 5);
 
-  const renderCard = (contest: Contest, type: 'ongoing' | 'voting' | 'closed') => {
+  const renderCard = (contest: Contest, type: 'upcoming' | 'ongoing' | 'voting' | 'closed') => {
     const typeConfig = {
+      upcoming: { label: "準備中", bg: "bg-gray-500" },
       ongoing: { label: "投稿期間", bg: "bg-[#1DA1F2]" },
       voting: { label: "投票期間", bg: "bg-green-500" },
       closed: { label: "結果発表", bg: "bg-yellow-400" },
@@ -166,12 +170,14 @@ export default function VenuePage() {
     const config = typeConfig[type];
 
     let timeText = "";
-    if (type === "ongoing")
-      timeText = `期限: ${dayjs(contest.endTime).format("YYYY年MM月DD日 HH:mm")}`;
+    if (type === "upcoming")
+      timeText = `投稿開始: ${dayjs(contest.startTime).format("YYYY年MM月DD日 HH:mm")}`;
+    else if (type === "ongoing")
+      timeText = `投稿締切: ${dayjs(contest.endTime).format("YYYY年MM月DD日 HH:mm")}`;
     else if (type === "voting")
-      timeText = `投票: ${dayjs(contest.votingEndTime).format("YYYY年MM月DD日 HH:mm")}`;
+      timeText = `投票締切: ${dayjs(contest.votingEndTime).format("YYYY年MM月DD日 HH:mm")}`;
     else
-      timeText = `開催日:${dayjs(contest.startTime).format("YYYY年MM月DD日 HH:mm")}`;
+      timeText = `開催日時：${dayjs(contest.startTime).format("YYYY年MM月DD日 HH:mm")}`;
 
     return (
       <RippleLink

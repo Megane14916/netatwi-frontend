@@ -68,6 +68,7 @@ const renderGPTitle = (name: string) => {
 
 const categorizeDaily = (c: Contest) => {
   const now = dayjs();
+  if (c.startTime && now.isBefore(dayjs(c.startTime))) return "upcoming";
   if (c.endTime && now.isBefore(dayjs(c.endTime))) return "ongoing";
   if (c.votingEndTime && now.isBefore(dayjs(c.votingEndTime))) return "voting";
   return "closed";
@@ -298,13 +299,35 @@ export default function HomePage() {
             (c) => c.type === "grandprix" && c.parentContestId != null,
           ) || allContests.find((c) => c.hasQualifier === true);
 
-        if (!gpFinals) return null;
-
+        if (!gpFinals) {
+          return (
+            <section className="relative z-20 pt-[186px] pb-24 md:pt-20 md:pb-32">
+              <div className="mx-auto grid w-full max-w-7xl items-center gap-8 px-6 md:px-10">
+                <div>
+                  <span className="inline-flex rounded-full px-4 py-1 text-sm font-bold text-white bg-gray-500">
+                    準備中
+                  </span>
+                  <h2 className="mt-4 text-3xl font-extrabold leading-tight md:text-5xl">
+                    {renderGPTitle("第2回 ネタツイグランプリ 予選")}
+                  </h2>
+                  <p className="mt-5 text-sm font-medium text-black/80 dark:text-white/80 md:text-base">
+                    現在準備中です。開催までしばらくお待ちください。
+                  </p>
+                </div>
+              </div>
+            </section>
+          );
+        }
+        
         const gpQualifier = gpFinals.parentContestId
           ? allContests.find((c) => c.id === gpFinals.parentContestId)
           : undefined;
 
         const step = getGPStep(gpFinals, gpQualifier);
+
+        const isBeforeStart = gpQualifier
+          ? gpQualifier.startTime && currentTime.getTime() < new Date(gpQualifier.startTime).getTime()
+          : gpFinals.startTime && currentTime.getTime() < new Date(gpFinals.startTime).getTime();
 
         // ステータスバッジ
         const statusConfig: Record<number, { label: string; color: string }> = {
@@ -314,7 +337,11 @@ export default function HomePage() {
           3: { label: "審査員投票中", color: "bg-green-500" },
           4: { label: "結果発表！", color: "bg-yellow-400" },
         };
-        const { label: statusLabel, color: statusColor } = statusConfig[step];
+        let { label: statusLabel, color: statusColor } = statusConfig[step];
+        if (isBeforeStart) {
+          statusLabel = "準備中";
+          statusColor = "bg-gray-500";
+        }
 
         // 参加人数
         const participants =
@@ -480,9 +507,10 @@ export default function HomePage() {
 
           const renderDailyCard = (
             contest: Contest,
-            type: "ongoing" | "voting" | "closed",
+            type: "upcoming" | "ongoing" | "voting" | "closed",
           ) => {
             const typeConfig = {
+              upcoming: { label: "準備中", bg: "bg-gray-500" },
               ongoing: { label: "投稿期間", bg: "bg-[#1DA1F2]" },
               voting: { label: "投票期間", bg: "bg-green-500" },
               closed: { label: "結果発表", bg: "bg-yellow-400" },
@@ -490,7 +518,9 @@ export default function HomePage() {
             const config = typeConfig[type];
 
             let timeText = "";
-            if (type === "ongoing")
+            if (type === "upcoming")
+              timeText = `投稿開始: ${dayjs(contest.startTime).format("YYYY年MM月DD日 HH:mm")}`;
+            else if (type === "ongoing")
               timeText = `投稿締切: ${dayjs(contest.endTime).format("YYYY年MM月DD日 HH:mm")}`;
             else if (type === "voting")
               timeText = `投票締切: ${dayjs(contest.votingEndTime).format("YYYY年MM月DD日 HH:mm")}`;
