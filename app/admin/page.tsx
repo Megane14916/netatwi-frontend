@@ -18,15 +18,15 @@ interface ToggleSwitchProps {
 }
 const ToggleSwitch = ({ label, enabled, setEnabled, icon: Icon }: ToggleSwitchProps) => (
     <div className="flex items-center justify-between">
-        <label htmlFor={`toggle-${label}`} className="flex items-center text-sm font-medium text-gray-300 cursor-pointer">
-            {Icon && <Icon className="h-4 w-4 mr-2 text-gray-400" />}
+        <label htmlFor={`toggle-${label}`} className="flex items-center text-sm font-medium text-gray-700 cursor-pointer">
+            {Icon && <Icon className="h-4 w-4 mr-2 text-gray-600" />}
             {label}
         </label>
         <button
             type="button"
             id={`toggle-${label}`}
             onClick={() => setEnabled(!enabled)}
-            className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-yellow-500 ${enabled ? 'bg-yellow-600' : 'bg-gray-700'
+            className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-[#1DA1F2] ${enabled ? 'bg-[#1DA1F2]' : 'bg-gray-200'
                 }`}
         >
             <span className="sr-only">{label}を{enabled ? '無効にする' : '有効にする'}</span>
@@ -46,12 +46,12 @@ interface ConfirmDeleteModalProps {
     isDeleting: boolean;
 }
 const ConfirmDeleteModal = ({ contestName, onConfirm, onCancel, isDeleting }: ConfirmDeleteModalProps) => (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-        <div className="bg-gray-900 rounded-lg p-6 w-full max-w-sm relative shadow-xl border border-red-700">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg p-6 w-full max-w-sm relative shadow-xl border border-red-700">
             <h2 className="text-lg font-semibold mb-3 text-red-400">削除確認</h2>
-            <p className="text-sm text-gray-300 mb-6">本当に大会「<span className="font-bold">{contestName}</span>」を削除しますか？<br />この操作は元に戻せません。</p>
+            <p className="text-sm text-gray-700 mb-6">本当に大会「<span className="font-bold">{contestName}</span>」を削除しますか？<br />この操作は元に戻せません。</p>
             <div className="flex justify-end gap-3">
-                <button onClick={onCancel} disabled={isDeleting} className="px-4 py-2 text-sm rounded-md text-gray-400 hover:bg-gray-700 disabled:opacity-50">
+                <button onClick={onCancel} disabled={isDeleting} className="px-4 py-2 text-sm rounded-md text-gray-600 hover:bg-gray-100 disabled:opacity-50">
                     キャンセル
                 </button>
                 <button onClick={onConfirm} disabled={isDeleting} className="px-4 py-2 text-sm rounded-md bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 disabled:bg-red-800">
@@ -79,6 +79,7 @@ interface ManagedContest {
     isVotingVisible?: boolean;
     advancementNumerator?: number | null;
     advancementDenominator?: number | null;
+    judgeAwardAdvancement?: boolean;
     resultCommentTop?: string | null;
     resultCommentBottom?: string | null;
 }
@@ -100,6 +101,7 @@ export default function AdminPage() {
         hasQualifier: true,
         advancementNumerator: 1,
         advancementDenominator: 3,
+        qualifierJudgeAwardAdvancement: false,
 
         hasTheme: false,
         theme: '',
@@ -214,11 +216,13 @@ export default function AdminPage() {
             if (response.ok) {
                 setCreateStatus('success');
                 setCreateMessage(`大会「${createForm.name}」が作成されました！ (ID: ${data.id})`);
-                setCreateForm({
-                    name: '', type: 'grandprix', hasQualifier: true, advancementNumerator: 1, advancementDenominator: 3,
-                    hasTheme: false, theme: '', scoringMethod: 'judge', imageRule: 'required', isVotingVisible: false, startTime: '', endTime: '', votingEndTime: '', judgePassword: '', generalVoteWeight: 0, judgeMaxScore: 20,
-                    qualifierHasTheme: false, qualifierTheme: '', qualifierScoringMethod: 'judge', qualifierImageRule: 'none', qualifierIsVotingVisible: false, qualifierStartTime: '', qualifierEndTime: '', qualifierVotingEndTime: '', qualifierJudgePassword: '', qualifierGeneralVoteWeight: 0, qualifierJudgeMaxScore: 20
-                });
+                setCreateForm(prev => ({
+                    ...prev,
+                    name: '',
+                    theme: '',
+                    startTime: '', endTime: '', votingEndTime: '', judgePassword: '',
+                    qualifierTheme: '', qualifierStartTime: '', qualifierEndTime: '', qualifierVotingEndTime: '', qualifierJudgePassword: ''
+                }));
             } else { throw new Error(data.error || '不明なエラーが発生しました。'); }
         } catch (error) {
             setCreateStatus('error');
@@ -236,6 +240,7 @@ export default function AdminPage() {
                     next.hasQualifier = true;
                     next.advancementNumerator = 1;
                     next.advancementDenominator = 3;
+                    next.qualifierJudgeAwardAdvancement = false;
                     next.scoringMethod = 'judge';
                     next.judgeMaxScore = 20;
                     next.generalVoteWeight = 0;
@@ -362,99 +367,102 @@ export default function AdminPage() {
         return (
             <div className="container mx-auto px-4 py-8 text-center">
                 <h1 className="text-2xl font-bold text-red-500">アクセス権がありません</h1>
-                <p className="text-gray-400 mt-2">このページは管理者専用です。</p>
+                <p className="text-gray-600 mt-2">このページは管理者専用です。</p>
             </div>
         );
     }
 
     return (
-        <div className="container mx-auto px-4 py-8">
-            <h1 className="text-3xl font-bold mb-6 border-b border-gray-700 pb-2">管理者ダッシュボード</h1>
+        <div className="container mx-auto px-4 py-8 text-black bg-white min-h-screen">
+            <h1 className="text-3xl font-bold mb-6 border-b border-gray-200 pb-2">管理者ダッシュボード</h1>
 
-            <div className="mb-6 border-b border-gray-700">
+            <div className="mb-6 border-b border-gray-200">
                 <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-                    <button onClick={() => setActiveTab('create')} className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm focus:outline-none ${activeTab === 'create' ? 'border-yellow-500 text-yellow-400' : 'border-transparent text-gray-500 hover:text-gray-300 hover:border-gray-500'}`} > <PlusCircle className="inline-block h-5 w-5 mr-1.5 align-text-bottom" /> 新規作成 </button>
-                    <button onClick={() => setActiveTab('manage')} className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm focus:outline-none ${activeTab === 'manage' ? 'border-yellow-500 text-yellow-400' : 'border-transparent text-gray-500 hover:text-gray-300 hover:border-gray-500'}`} > <Settings className="inline-block h-5 w-5 mr-1.5 align-text-bottom" /> 大会管理 </button>
-                    <button onClick={() => setActiveTab('news')} className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm focus:outline-none ${activeTab === 'news' ? 'border-yellow-500 text-yellow-400' : 'border-transparent text-gray-500 hover:text-gray-300 hover:border-gray-500'}`} > <Newspaper className="inline-block h-5 w-5 mr-1.5 align-text-bottom" /> ニュース管理 </button>
+                    <button onClick={() => setActiveTab('create')} className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm focus:outline-none ${activeTab === 'create' ? 'border-[#1DA1F2] text-[#1DA1F2]' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-500'}`} > <PlusCircle className="inline-block h-5 w-5 mr-1.5 align-text-bottom" /> 新規作成 </button>
+                    <button onClick={() => setActiveTab('manage')} className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm focus:outline-none ${activeTab === 'manage' ? 'border-[#1DA1F2] text-[#1DA1F2]' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-500'}`} > <Settings className="inline-block h-5 w-5 mr-1.5 align-text-bottom" /> 大会管理 </button>
+                    <button onClick={() => setActiveTab('news')} className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm focus:outline-none ${activeTab === 'news' ? 'border-[#1DA1F2] text-[#1DA1F2]' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-500'}`} > <Newspaper className="inline-block h-5 w-5 mr-1.5 align-text-bottom" /> ニュース管理 </button>
                 </nav>
             </div>
 
             <div>
                 {activeTab === 'create' && (
-                    <div className="max-w-2xl mx-auto bg-gray-900 p-8 rounded-lg shadow-lg">
+                    <div className="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-lg">
                         <h2 className="text-2xl font-semibold mb-6">新しい大会を作成</h2>
                         <form onSubmit={handleCreateSubmit} className="space-y-6">
-                            <div> <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">大会名</label> <input type="text" id="name" value={createForm.name} onChange={(e) => handleCreateFormChange('name', e.target.value)} required className="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-4 focus:ring-2 focus:ring-yellow-500 focus:outline-none" /> </div>
+                            <div> <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">大会名</label> <input type="text" id="name" value={createForm.name} onChange={(e) => handleCreateFormChange('name', e.target.value)} required className="w-full bg-white border border-gray-200 rounded-md py-2 px-4 focus:ring-2 focus:ring-[#1DA1F2] focus:outline-none" /> </div>
                             
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 border border-dashed border-gray-600 rounded-md bg-gray-800/30">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 border border-dashed border-gray-300 rounded-md bg-white/30">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-300 mb-2">コンテストタイプ</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">コンテストタイプ</label>
                                     <div className="flex space-x-4">
-                                        <label className="flex items-center text-sm text-gray-300 cursor-pointer"><input type="radio" name="type" value="grandprix" checked={createForm.type === 'grandprix'} onChange={(e) => handleCreateFormChange('type', e.target.value)} className="mr-2" />グランプリ</label>
-                                        <label className="flex items-center text-sm text-gray-300 cursor-pointer"><input type="radio" name="type" value="daily" checked={createForm.type === 'daily'} onChange={(e) => handleCreateFormChange('type', e.target.value)} className="mr-2" />デイリー</label>
+                                        <label className="flex items-center text-sm text-gray-700 cursor-pointer"><input type="radio" name="type" value="grandprix" checked={createForm.type === 'grandprix'} onChange={(e) => handleCreateFormChange('type', e.target.value)} className="mr-2" />グランプリ</label>
+                                        <label className="flex items-center text-sm text-gray-700 cursor-pointer"><input type="radio" name="type" value="daily" checked={createForm.type === 'daily'} onChange={(e) => handleCreateFormChange('type', e.target.value)} className="mr-2" />デイリー</label>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="pt-4 border-t border-gray-700 space-y-4">
+                            <div className="pt-4 border-t border-gray-200 space-y-4">
                                 <ToggleSwitch label="予選・決勝形式にする" enabled={createForm.hasQualifier} setEnabled={(val) => handleCreateFormChange('hasQualifier', val)} icon={TrophyIcon} />
                             </div>
 
                             {createForm.hasQualifier ? (
                                 <div className="space-y-8">
-                                    <div className="space-y-6 p-6 border-2 border-gray-700 rounded-lg bg-gray-800/50">
-                                        <h3 className="text-xl font-bold text-yellow-400 mb-4">予選の設定</h3>
+                                    <div className="space-y-6 p-6 border-2 border-gray-200 rounded-lg bg-white shadow-sm">
+                                        <h3 className="text-xl font-bold text-[#1DA1F2] mb-4">予選の設定</h3>
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-300 mb-2">予選通過割合</label>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">予選通過割合</label>
                                             <div className="flex items-center space-x-2">
-                                                <input type="number" min="1" value={createForm.advancementNumerator} onChange={(e) => handleCreateFormChange('advancementNumerator', parseInt(e.target.value) || 1)} className="w-20 bg-gray-800 border border-gray-700 rounded-md py-2 px-4 text-center focus:ring-2 focus:ring-yellow-500 focus:outline-none" placeholder="1" />
-                                                <span className="text-xl text-gray-400">/</span>
-                                                <input type="number" min="1" value={createForm.advancementDenominator} onChange={(e) => handleCreateFormChange('advancementDenominator', parseInt(e.target.value) || 1)} className="w-20 bg-gray-800 border border-gray-700 rounded-md py-2 px-4 text-center focus:ring-2 focus:ring-yellow-500 focus:outline-none" placeholder="3" />
+                                                <input type="number" min="1" value={createForm.advancementNumerator} onChange={(e) => handleCreateFormChange('advancementNumerator', parseInt(e.target.value) || 1)} className="w-20 bg-white border border-gray-200 rounded-md py-2 px-4 text-center focus:ring-2 focus:ring-[#1DA1F2] focus:outline-none" placeholder="1" />
+                                                <span className="text-xl text-gray-600">/</span>
+                                                <input type="number" min="1" value={createForm.advancementDenominator} onChange={(e) => handleCreateFormChange('advancementDenominator', parseInt(e.target.value) || 1)} className="w-20 bg-white border border-gray-200 rounded-md py-2 px-4 text-center focus:ring-2 focus:ring-[#1DA1F2] focus:outline-none" placeholder="3" />
                                             </div>
                                         </div>
-                                        <div className="p-4 border border-dashed border-gray-600 rounded-md bg-gray-900/50 space-y-4">
+                                        <div className="pt-4 border-t border-gray-200">
+                                            <ToggleSwitch label="審査員賞受賞者を無条件で決勝進出とする" enabled={createForm.qualifierJudgeAwardAdvancement} setEnabled={(val) => handleCreateFormChange('qualifierJudgeAwardAdvancement', val)} icon={TrophyIcon} />
+                                        </div>
+                                        <div className="p-4 border border-dashed border-gray-300 rounded-md bg-gray-50 space-y-4">
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-300 mb-2">採点方法</label>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">採点方法</label>
                                                 <div className="flex space-x-4">
-                                                    <label className="flex items-center text-sm text-gray-300 cursor-pointer"><input type="radio" checked={createForm.qualifierScoringMethod === 'both'} onChange={(e) => handleCreateFormChange('qualifierScoringMethod', e.target.value)} value="both" className="mr-2" />審査+ユーザー</label>
-                                                    <label className="flex items-center text-sm text-gray-300 cursor-pointer"><input type="radio" checked={createForm.qualifierScoringMethod === 'user'} onChange={(e) => handleCreateFormChange('qualifierScoringMethod', e.target.value)} value="user" className="mr-2" />ユーザーのみ</label>
-                                                    <label className="flex items-center text-sm text-gray-300 cursor-pointer"><input type="radio" checked={createForm.qualifierScoringMethod === 'judge'} onChange={(e) => handleCreateFormChange('qualifierScoringMethod', e.target.value)} value="judge" className="mr-2" />審査のみ</label>
+                                                    <label className="flex items-center text-sm text-gray-700 cursor-pointer"><input type="radio" checked={createForm.qualifierScoringMethod === 'both'} onChange={(e) => handleCreateFormChange('qualifierScoringMethod', e.target.value)} value="both" className="mr-2" />審査+ユーザー</label>
+                                                    <label className="flex items-center text-sm text-gray-700 cursor-pointer"><input type="radio" checked={createForm.qualifierScoringMethod === 'user'} onChange={(e) => handleCreateFormChange('qualifierScoringMethod', e.target.value)} value="user" className="mr-2" />ユーザーのみ</label>
+                                                    <label className="flex items-center text-sm text-gray-700 cursor-pointer"><input type="radio" checked={createForm.qualifierScoringMethod === 'judge'} onChange={(e) => handleCreateFormChange('qualifierScoringMethod', e.target.value)} value="judge" className="mr-2" />審査のみ</label>
                                                 </div>
                                             </div>
 
                                             {createForm.qualifierScoringMethod !== 'user' && (
-                                                <div className="pt-4 border-t border-gray-700">
-                                                    <h4 className="text-sm font-semibold text-gray-400 mb-3 flex items-center"><Sliders className="w-4 h-4 mr-2"/> スコア計算設定</h4>
+                                                <div className="pt-4 border-t border-gray-200">
+                                                    <h4 className="text-sm font-semibold text-gray-600 mb-3 flex items-center"><Sliders className="w-4 h-4 mr-2"/> スコア計算設定</h4>
                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                         <div>
-                                                            <label className={`block text-sm font-medium mb-1 ${createForm.qualifierScoringMethod === 'judge' ? 'text-gray-500' : 'text-gray-300'}`}>一般票の重み係数</label>
-                                                            <input type="number" disabled={createForm.qualifierScoringMethod === 'judge'} value={createForm.qualifierGeneralVoteWeight} onChange={(e) => handleCreateFormChange('qualifierGeneralVoteWeight', parseInt(e.target.value))} className="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-4 disabled:opacity-50"/>
+                                                            <label className={`block text-sm font-medium mb-1 ${createForm.qualifierScoringMethod === 'judge' ? 'text-gray-500' : 'text-gray-700'}`}>一般票の重み係数</label>
+                                                            <input type="number" disabled={createForm.qualifierScoringMethod === 'judge'} value={createForm.qualifierGeneralVoteWeight} onChange={(e) => handleCreateFormChange('qualifierGeneralVoteWeight', parseInt(e.target.value))} className="w-full bg-white border border-gray-200 rounded-md py-2 px-4 disabled:opacity-50"/>
                                                         </div>
                                                         <div>
-                                                            <label className="block text-sm font-medium text-gray-300 mb-1">審査員評価の満点</label>
-                                                            <input type="number" min="1" max="100" value={createForm.qualifierJudgeMaxScore} onChange={(e) => handleCreateFormChange('qualifierJudgeMaxScore', parseInt(e.target.value))} className="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-4"/>
+                                                            <label className="block text-sm font-medium text-gray-700 mb-1">審査員評価の満点</label>
+                                                            <input type="number" min="1" max="100" value={createForm.qualifierJudgeMaxScore} onChange={(e) => handleCreateFormChange('qualifierJudgeMaxScore', parseInt(e.target.value))} className="w-full bg-white border border-gray-200 rounded-md py-2 px-4"/>
                                                         </div>
                                                     </div>
                                                 </div>
                                             )}
                                         </div>
 
-                                        <div className="space-y-4 p-4 border border-dashed border-gray-600 rounded-md bg-gray-900/50"> 
-                                            <h4 className="text-lg font-semibold text-gray-400 mb-3">期間設定</h4> 
+                                        <div className="space-y-4 p-4 border border-dashed border-gray-300 rounded-md bg-gray-50"> 
+                                            <h4 className="text-lg font-semibold text-gray-600 mb-3">期間設定</h4> 
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6"> 
-                                                <div> <label className="block text-sm font-medium text-gray-300 mb-1">投稿開始</label> <div className="relative"> <input type="datetime-local" value={createForm.qualifierStartTime} onChange={(e) => handleCreateFormChange('qualifierStartTime', e.target.value)} required className="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-4 focus:ring-2 focus:ring-yellow-500 focus:outline-none appearance-none" /> </div> </div> 
-                                                <div> <label className="block text-sm font-medium text-gray-300 mb-1">投稿終了</label> <div className="relative"> <input type="datetime-local" value={createForm.qualifierEndTime} onChange={(e) => handleCreateFormChange('qualifierEndTime', e.target.value)} required className="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-4 focus:ring-2 focus:ring-yellow-500 focus:outline-none appearance-none" /> </div> </div> 
+                                                <div> <label className="block text-sm font-medium text-gray-700 mb-1">投稿開始</label> <div className="relative"> <input type="datetime-local" value={createForm.qualifierStartTime} onChange={(e) => handleCreateFormChange('qualifierStartTime', e.target.value)} required className="w-full bg-white border border-gray-200 rounded-md py-2 px-4 focus:ring-2 focus:ring-[#1DA1F2] focus:outline-none appearance-none" /> </div> </div> 
+                                                <div> <label className="block text-sm font-medium text-gray-700 mb-1">投稿終了</label> <div className="relative"> <input type="datetime-local" value={createForm.qualifierEndTime} onChange={(e) => handleCreateFormChange('qualifierEndTime', e.target.value)} required className="w-full bg-white border border-gray-200 rounded-md py-2 px-4 focus:ring-2 focus:ring-[#1DA1F2] focus:outline-none appearance-none" /> </div> </div> 
                                             </div> 
-                                            <div> <label className="block text-sm font-medium text-gray-300 mb-1">投票終了</label> <div className="relative"> <input type="datetime-local" value={createForm.qualifierVotingEndTime} onChange={(e) => handleCreateFormChange('qualifierVotingEndTime', e.target.value)} required className="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-4 focus:ring-2 focus:ring-yellow-500 focus:outline-none appearance-none" /> </div> </div> 
+                                            <div> <label className="block text-sm font-medium text-gray-700 mb-1">投票終了</label> <div className="relative"> <input type="datetime-local" value={createForm.qualifierVotingEndTime} onChange={(e) => handleCreateFormChange('qualifierVotingEndTime', e.target.value)} required className="w-full bg-white border border-gray-200 rounded-md py-2 px-4 focus:ring-2 focus:ring-[#1DA1F2] focus:outline-none appearance-none" /> </div> </div> 
                                         </div>
 
-                                        <div className="pt-4 border-t border-gray-700 space-y-6">
+                                        <div className="pt-4 border-t border-gray-200 space-y-6">
                                             <ToggleSwitch label="お題を設定する" enabled={createForm.qualifierHasTheme} setEnabled={(val) => handleCreateFormChange('qualifierHasTheme', val)} />
-                                            {createForm.qualifierHasTheme && (<div> <label className="block text-sm font-medium text-gray-300 mb-2">お題</label> <textarea value={createForm.qualifierTheme} onChange={(e) => handleCreateFormChange('qualifierTheme', e.target.value)} required rows={3} className="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-4 focus:ring-2 focus:ring-yellow-500 focus:outline-none"></textarea> </div>)}
+                                            {createForm.qualifierHasTheme && (<div> <label className="block text-sm font-medium text-gray-700 mb-2">お題</label> <textarea value={createForm.qualifierTheme} onChange={(e) => handleCreateFormChange('qualifierTheme', e.target.value)} required rows={3} className="w-full bg-white border border-gray-200 rounded-md py-2 px-4 focus:ring-2 focus:ring-[#1DA1F2] focus:outline-none"></textarea> </div>)}
 
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center"><ImageIconLucide className="h-4 w-4 mr-2" />画像投稿設定</label>
-                                                <select value={createForm.qualifierImageRule} onChange={(e) => handleCreateFormChange('qualifierImageRule', e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-4 focus:ring-2 focus:ring-yellow-500 focus:outline-none">
+                                                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center"><ImageIconLucide className="h-4 w-4 mr-2" />画像投稿設定</label>
+                                                <select value={createForm.qualifierImageRule} onChange={(e) => handleCreateFormChange('qualifierImageRule', e.target.value)} className="w-full bg-white border border-gray-200 rounded-md py-2 px-4 focus:ring-2 focus:ring-[#1DA1F2] focus:outline-none">
                                                     <option value="optional">任意（画像あり/なし両方OK）</option>
                                                     <option value="required">必須（最低1枚の画像が必要）</option>
                                                     <option value="none">不可（画像投稿禁止）</option>
@@ -462,54 +470,54 @@ export default function AdminPage() {
                                             </div>
                                             <ToggleSwitch label="投票期間中に一般ユーザーへ投稿を公開する" enabled={createForm.qualifierIsVotingVisible} setEnabled={(val) => handleCreateFormChange('qualifierIsVotingVisible', val)} icon={Eye} />
                                         </div>
-                                        <div> <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center"><KeyRound className="h-4 w-4 mr-2 text-gray-400" />審査員用パスワード (任意)</label> <input type="password" value={createForm.qualifierJudgePassword} onChange={(e) => handleCreateFormChange('qualifierJudgePassword', e.target.value)} placeholder="空の場合はパスワードなし" className="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-4 focus:ring-2 focus:ring-yellow-500 focus:outline-none" /> </div>
+                                        <div> <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center"><KeyRound className="h-4 w-4 mr-2 text-gray-600" />審査員用パスワード (任意)</label> <input type="password" value={createForm.qualifierJudgePassword} onChange={(e) => handleCreateFormChange('qualifierJudgePassword', e.target.value)} placeholder="空の場合はパスワードなし" className="w-full bg-white border border-gray-200 rounded-md py-2 px-4 focus:ring-2 focus:ring-[#1DA1F2] focus:outline-none" /> </div>
                                     </div>
 
-                                    <div className="space-y-6 p-6 border-2 border-gray-700 rounded-lg bg-gray-800/50">
-                                        <h3 className="text-xl font-bold text-yellow-400 mb-4">本選の設定</h3>
-                                        <div className="p-4 border border-dashed border-gray-600 rounded-md bg-gray-900/50 space-y-4">
+                                    <div className="space-y-6 p-6 border-2 border-gray-200 rounded-lg bg-white shadow-sm">
+                                        <h3 className="text-xl font-bold text-[#1DA1F2] mb-4">本選の設定</h3>
+                                        <div className="p-4 border border-dashed border-gray-300 rounded-md bg-gray-50 space-y-4">
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-300 mb-2">採点方法</label>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">採点方法</label>
                                                 <div className="flex space-x-4">
-                                                    <label className="flex items-center text-sm text-gray-300 cursor-pointer"><input type="radio" checked={createForm.scoringMethod === 'both'} onChange={(e) => handleCreateFormChange('scoringMethod', e.target.value)} value="both" className="mr-2" />審査+ユーザー</label>
-                                                    <label className="flex items-center text-sm text-gray-300 cursor-pointer"><input type="radio" checked={createForm.scoringMethod === 'user'} onChange={(e) => handleCreateFormChange('scoringMethod', e.target.value)} value="user" className="mr-2" />ユーザーのみ</label>
-                                                    <label className="flex items-center text-sm text-gray-300 cursor-pointer"><input type="radio" checked={createForm.scoringMethod === 'judge'} onChange={(e) => handleCreateFormChange('scoringMethod', e.target.value)} value="judge" className="mr-2" />審査のみ</label>
+                                                    <label className="flex items-center text-sm text-gray-700 cursor-pointer"><input type="radio" checked={createForm.scoringMethod === 'both'} onChange={(e) => handleCreateFormChange('scoringMethod', e.target.value)} value="both" className="mr-2" />審査+ユーザー</label>
+                                                    <label className="flex items-center text-sm text-gray-700 cursor-pointer"><input type="radio" checked={createForm.scoringMethod === 'user'} onChange={(e) => handleCreateFormChange('scoringMethod', e.target.value)} value="user" className="mr-2" />ユーザーのみ</label>
+                                                    <label className="flex items-center text-sm text-gray-700 cursor-pointer"><input type="radio" checked={createForm.scoringMethod === 'judge'} onChange={(e) => handleCreateFormChange('scoringMethod', e.target.value)} value="judge" className="mr-2" />審査のみ</label>
                                                 </div>
                                             </div>
 
                                             {createForm.scoringMethod !== 'user' && (
-                                                <div className="pt-4 border-t border-gray-700">
-                                                    <h4 className="text-sm font-semibold text-gray-400 mb-3 flex items-center"><Sliders className="w-4 h-4 mr-2"/> スコア計算設定</h4>
+                                                <div className="pt-4 border-t border-gray-200">
+                                                    <h4 className="text-sm font-semibold text-gray-600 mb-3 flex items-center"><Sliders className="w-4 h-4 mr-2"/> スコア計算設定</h4>
                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                         <div>
-                                                            <label className={`block text-sm font-medium mb-1 ${createForm.scoringMethod === 'judge' ? 'text-gray-500' : 'text-gray-300'}`}>一般票の重み係数</label>
-                                                            <input type="number" disabled={createForm.scoringMethod === 'judge'} value={createForm.generalVoteWeight} onChange={(e) => handleCreateFormChange('generalVoteWeight', parseInt(e.target.value))} className="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-4 disabled:opacity-50"/>
+                                                            <label className={`block text-sm font-medium mb-1 ${createForm.scoringMethod === 'judge' ? 'text-gray-500' : 'text-gray-700'}`}>一般票の重み係数</label>
+                                                            <input type="number" disabled={createForm.scoringMethod === 'judge'} value={createForm.generalVoteWeight} onChange={(e) => handleCreateFormChange('generalVoteWeight', parseInt(e.target.value))} className="w-full bg-white border border-gray-200 rounded-md py-2 px-4 disabled:opacity-50"/>
                                                         </div>
                                                         <div>
-                                                            <label className="block text-sm font-medium text-gray-300 mb-1">審査員評価の満点</label>
-                                                            <input type="number" min="1" max="100" value={createForm.judgeMaxScore} onChange={(e) => handleCreateFormChange('judgeMaxScore', parseInt(e.target.value))} className="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-4"/>
+                                                            <label className="block text-sm font-medium text-gray-700 mb-1">審査員評価の満点</label>
+                                                            <input type="number" min="1" max="100" value={createForm.judgeMaxScore} onChange={(e) => handleCreateFormChange('judgeMaxScore', parseInt(e.target.value))} className="w-full bg-white border border-gray-200 rounded-md py-2 px-4"/>
                                                         </div>
                                                     </div>
                                                 </div>
                                             )}
                                         </div>
 
-                                        <div className="space-y-4 p-4 border border-dashed border-gray-600 rounded-md bg-gray-900/50"> 
-                                            <h4 className="text-lg font-semibold text-gray-400 mb-3">期間設定</h4> 
+                                        <div className="space-y-4 p-4 border border-dashed border-gray-300 rounded-md bg-gray-50"> 
+                                            <h4 className="text-lg font-semibold text-gray-600 mb-3">期間設定</h4> 
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6"> 
-                                                <div> <label className="block text-sm font-medium text-gray-300 mb-1">投稿開始</label> <div className="relative"> <input type="datetime-local" value={createForm.startTime} onChange={(e) => handleCreateFormChange('startTime', e.target.value)} required className="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-4 focus:ring-2 focus:ring-yellow-500 focus:outline-none appearance-none" /> </div> </div> 
-                                                <div> <label className="block text-sm font-medium text-gray-300 mb-1">投稿終了</label> <div className="relative"> <input type="datetime-local" value={createForm.endTime} onChange={(e) => handleCreateFormChange('endTime', e.target.value)} required className="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-4 focus:ring-2 focus:ring-yellow-500 focus:outline-none appearance-none" /> </div> </div> 
+                                                <div> <label className="block text-sm font-medium text-gray-700 mb-1">投稿開始</label> <div className="relative"> <input type="datetime-local" value={createForm.startTime} onChange={(e) => handleCreateFormChange('startTime', e.target.value)} required className="w-full bg-white border border-gray-200 rounded-md py-2 px-4 focus:ring-2 focus:ring-[#1DA1F2] focus:outline-none appearance-none" /> </div> </div> 
+                                                <div> <label className="block text-sm font-medium text-gray-700 mb-1">投稿終了</label> <div className="relative"> <input type="datetime-local" value={createForm.endTime} onChange={(e) => handleCreateFormChange('endTime', e.target.value)} required className="w-full bg-white border border-gray-200 rounded-md py-2 px-4 focus:ring-2 focus:ring-[#1DA1F2] focus:outline-none appearance-none" /> </div> </div> 
                                             </div> 
-                                            <div> <label className="block text-sm font-medium text-gray-300 mb-1">投票終了</label> <div className="relative"> <input type="datetime-local" value={createForm.votingEndTime} onChange={(e) => handleCreateFormChange('votingEndTime', e.target.value)} required className="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-4 focus:ring-2 focus:ring-yellow-500 focus:outline-none appearance-none" /> </div> </div> 
+                                            <div> <label className="block text-sm font-medium text-gray-700 mb-1">投票終了</label> <div className="relative"> <input type="datetime-local" value={createForm.votingEndTime} onChange={(e) => handleCreateFormChange('votingEndTime', e.target.value)} required className="w-full bg-white border border-gray-200 rounded-md py-2 px-4 focus:ring-2 focus:ring-[#1DA1F2] focus:outline-none appearance-none" /> </div> </div> 
                                         </div>
 
-                                        <div className="pt-4 border-t border-gray-700 space-y-6">
+                                        <div className="pt-4 border-t border-gray-200 space-y-6">
                                             <ToggleSwitch label="お題を設定する" enabled={createForm.hasTheme} setEnabled={(val) => handleCreateFormChange('hasTheme', val)} />
-                                            {createForm.hasTheme && (<div> <label className="block text-sm font-medium text-gray-300 mb-2">お題</label> <textarea value={createForm.theme} onChange={(e) => handleCreateFormChange('theme', e.target.value)} required rows={3} className="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-4 focus:ring-2 focus:ring-yellow-500 focus:outline-none"></textarea> </div>)}
+                                            {createForm.hasTheme && (<div> <label className="block text-sm font-medium text-gray-700 mb-2">お題</label> <textarea value={createForm.theme} onChange={(e) => handleCreateFormChange('theme', e.target.value)} required rows={3} className="w-full bg-white border border-gray-200 rounded-md py-2 px-4 focus:ring-2 focus:ring-[#1DA1F2] focus:outline-none"></textarea> </div>)}
 
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center"><ImageIconLucide className="h-4 w-4 mr-2" />画像投稿設定</label>
-                                                <select value={createForm.imageRule} onChange={(e) => handleCreateFormChange('imageRule', e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-4 focus:ring-2 focus:ring-yellow-500 focus:outline-none">
+                                                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center"><ImageIconLucide className="h-4 w-4 mr-2" />画像投稿設定</label>
+                                                <select value={createForm.imageRule} onChange={(e) => handleCreateFormChange('imageRule', e.target.value)} className="w-full bg-white border border-gray-200 rounded-md py-2 px-4 focus:ring-2 focus:ring-[#1DA1F2] focus:outline-none">
                                                     <option value="optional">任意（画像あり/なし両方OK）</option>
                                                     <option value="required">必須（最低1枚の画像が必要）</option>
                                                     <option value="none">不可（画像投稿禁止）</option>
@@ -517,55 +525,55 @@ export default function AdminPage() {
                                             </div>
                                             <ToggleSwitch label="投票期間中に一般ユーザーへ投稿を公開する" enabled={createForm.isVotingVisible} setEnabled={(val) => handleCreateFormChange('isVotingVisible', val)} icon={Eye} />
                                         </div>
-                                        <div> <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center"><KeyRound className="h-4 w-4 mr-2 text-gray-400" />審査員用パスワード (任意)</label> <input type="password" value={createForm.judgePassword} onChange={(e) => handleCreateFormChange('judgePassword', e.target.value)} placeholder="空の場合はパスワードなし" className="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-4 focus:ring-2 focus:ring-yellow-500 focus:outline-none" /> </div>
+                                        <div> <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center"><KeyRound className="h-4 w-4 mr-2 text-gray-600" />審査員用パスワード (任意)</label> <input type="password" value={createForm.judgePassword} onChange={(e) => handleCreateFormChange('judgePassword', e.target.value)} placeholder="空の場合はパスワードなし" className="w-full bg-white border border-gray-200 rounded-md py-2 px-4 focus:ring-2 focus:ring-[#1DA1F2] focus:outline-none" /> </div>
                                     </div>
                                 </div>
                             ) : (
-                                <div className="space-y-6 p-6 border-2 border-gray-700 rounded-lg bg-gray-800/50">
-                                    <h3 className="text-xl font-bold text-yellow-400 mb-4">大会の設定</h3>
-                                    <div className="p-4 border border-dashed border-gray-600 rounded-md bg-gray-900/50 space-y-4">
+                                <div className="space-y-6 p-6 border-2 border-gray-200 rounded-lg bg-white shadow-sm">
+                                    <h3 className="text-xl font-bold text-[#1DA1F2] mb-4">大会の設定</h3>
+                                    <div className="p-4 border border-dashed border-gray-300 rounded-md bg-gray-50 space-y-4">
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-300 mb-2">採点方法</label>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">採点方法</label>
                                             <div className="flex space-x-4">
-                                                <label className="flex items-center text-sm text-gray-300 cursor-pointer"><input type="radio" checked={createForm.scoringMethod === 'both'} onChange={(e) => handleCreateFormChange('scoringMethod', e.target.value)} value="both" className="mr-2" />審査+ユーザー</label>
-                                                <label className="flex items-center text-sm text-gray-300 cursor-pointer"><input type="radio" checked={createForm.scoringMethod === 'user'} onChange={(e) => handleCreateFormChange('scoringMethod', e.target.value)} value="user" className="mr-2" />ユーザーのみ</label>
-                                                <label className="flex items-center text-sm text-gray-300 cursor-pointer"><input type="radio" checked={createForm.scoringMethod === 'judge'} onChange={(e) => handleCreateFormChange('scoringMethod', e.target.value)} value="judge" className="mr-2" />審査のみ</label>
+                                                <label className="flex items-center text-sm text-gray-700 cursor-pointer"><input type="radio" checked={createForm.scoringMethod === 'both'} onChange={(e) => handleCreateFormChange('scoringMethod', e.target.value)} value="both" className="mr-2" />審査+ユーザー</label>
+                                                <label className="flex items-center text-sm text-gray-700 cursor-pointer"><input type="radio" checked={createForm.scoringMethod === 'user'} onChange={(e) => handleCreateFormChange('scoringMethod', e.target.value)} value="user" className="mr-2" />ユーザーのみ</label>
+                                                <label className="flex items-center text-sm text-gray-700 cursor-pointer"><input type="radio" checked={createForm.scoringMethod === 'judge'} onChange={(e) => handleCreateFormChange('scoringMethod', e.target.value)} value="judge" className="mr-2" />審査のみ</label>
                                             </div>
                                         </div>
 
                                         {createForm.scoringMethod !== 'user' && (
-                                            <div className="pt-4 border-t border-gray-700">
-                                                <h4 className="text-sm font-semibold text-gray-400 mb-3 flex items-center"><Sliders className="w-4 h-4 mr-2"/> スコア計算設定</h4>
+                                            <div className="pt-4 border-t border-gray-200">
+                                                <h4 className="text-sm font-semibold text-gray-600 mb-3 flex items-center"><Sliders className="w-4 h-4 mr-2"/> スコア計算設定</h4>
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                     <div>
-                                                        <label className={`block text-sm font-medium mb-1 ${createForm.scoringMethod === 'judge' ? 'text-gray-500' : 'text-gray-300'}`}>一般票の重み係数</label>
-                                                        <input type="number" disabled={createForm.scoringMethod === 'judge'} value={createForm.generalVoteWeight} onChange={(e) => handleCreateFormChange('generalVoteWeight', parseInt(e.target.value))} className="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-4 disabled:opacity-50"/>
+                                                        <label className={`block text-sm font-medium mb-1 ${createForm.scoringMethod === 'judge' ? 'text-gray-500' : 'text-gray-700'}`}>一般票の重み係数</label>
+                                                        <input type="number" disabled={createForm.scoringMethod === 'judge'} value={createForm.generalVoteWeight} onChange={(e) => handleCreateFormChange('generalVoteWeight', parseInt(e.target.value))} className="w-full bg-white border border-gray-200 rounded-md py-2 px-4 disabled:opacity-50"/>
                                                     </div>
                                                     <div>
-                                                        <label className="block text-sm font-medium text-gray-300 mb-1">審査員評価の満点</label>
-                                                        <input type="number" min="1" max="100" value={createForm.judgeMaxScore} onChange={(e) => handleCreateFormChange('judgeMaxScore', parseInt(e.target.value))} className="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-4"/>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-1">審査員評価の満点</label>
+                                                        <input type="number" min="1" max="100" value={createForm.judgeMaxScore} onChange={(e) => handleCreateFormChange('judgeMaxScore', parseInt(e.target.value))} className="w-full bg-white border border-gray-200 rounded-md py-2 px-4"/>
                                                     </div>
                                                 </div>
                                             </div>
                                         )}
                                     </div>
 
-                                    <div className="space-y-4 p-4 border border-dashed border-gray-600 rounded-md bg-gray-900/50"> 
-                                        <h4 className="text-lg font-semibold text-gray-400 mb-3">期間設定</h4> 
+                                    <div className="space-y-4 p-4 border border-dashed border-gray-300 rounded-md bg-gray-50"> 
+                                        <h4 className="text-lg font-semibold text-gray-600 mb-3">期間設定</h4> 
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6"> 
-                                            <div> <label className="block text-sm font-medium text-gray-300 mb-1">投稿開始</label> <div className="relative"> <input type="datetime-local" value={createForm.startTime} onChange={(e) => handleCreateFormChange('startTime', e.target.value)} required className="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-4 focus:ring-2 focus:ring-yellow-500 focus:outline-none appearance-none" /> </div> </div> 
-                                            <div> <label className="block text-sm font-medium text-gray-300 mb-1">投稿終了</label> <div className="relative"> <input type="datetime-local" value={createForm.endTime} onChange={(e) => handleCreateFormChange('endTime', e.target.value)} required className="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-4 focus:ring-2 focus:ring-yellow-500 focus:outline-none appearance-none" /> </div> </div> 
+                                            <div> <label className="block text-sm font-medium text-gray-700 mb-1">投稿開始</label> <div className="relative"> <input type="datetime-local" value={createForm.startTime} onChange={(e) => handleCreateFormChange('startTime', e.target.value)} required className="w-full bg-white border border-gray-200 rounded-md py-2 px-4 focus:ring-2 focus:ring-[#1DA1F2] focus:outline-none appearance-none" /> </div> </div> 
+                                            <div> <label className="block text-sm font-medium text-gray-700 mb-1">投稿終了</label> <div className="relative"> <input type="datetime-local" value={createForm.endTime} onChange={(e) => handleCreateFormChange('endTime', e.target.value)} required className="w-full bg-white border border-gray-200 rounded-md py-2 px-4 focus:ring-2 focus:ring-[#1DA1F2] focus:outline-none appearance-none" /> </div> </div> 
                                         </div> 
-                                        <div> <label className="block text-sm font-medium text-gray-300 mb-1">投票終了</label> <div className="relative"> <input type="datetime-local" value={createForm.votingEndTime} onChange={(e) => handleCreateFormChange('votingEndTime', e.target.value)} required className="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-4 focus:ring-2 focus:ring-yellow-500 focus:outline-none appearance-none" /> </div> </div> 
+                                        <div> <label className="block text-sm font-medium text-gray-700 mb-1">投票終了</label> <div className="relative"> <input type="datetime-local" value={createForm.votingEndTime} onChange={(e) => handleCreateFormChange('votingEndTime', e.target.value)} required className="w-full bg-white border border-gray-200 rounded-md py-2 px-4 focus:ring-2 focus:ring-[#1DA1F2] focus:outline-none appearance-none" /> </div> </div> 
                                     </div>
 
-                                    <div className="pt-4 border-t border-gray-700 space-y-6">
+                                    <div className="pt-4 border-t border-gray-200 space-y-6">
                                         <ToggleSwitch label="お題を設定する" enabled={createForm.hasTheme} setEnabled={(val) => handleCreateFormChange('hasTheme', val)} />
-                                        {createForm.hasTheme && (<div> <label className="block text-sm font-medium text-gray-300 mb-2">お題</label> <textarea value={createForm.theme} onChange={(e) => handleCreateFormChange('theme', e.target.value)} required rows={3} className="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-4 focus:ring-2 focus:ring-yellow-500 focus:outline-none"></textarea> </div>)}
+                                        {createForm.hasTheme && (<div> <label className="block text-sm font-medium text-gray-700 mb-2">お題</label> <textarea value={createForm.theme} onChange={(e) => handleCreateFormChange('theme', e.target.value)} required rows={3} className="w-full bg-white border border-gray-200 rounded-md py-2 px-4 focus:ring-2 focus:ring-[#1DA1F2] focus:outline-none"></textarea> </div>)}
 
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center"><ImageIconLucide className="h-4 w-4 mr-2" />画像投稿設定</label>
-                                            <select value={createForm.imageRule} onChange={(e) => handleCreateFormChange('imageRule', e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-4 focus:ring-2 focus:ring-yellow-500 focus:outline-none">
+                                            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center"><ImageIconLucide className="h-4 w-4 mr-2" />画像投稿設定</label>
+                                            <select value={createForm.imageRule} onChange={(e) => handleCreateFormChange('imageRule', e.target.value)} className="w-full bg-white border border-gray-200 rounded-md py-2 px-4 focus:ring-2 focus:ring-[#1DA1F2] focus:outline-none">
                                                 <option value="optional">任意（画像あり/なし両方OK）</option>
                                                 <option value="required">必須（最低1枚の画像が必要）</option>
                                                 <option value="none">不可（画像投稿禁止）</option>
@@ -573,12 +581,12 @@ export default function AdminPage() {
                                         </div>
                                         <ToggleSwitch label="投票期間中に一般ユーザーへ投稿を公開する" enabled={createForm.isVotingVisible} setEnabled={(val) => handleCreateFormChange('isVotingVisible', val)} icon={Eye} />
                                     </div>
-                                    <div> <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center"><KeyRound className="h-4 w-4 mr-2 text-gray-400" />審査員用パスワード (任意)</label> <input type="password" value={createForm.judgePassword} onChange={(e) => handleCreateFormChange('judgePassword', e.target.value)} placeholder="空の場合はパスワードなし" className="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-4 focus:ring-2 focus:ring-yellow-500 focus:outline-none" /> </div>
+                                    <div> <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center"><KeyRound className="h-4 w-4 mr-2 text-gray-600" />審査員用パスワード (任意)</label> <input type="password" value={createForm.judgePassword} onChange={(e) => handleCreateFormChange('judgePassword', e.target.value)} placeholder="空の場合はパスワードなし" className="w-full bg-white border border-gray-200 rounded-md py-2 px-4 focus:ring-2 focus:ring-[#1DA1F2] focus:outline-none" /> </div>
                                 </div>
                             )}
-                            <div> <button type="submit" disabled={createStatus === 'loading'} className="w-full bg-yellow-500 text-gray-900 font-bold py-3 px-4 rounded-md hover:bg-yellow-600 transition duration-300 disabled:bg-gray-600">{createStatus === 'loading' ? '作成中...' : '大会を作成する'}</button> </div>
+                            <div> <button type="submit" disabled={createStatus === 'loading'} className="w-full bg-black text-white font-bold py-3 px-4 rounded-md hover:bg-gray-800 transition duration-300 disabled:bg-gray-600">{createStatus === 'loading' ? '作成中...' : '大会を作成する'}</button> </div>
                         </form>
-                        {createMessage && (<div className={`mt-6 p-4 rounded-md text-sm ${createStatus === 'success' ? 'bg-green-900/50 text-green-300' : createStatus === 'error' ? 'bg-red-900/50 text-red-300' : 'bg-blue-900/50 text-blue-300'}`}>{createMessage}</div>)}
+                        {createMessage && (<div className={`mt-6 p-4 rounded-md text-sm ${createStatus === 'success' ? 'bg-black text-white' : createStatus === 'error' ? 'bg-red-900/50 text-red-300' : 'bg-blue-900/50 text-blue-300'}`}>{createMessage}</div>)}
                     </div>
                 )}
 
@@ -591,14 +599,14 @@ export default function AdminPage() {
                         {!manageLoading && !manageError && managedContests.length > 0 && (
                             <div className="space-y-4">
                                 {managedContests.map((contest) => (
-                                    <div key={contest.id} className="bg-gray-800/50 p-4 rounded-lg border border-gray-700 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                    <div key={contest.id} className="bg-white shadow-sm p-4 rounded-lg border border-gray-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
                                         <div className="flex-grow">
-                                            <h3 className="text-lg font-semibold text-gray-200">{contest.name}</h3>
-                                            <p className="text-sm text-gray-400 mt-1 line-clamp-1">お題: {contest.theme || 'なし'}</p>
+                                            <h3 className="text-lg font-semibold text-black">{contest.name}</h3>
+                                            <p className="text-sm text-gray-600 mt-1 line-clamp-1">お題: {contest.theme || 'なし'}</p>
                                             <p className="text-xs text-gray-500 mt-1">投票終了: {dayjs(contest.votingEndTime).format('YYYY/MM/DD HH:mm')}</p>
                                         </div>
                                         <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
-                                            {contest.judgePassword ? (<div className="flex items-center bg-gray-700 px-2 py-1 rounded text-xs"> <KeyRound className="h-3 w-3 mr-1 text-gray-400" /> {showPasswordId === contest.id ? contest.judgePassword : '••••••'} <button onClick={() => setShowPasswordId(showPasswordId === contest.id ? null : contest.id)} className="ml-1.5 text-gray-400 hover:text-white"> {showPasswordId === contest.id ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />} </button> </div>) : (<span className="text-xs text-gray-500 italic px-2">PWなし</span>)}
+                                            {contest.judgePassword ? (<div className="flex items-center bg-gray-200 px-2 py-1 rounded text-xs"> <KeyRound className="h-3 w-3 mr-1 text-gray-600" /> {showPasswordId === contest.id ? contest.judgePassword : '••••••'} <button onClick={() => setShowPasswordId(showPasswordId === contest.id ? null : contest.id)} className="ml-1.5 text-gray-600 hover:text-white"> {showPasswordId === contest.id ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />} </button> </div>) : (<span className="text-xs text-gray-500 italic px-2">PWなし</span>)}
                                             <button onClick={() => setEditingContest(contest)} className="text-xs px-2 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white flex items-center"> <Edit3 className="h-3 w-3 mr-1" /> 更新 </button>
                                             <button onClick={() => setShowDeleteModal(contest)} className="text-xs px-2 py-1 rounded bg-red-600 hover:bg-red-700 text-white flex items-center"> <Trash2 className="h-3 w-3 mr-1" /> 削除 </button>
                                         </div>
@@ -613,27 +621,27 @@ export default function AdminPage() {
                     <div>
                         <h2 className="text-2xl font-semibold mb-4">ニュース管理</h2>
                         
-                        <form onSubmit={handleAddNews} className="mb-8 bg-gray-800/50 p-6 rounded-lg border border-gray-700">
-                            <h3 className="text-lg font-medium text-gray-200 mb-4">ニュースの追加</h3>
+                        <form onSubmit={handleAddNews} className="mb-8 bg-white shadow-sm p-6 rounded-lg border border-gray-200">
+                            <h3 className="text-lg font-medium text-black mb-4">ニュースの追加</h3>
                             <div className="flex gap-4">
-                                <input type="text" value={newNewsUrl} onChange={(e) => setNewNewsUrl(e.target.value)} placeholder="TwitterのURL または ツイートID" required className="flex-grow bg-gray-900 border border-gray-700 rounded-md py-2 px-4 focus:ring-2 focus:ring-yellow-500 focus:outline-none" />
-                                <button type="submit" disabled={isAddingNews} className="bg-yellow-500 text-gray-900 font-bold py-2 px-6 rounded-md hover:bg-yellow-600 transition duration-300 disabled:bg-gray-600">
+                                <input type="text" value={newNewsUrl} onChange={(e) => setNewNewsUrl(e.target.value)} placeholder="TwitterのURL または ツイートID" required className="flex-grow bg-white border border-gray-200 rounded-md py-2 px-4 focus:ring-2 focus:ring-[#1DA1F2] focus:outline-none" />
+                                <button type="submit" disabled={isAddingNews} className="bg-[#1DA1F2] text-white font-bold py-2 px-6 rounded-md  transition duration-300 disabled:bg-gray-600">
                                     {isAddingNews ? '追加中...' : '追加する'}
                                 </button>
                             </div>
                         </form>
 
                         <div>
-                            <h3 className="text-lg font-medium text-gray-200 mb-4">登録済みのニュース</h3>
+                            <h3 className="text-lg font-medium text-black mb-4">登録済みのニュース</h3>
                             {newsLoading && <p>読み込み中...</p>}
                             {newsError && <p className="text-red-500">エラー: {newsError}</p>}
                             {!newsLoading && !newsError && newsList.length === 0 && <p className="text-gray-500">ニュースはありません。</p>}
                             {!newsLoading && !newsError && newsList.length > 0 && (
                                 <div className="space-y-4">
                                     {newsList.map((news) => (
-                                        <div key={news.id} className="bg-gray-800/50 p-4 rounded-lg border border-gray-700 flex justify-between items-center">
+                                        <div key={news.id} className="bg-white shadow-sm p-4 rounded-lg border border-gray-200 flex justify-between items-center">
                                             <div>
-                                                <p className="text-gray-200 font-medium">ID: {news.tweet_id}</p>
+                                                <p className="text-black font-medium">ID: {news.tweet_id}</p>
                                                 <p className="text-sm text-gray-500">追加日時: {dayjs(news.created_at).format('YYYY/MM/DD HH:mm')}</p>
                                             </div>
                                             <button onClick={() => handleDeleteNews(news.id)} className="text-xs px-3 py-2 rounded bg-red-600 hover:bg-red-700 text-white flex items-center">
@@ -660,30 +668,30 @@ export default function AdminPage() {
 
             {/* 編集モーダル */}
             {editingContest && (
-                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 overflow-y-auto">
-                    <div className="bg-gray-900 rounded-lg p-6 w-full max-w-2xl relative shadow-xl border border-gray-700 my-8">
-                        <h2 className="text-xl font-bold mb-4 text-yellow-400">大会情報の編集</h2>
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+                    <div className="bg-white rounded-lg p-6 w-full max-w-2xl relative shadow-xl border border-gray-200 my-8">
+                        <h2 className="text-xl font-bold mb-4 text-[#1DA1F2]">大会情報の編集</h2>
                         <form onSubmit={handleEditSubmit} className="space-y-4">
-                            <div> <label className="block text-sm font-medium text-gray-300 mb-1">大会名</label> <input type="text" value={editingContest.name} onChange={(e) => setEditingContest({ ...editingContest, name: e.target.value })} required className="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-4 focus:outline-none focus:ring-1 focus:ring-yellow-500" /> </div>
+                            <div> <label className="block text-sm font-medium text-gray-700 mb-1">大会名</label> <input type="text" value={editingContest.name} onChange={(e) => setEditingContest({ ...editingContest, name: e.target.value })} required className="w-full bg-white border border-gray-200 rounded-md py-2 px-4 focus:outline-none focus:ring-1 focus:ring-[#1DA1F2]" /> </div>
                             
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div> <label className="block text-sm font-medium text-gray-300 mb-1">投稿開始</label> <input type="datetime-local" value={editingContest.startTime.substring(0, 16)} onChange={(e) => setEditingContest({ ...editingContest, startTime: e.target.value })} required className="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-4 focus:outline-none focus:ring-1 focus:ring-yellow-500" /> </div>
-                                <div> <label className="block text-sm font-medium text-gray-300 mb-1">投稿終了</label> <input type="datetime-local" value={editingContest.endTime.substring(0, 16)} onChange={(e) => setEditingContest({ ...editingContest, endTime: e.target.value })} required className="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-4 focus:outline-none focus:ring-1 focus:ring-yellow-500" /> </div>
+                                <div> <label className="block text-sm font-medium text-gray-700 mb-1">投稿開始</label> <input type="datetime-local" value={editingContest.startTime.substring(0, 16)} onChange={(e) => setEditingContest({ ...editingContest, startTime: e.target.value })} required className="w-full bg-white border border-gray-200 rounded-md py-2 px-4 focus:outline-none focus:ring-1 focus:ring-[#1DA1F2]" /> </div>
+                                <div> <label className="block text-sm font-medium text-gray-700 mb-1">投稿終了</label> <input type="datetime-local" value={editingContest.endTime.substring(0, 16)} onChange={(e) => setEditingContest({ ...editingContest, endTime: e.target.value })} required className="w-full bg-white border border-gray-200 rounded-md py-2 px-4 focus:outline-none focus:ring-1 focus:ring-[#1DA1F2]" /> </div>
                             </div>
-                            <div> <label className="block text-sm font-medium text-gray-300 mb-1">投票終了</label> <input type="datetime-local" value={editingContest.votingEndTime.substring(0, 16)} onChange={(e) => setEditingContest({ ...editingContest, votingEndTime: e.target.value })} required className="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-4 focus:outline-none focus:ring-1 focus:ring-yellow-500" /> </div>
+                            <div> <label className="block text-sm font-medium text-gray-700 mb-1">投票終了</label> <input type="datetime-local" value={editingContest.votingEndTime.substring(0, 16)} onChange={(e) => setEditingContest({ ...editingContest, votingEndTime: e.target.value })} required className="w-full bg-white border border-gray-200 rounded-md py-2 px-4 focus:outline-none focus:ring-1 focus:ring-[#1DA1F2]" /> </div>
                             
-                            <div className="pt-2 border-t border-gray-700">
-                                <label className="block text-sm font-medium text-gray-300 mb-1 mt-2">主催者からのコメント（始め）</label> 
-                                <textarea value={editingContest.resultCommentTop || ''} onChange={(e) => setEditingContest({ ...editingContest, resultCommentTop: e.target.value })} placeholder="結果発表画面の上部に表示されます" rows={3} className="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-4 focus:outline-none focus:ring-1 focus:ring-yellow-500"></textarea> 
+                            <div className="pt-2 border-t border-gray-200">
+                                <label className="block text-sm font-medium text-gray-700 mb-1 mt-2">主催者からのコメント（始め）</label> 
+                                <textarea value={editingContest.resultCommentTop || ''} onChange={(e) => setEditingContest({ ...editingContest, resultCommentTop: e.target.value })} placeholder="結果発表画面の上部に表示されます" rows={3} className="w-full bg-white border border-gray-200 rounded-md py-2 px-4 focus:outline-none focus:ring-1 focus:ring-[#1DA1F2]"></textarea> 
                             </div>
                             <div> 
-                                <label className="block text-sm font-medium text-gray-300 mb-1">主催者からのコメント（終わり）</label> 
-                                <textarea value={editingContest.resultCommentBottom || ''} onChange={(e) => setEditingContest({ ...editingContest, resultCommentBottom: e.target.value })} placeholder="結果発表画面の下部に表示されます" rows={3} className="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-4 focus:outline-none focus:ring-1 focus:ring-yellow-500"></textarea> 
+                                <label className="block text-sm font-medium text-gray-700 mb-1">主催者からのコメント（終わり）</label> 
+                                <textarea value={editingContest.resultCommentBottom || ''} onChange={(e) => setEditingContest({ ...editingContest, resultCommentBottom: e.target.value })} placeholder="結果発表画面の下部に表示されます" rows={3} className="w-full bg-white border border-gray-200 rounded-md py-2 px-4 focus:outline-none focus:ring-1 focus:ring-[#1DA1F2]"></textarea> 
                             </div>
                             
                             <div className="flex justify-end gap-3 mt-6">
-                                <button type="button" onClick={() => setEditingContest(null)} disabled={isUpdating} className="px-4 py-2 text-sm rounded-md text-gray-400 hover:bg-gray-700 disabled:opacity-50">キャンセル</button>
-                                <button type="submit" disabled={isUpdating} className="px-4 py-2 text-sm rounded-md bg-yellow-600 hover:bg-yellow-700 text-white font-bold disabled:opacity-50">{isUpdating ? '更新中...' : '保存する'}</button>
+                                <button type="button" onClick={() => setEditingContest(null)} disabled={isUpdating} className="px-4 py-2 text-sm rounded-md text-gray-600 hover:bg-gray-100 disabled:opacity-50">キャンセル</button>
+                                <button type="submit" disabled={isUpdating} className="px-4 py-2 text-sm rounded-md bg-[#1DA1F2] hover:bg-[#1a91da] text-white font-bold disabled:opacity-50">{isUpdating ? '更新中...' : '保存する'}</button>
                             </div>
                         </form>
                     </div>

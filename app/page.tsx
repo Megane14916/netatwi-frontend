@@ -8,13 +8,6 @@ import {
   Clock3,
   ExternalLink,
   Users,
-  Heart,
-  Bookmark,
-  MessageCircle,
-  Repeat2,
-  BarChart2,
-  Calendar,
-  Loader2,
 } from "lucide-react";
 import { Tweet } from "react-tweet";
 import dayjs from "dayjs";

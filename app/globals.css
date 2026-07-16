@@ -85,8 +85,8 @@
 input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   /* display: none; を削除 */
   /* -webkit-appearance: none; を削除 */
-  /* filterを使って色を変更 (黄色っぽく) */
-  filter: invert(75%) sepia(50%) saturate(500%) hue-rotate(350deg) brightness(1.1);
+  /* filterを使って色を変更 (#1DA1F2に近い青色) */
+  filter: invert(56%) sepia(48%) saturate(2071%) hue-rotate(181deg) brightness(98%) contrast(96%);
   cursor: pointer;
   /* アイコンと入力内容が重ならないように少し右に余白を追加 (任意) */
   margin-right: 0.5rem;
