@@ -552,7 +552,7 @@ export default function HomePage() {
                     href="/venue"
                     className="inline-flex items-center rounded-full bg-[#1DA1F2] px-7 py-3 text-sm font-bold text-white transition hover:bg-[#1788cc]"
                   >
-                    全ての結果を見る
+                    全ての大会を見る
                     <ExternalLink className="ml-2 h-4 w-4" />
                   </Link>
                 </div>
