@@ -318,7 +318,7 @@ export default function HomePage() {
             </section>
           );
         }
-        
+
         const gpQualifier = gpFinals.parentContestId
           ? allContests.find((c) => c.id === gpFinals.parentContestId)
           : undefined;
@@ -620,7 +620,7 @@ export default function HomePage() {
             <p className="mb-2">
               ネタツイグランプリとは、実力派ネタツイッタラー8名による審査オンリーの、インプレッション数や流行に縛られない、おもしろさのみで競うネタツイの賞レースである。
             </p>
-            <p className="mb-2">予選・決勝形式について 予選は誰でも参加することができ、決勝には予選で上位1/3の結果を残した者のみ進出することができる。</p>
+            <p className="mb-2">今回のネタツイグランプリでは、予選・決勝方式を採用している。予選は誰でも参加することができ、決勝には予選で上位1/3の結果を残した者のみ進出することができる。</p>
             <p className="mb-2">
               なお、予選では画像を使用することができず、逆に決勝では画像を１枚以上使用しなければならない。
             </p>
