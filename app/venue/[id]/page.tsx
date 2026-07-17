@@ -990,7 +990,7 @@ export default function VenueDetailPage() {
             {(contestStatus === "ongoing" || contestStatus === "upcoming") && (
               <div className="flex items-center">
                 <Clock className="w-5 h-5 mr-2.5 text-[#1DA1F2]" />
-                投稿締切: {dayjs(contest.endTime).format("MM/DD HH:mm")}
+                {contestStatus === "upcoming" ? "投稿開始: " + dayjs(contest.startTime).format("MM/DD HH:mm") : "投稿締切: " + dayjs(contest.endTime).format("MM/DD HH:mm")}
               </div>
             )}
             {contestStatus === "voting" && (
@@ -1069,7 +1069,14 @@ export default function VenueDetailPage() {
           </div>
         </div>
 
-        {/* 投稿期間 */}
+        {/* 投稿期間・準備中 */}
+        {contestStatus === "upcoming" && (
+          <div className="pb-[450px]">
+            <div className="text-center py-20 text-black/80 dark:text-white/80 bg-gray-50 dark:bg-gray-950 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
+              投稿開始までしばらくお待ちください。
+            </div>
+          </div>
+        )}
         {contestStatus === "ongoing" && (
           <div className="pb-[450px]">
             <PostForm
