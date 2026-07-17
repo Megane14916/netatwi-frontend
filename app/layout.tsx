@@ -8,8 +8,24 @@ import Script from "next/script"; // Scriptコンポーネントをインポー�
 import { Noto_Sans_JP, Inter } from "next/font/google";
 
 export const metadata: Metadata = {
-  title: "ネタツイグランプリ",
-  description: "オンライン ネタツイ プラットフォーム",
+  title: {
+    template: "%s | ネタツイグランプリ",
+    default: "ネタツイグランプリ",
+  },
+  description: "140字以内に整えるおもしろインターネット賞レース",
+  openGraph: {
+    title: "ネタツイグランプリ",
+    description: "140字以内に整えるおもしろインターネット賞レース",
+    url: "https://n-1gp.vercel.app",
+    siteName: "ネタツイグランプリ",
+    locale: "ja_JP",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "ネタツイグランプリ",
+    description: "140字以内に整えるおもしろインターネット賞レース",
+  },
 };
 
 // Google Analyticsの測定IDを環境変数から取得
