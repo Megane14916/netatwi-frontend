@@ -970,10 +970,10 @@ export default function VenueDetailPage() {
 
           <button
             onClick={() => {
-              const text = `${contest.name} に参加しよう！\n`;
               const url = window.location.href;
+              const text = `${contest.name}\n${url}\n\n#ネタツイグランプリ`;
               window.open(
-                `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
+                `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`,
                 "_blank",
               );
             }}

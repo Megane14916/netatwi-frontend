@@ -145,16 +145,12 @@ export default function ResultPostCard({ post, currentUser, onToggleBookmark, co
   // シェア機能
   const handleShare = () => {
     const contestName = post.contest?.name || 'ネタツイ大会';
-    const rankText = post.rank ? `${post.rank}位` : '';
-    const awardsText = post.awards && post.awards.length > 0 ? ` ${post.awards.join(' ')}` : '';
+    const rankText = post.rank ? `${post.rank}位　` : '';
     
-    // ツイート本文の構築
-    const text = `【${contestName}】\n${rankText}${awardsText}\nユーザー: ${post.user.name} (@${post.user.screen_name})さん\n\n${post.content}\n\n#ネタツイグランプリ`;
-    
-    // URL
     const url = window.location.href;
+    const text = `${contestName}\n${rankText}${post.user.name}\n\n${post.content}\n\n結果はこちらから\n${url}\n\n#ネタツイグランプリ`;
     
-    const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+    const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
     window.open(shareUrl, '_blank', 'noopener,noreferrer');
   };
 
