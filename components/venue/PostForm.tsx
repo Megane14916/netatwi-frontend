@@ -10,6 +10,7 @@ import {
   Edit2,
   Clock,
   Loader2,
+  Trash2,
 } from "lucide-react";
 import EmojiPicker, {
   EmojiClickData,
@@ -60,6 +61,7 @@ interface MyPostDisplayProps {
   post: PostData;
   isEditing: boolean;
   onStartEdit: () => void;
+  onDelete: () => void;
   isDeadlinePassed: boolean;
   user: { screen_name: string; name: string; profile_image_url: string } | null;
 }
@@ -68,6 +70,7 @@ const MyPostDisplay = ({
   post,
   isEditing,
   onStartEdit,
+  onDelete,
   isDeadlinePassed,
   user,
 }: MyPostDisplayProps) => (
@@ -105,10 +108,20 @@ const MyPostDisplay = ({
     </div>
 
     {!isEditing && !isDeadlinePassed && (
-      <div className="text-right mt-3 pt-3">
+      <div className="flex justify-end gap-2 mt-3 pt-3">
+        <button
+          onClick={() => {
+            if (window.confirm("本当に投稿を削除しますか？")) {
+              onDelete();
+            }
+          }}
+          className="text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 px-3 py-1.5 rounded-full transition-colors inline-flex items-center justify-center gap-1 font-bold"
+        >
+          <Trash2 className="w-4 h-4 fill-current" /> 取消
+        </button>
         <button
           onClick={onStartEdit}
-          className="text-sm text-[#1DA1F2] hover:bg-[#1DA1F2]/10 px-3 py-1.5 rounded-full transition-colors inline-flex items-center justify-end ml-auto gap-1 font-bold"
+          className="text-sm text-[#1DA1F2] hover:bg-[#1DA1F2]/10 px-3 py-1.5 rounded-full transition-colors inline-flex items-center justify-center gap-1 font-bold"
         >
           <Edit2 className="w-4 h-4 fill-current" /> 編集する
         </button>
@@ -318,6 +331,35 @@ export default function PostForm({
   };
 
   // ---------------------------------------------------------------------------
+  // ハンドラ: 投稿削除
+  // ---------------------------------------------------------------------------
+  const handleDelete = async () => {
+    if (!myPost) return;
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`/api/contests/${contestId}/posts/${myPost.id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "削除に失敗しました");
+      }
+      setMyPost(null);
+      setNewPostContent("");
+      setPreviewUrls([]);
+      setSelectedImages([]);
+      setIsEditing(false);
+      setPostError(null);
+      onPostSuccess?.();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // ---------------------------------------------------------------------------
   // ハンドラ: 絵文字クリック
   // ---------------------------------------------------------------------------
   const onEmojiClick = (emojiData: EmojiClickData) => {
@@ -389,7 +431,6 @@ export default function PostForm({
       setIsEditing(false);
       setPostError(null);
 
-      alert("投稿しました！");
       onPostSuccess?.();
     } catch (err: any) {
       setPostError(err.message);
@@ -432,6 +473,7 @@ export default function PostForm({
           post={myPost}
           isEditing={isEditing}
           onStartEdit={handleStartEdit}
+          onDelete={handleDelete}
           isDeadlinePassed={isPostDeadlineExceeded}
           user={user}
         />
