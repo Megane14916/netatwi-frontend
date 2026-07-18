@@ -63,6 +63,7 @@ interface MyPostDisplayProps {
   onStartEdit: () => void;
   onDelete: () => void;
   isDeadlinePassed: boolean;
+  isDeleting: boolean;
   user: { screen_name: string; name: string; profile_image_url: string } | null;
 }
 
@@ -72,6 +73,7 @@ const MyPostDisplay = ({
   onStartEdit,
   onDelete,
   isDeadlinePassed,
+  isDeleting,
   user,
 }: MyPostDisplayProps) => (
   <div className={`mb-4 ${isEditing ? "pb-4 border-b border-gray-200 dark:border-gray-800" : ""}`}>
@@ -115,9 +117,15 @@ const MyPostDisplay = ({
               onDelete();
             }
           }}
-          className="text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 px-3 py-1.5 rounded-full transition-colors inline-flex items-center justify-center gap-1 font-bold"
+          disabled={isDeleting}
+          className="text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 px-3 py-1.5 rounded-full transition-colors inline-flex items-center justify-center gap-1 font-bold disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <Trash2 className="w-4 h-4 fill-current" /> 取消
+          {isDeleting ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Trash2 className="w-4 h-4 fill-current" />
+          )}
+          {isDeleting ? "取消中..." : "取消"}
         </button>
         <button
           onClick={onStartEdit}
@@ -475,6 +483,7 @@ export default function PostForm({
           onStartEdit={handleStartEdit}
           onDelete={handleDelete}
           isDeadlinePassed={isPostDeadlineExceeded}
+          isDeleting={isSubmitting}
           user={user}
         />
       )}
