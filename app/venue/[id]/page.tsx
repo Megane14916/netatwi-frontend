@@ -1103,7 +1103,7 @@ export default function VenueDetailPage() {
                         key={post.id}
                         className="p-4 sm:p-5 transition-colors hover:bg-gray-50 dark:hover:bg-gray-900"
                       >
-                        <div className="flex items-start gap-3">
+                        <div className="flex items-start gap-2 md:gap-3">
                           <div className="flex-none">
                             {user && String(post.user_id) === String(user.id) ? (
                                 <img 

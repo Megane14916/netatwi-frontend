@@ -178,7 +178,7 @@ return (
       </div>
 
       {/* 2行目: メインコンテンツ (アバター + ユーザー情報 + 投稿内容) */}
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-2 md:gap-3">
         
         {/* アバター (上揃え) */}
         <div className="flex-none">
