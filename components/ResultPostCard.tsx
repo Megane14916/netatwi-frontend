@@ -170,7 +170,7 @@ export default function ResultPostCard({ post, currentUser, onToggleBookmark, co
   };
 
 return (
-    <div className="p-4 sm:p-5 transition-colors hover:bg-gray-50 dark:hover:bg-gray-900">
+    <div className="py-4 px-3 sm:p-5 transition-colors hover:bg-gray-50 dark:hover:bg-gray-900">
       {/* 1行目: 順位と審査員賞 (中央揃え) */}
       <div className="flex items-center gap-3 mb-3">
          {getRankBadge(post.rank)}

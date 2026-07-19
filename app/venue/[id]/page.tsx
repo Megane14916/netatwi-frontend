@@ -1101,7 +1101,7 @@ export default function VenueDetailPage() {
                     return (
                       <div
                         key={post.id}
-                        className="p-4 sm:p-5 transition-colors hover:bg-gray-50 dark:hover:bg-gray-900"
+                        className="py-4 px-3 sm:p-5 transition-colors hover:bg-gray-50 dark:hover:bg-gray-900"
                       >
                         <div className="flex items-start gap-2 md:gap-3">
                           <div className="flex-none">
