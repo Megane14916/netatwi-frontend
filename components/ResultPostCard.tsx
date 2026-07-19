@@ -144,7 +144,7 @@ export default function ResultPostCard({ post, currentUser, onToggleBookmark, co
 
   // シェア機能
   const handleShare = () => {
-    const contestName = post.contest?.name || 'ネタツイ大会';
+    const contestName = post.contest?.name || 'ネタツイグランプリ';
     const rankText = post.rank ? `${post.rank}位　` : '';
     
     const url = window.location.href;
