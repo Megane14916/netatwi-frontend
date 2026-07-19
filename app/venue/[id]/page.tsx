@@ -1129,8 +1129,8 @@ export default function VenueDetailPage() {
                                   </span>
                               )}
                             </div>
-                            <div className="text-[15px] text-black/90 dark:text-white/90 leading-relaxed whitespace-pre-wrap break-all mb-2">
-                              {post.content}
+                            <div className="text-[15px] text-black/90 dark:text-white/90 leading-relaxed whitespace-pre-wrap break-words [line-break:anywhere] mb-2">
+                              {post.content}{'\u200B'}
                             </div>
                             {post.images && post.images.length > 0 && (
                               <div className="mt-2">
@@ -1260,8 +1260,8 @@ export default function VenueDetailPage() {
             ) : (
               <>
                 {contest.resultCommentTop && (
-                  <div className="whitespace-pre-wrap text-black/80 dark:text-white/80 leading-relaxed px-2">
-                    {contest.resultCommentTop}
+                  <div className="whitespace-pre-wrap text-black/80 dark:text-white/80 leading-relaxed px-2 break-words [line-break:anywhere]">
+                    {contest.resultCommentTop ? contest.resultCommentTop + '\u200B' : null}
                   </div>
                 )}
 
@@ -1374,13 +1374,13 @@ export default function VenueDetailPage() {
                                 </div>
                               ) : (
                                 <div className="border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden mb-4 bg-white dark:bg-black p-4 shadow-sm">
-                                  <p className="whitespace-pre-wrap break-all">{award.post.content}</p>
+                                  <p className="whitespace-pre-wrap break-words [line-break:anywhere]">{award.post.content}{'\u200B'}</p>
                                 </div>
                               )}
 
                               {/* Judge Comment */}
-                              <div className="text-black/90 dark:text-white/90 text-base leading-relaxed whitespace-pre-wrap break-all ml-1">
-                                {award.comment || "（コメントなし）"}
+                              <div className="text-black/90 dark:text-white/90 text-base leading-relaxed whitespace-pre-wrap break-words [line-break:anywhere] ml-1">
+                                {award.comment ? award.comment + '\u200B' : "（コメントなし）"}
                               </div>
                             </div>
                           );
@@ -1391,9 +1391,9 @@ export default function VenueDetailPage() {
 
                 {contest.resultCommentBottom && (
                   <div
-                    className={`whitespace-pre-wrap text-black/80 dark:text-white/80 leading-relaxed px-2 ${contest.scoringMethod !== "general" && judgeAwardsResults.length > 0 ? "mt-12 pt-12 border-t border-gray-200 dark:border-gray-800" : "mt-12"}`}
+                    className={`whitespace-pre-wrap break-words [line-break:anywhere] text-black/80 dark:text-white/80 leading-relaxed px-2 ${contest.scoringMethod !== "general" && judgeAwardsResults.length > 0 ? "mt-12 pt-12 border-t border-gray-200 dark:border-gray-800" : "mt-12"}`}
                   >
-                    {contest.resultCommentBottom}
+                    {contest.resultCommentBottom ? contest.resultCommentBottom + '\u200B' : null}
                   </div>
                 )}
               </>

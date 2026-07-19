@@ -98,7 +98,7 @@ const MyPostDisplay = ({
           </div>
           <TimeAgo timestamp={post.created_at} />
         </div>
-        <div className="mt-1 text-[15px] text-black/90 dark:text-white/90 leading-relaxed whitespace-pre-wrap break-all">
+        <div className="mt-1 text-[15px] text-black/90 dark:text-white/90 leading-relaxed whitespace-pre-wrap break-words [line-break:anywhere]">
           <Twemoji text={post.content} />
         </div>
         {post.images && (

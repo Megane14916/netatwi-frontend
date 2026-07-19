@@ -256,7 +256,7 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
                 </div>
               </div>
             ) : (
-              <p className="text-black/90 dark:text-white/90 text-[15px] mt-2 whitespace-pre-wrap leading-relaxed break-all">{comment.content}{'\u200B'}</p>
+              <p className="text-black/90 dark:text-white/90 text-[15px] mt-2 whitespace-pre-wrap leading-relaxed break-words [line-break:anywhere]">{comment.content}{'\u200B'}</p>
             )}
           </div>
         ))}

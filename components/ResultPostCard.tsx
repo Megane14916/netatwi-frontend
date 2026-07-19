@@ -208,7 +208,7 @@ return (
             </div>
 
             {/* 本文 & 画像 */}
-            <div className="text-[15px] text-black/90 dark:text-white/90 leading-relaxed whitespace-pre-wrap break-all">
+            <div className="text-[15px] text-black/90 dark:text-white/90 leading-relaxed whitespace-pre-wrap break-words [line-break:anywhere]">
               <Twemoji text={post.content} />
               {post.images && post.images.length > 0 && (
                 <div className="mt-2">

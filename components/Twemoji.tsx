@@ -17,7 +17,7 @@ const escapeHtml = (text: string) => {
 const Twemoji = ({ text }: { text: string }) => {
   const parsedText = useMemo(() => {
     // 1. まずXSS対策としてHTMLエスケープを行う
-    const escapedText = escapeHtml(text);
+    const escapedText = escapeHtml(text + '\u200B');
 
     // 2. その後、twemojiで絵文字コードを画像タグに変換する
     // (twemojiは既存のHTMLタグを壊さず、絵文字部分だけを<img>に置換します)
@@ -30,7 +30,7 @@ const Twemoji = ({ text }: { text: string }) => {
 
   return (
     <div
-      className="text-base whitespace-pre-wrap leading-relaxed mb-2"
+      className="text-base whitespace-pre-wrap break-words [line-break:anywhere] leading-relaxed mb-2"
       // パース済みのHTML（絵文字画像を含む）を安全に表示
       dangerouslySetInnerHTML={{ __html: parsedText }}
     />
