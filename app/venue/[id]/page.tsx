@@ -154,8 +154,8 @@ const GeneralVoteButton = ({
     disabled={disabled}
     className={`flex items-center gap-1.5 px-2 py-1 md:px-3 md:py-1.5 rounded-full transition-all group ${
       isLiked
-        ? "text-pink-500 bg-pink-50 border border-pink-200"
-        : "text-gray-500 dark:text-gray-400 hover:bg-pink-50 hover:text-pink-500 border border-transparent hover:border-pink-200"
+        ? "text-pink-500 bg-pink-50 dark:bg-pink-900/40 border border-pink-200 dark:border-pink-800"
+        : "text-gray-500 dark:text-gray-400 hover:bg-pink-50 dark:hover:bg-pink-900/40 hover:text-pink-500 border border-transparent hover:border-pink-200 dark:hover:border-pink-800 active:bg-pink-50 dark:active:bg-pink-900/40 active:text-pink-500"
     } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
   >
     <Heart className={`w-4 h-4 md:w-5 md:h-5 ${isLiked ? "fill-current" : ""}`} />

@@ -164,17 +164,17 @@ export default function ImageGrid({ images }: ImageGridProps) {
       {/* ライトボックス */}
       {lightboxIndex !== null && (
         <div 
-          className="fixed inset-0 z-[100] bg-black/90 dark:bg-white/90 flex items-center justify-center backdrop-blur-sm" 
+          className="fixed inset-0 z-[100] bg-white/95 dark:bg-black/95 flex items-center justify-center backdrop-blur-sm transition-colors" 
           onClick={closeLightbox}
           onTouchStart={onTouchStart}
           onTouchMove={onTouchMove}
           onTouchEnd={onTouchEndEvent}
         >
-          <button onClick={closeLightbox} className="absolute top-[72px] left-4 text-white/70 hover:text-white p-2 bg-black/20 dark:bg-white/20 rounded-full hover:bg-white/10 transition-colors z-[110]">
+          <button onClick={closeLightbox} className="absolute top-[72px] left-4 text-black dark:text-white p-2 bg-black/10 dark:bg-white/10 rounded-full hover:bg-black/20 dark:hover:bg-white/20 transition-colors z-[110]">
             <X className="w-8 h-8" />
           </button>
           {lightboxIndex > 0 && (
-            <button onClick={prevImage} className="hidden sm:block absolute left-4 text-white/70 hover:text-white p-2 bg-black/20 dark:bg-white/20 rounded-full hover:bg-white/10 transition-colors z-[110]">
+            <button onClick={prevImage} className="hidden sm:block absolute left-4 text-black/70 dark:text-white/70 hover:text-black dark:hover:text-white p-2 bg-black/10 dark:bg-white/10 rounded-full hover:bg-black/20 dark:hover:bg-white/20 transition-colors z-[110]">
                 <ChevronLeft className="w-10 h-10" />
             </button>
           )}
@@ -198,11 +198,11 @@ export default function ImageGrid({ images }: ImageGridProps) {
             </div>
           </div>
           {lightboxIndex < count - 1 && (
-             <button onClick={nextImage} className="hidden sm:block absolute right-4 text-white/70 hover:text-white p-2 bg-black/20 dark:bg-white/20 rounded-full hover:bg-white/10 transition-colors z-[110]">
+             <button onClick={nextImage} className="hidden sm:block absolute right-4 text-black/70 dark:text-white/70 hover:text-black dark:hover:text-white p-2 bg-black/10 dark:bg-white/10 rounded-full hover:bg-black/20 dark:hover:bg-white/20 transition-colors z-[110]">
                 <ChevronRight className="w-10 h-10" />
             </button>
           )}
-          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-white/80 font-medium text-sm bg-black/50 dark:bg-white/50 px-3 py-1 rounded-full pointer-events-none">
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-black/80 dark:text-white/80 font-medium text-sm bg-black/10 dark:bg-white/10 px-3 py-1 rounded-full pointer-events-none">
              {lightboxIndex + 1} / {count}
           </div>
         </div>

@@ -3,6 +3,9 @@ import tailwindAnimate from "tailwindcss-animate";
 import typography from "@tailwindcss/typography";
 
 const config: Config = {
+  future: {
+    hoverOnlyWhenSupported: true,
+  },
   content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
