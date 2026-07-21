@@ -24,6 +24,7 @@ export interface ResultPostProps {
     score: number;
     rank: number | null;
     commentCount?: number;
+    comment_count?: number; // DBのカラム名と一致させる
     hasCommented?: boolean;
     user: {
       screen_name: string;
@@ -49,9 +50,10 @@ export interface ResultPostProps {
   onToggleBookmark?: (post: any) => void;
   contestScoringMethod?: string;
   hideVotersAndComments?: boolean;
+  initialComments?: any[];
 }
 
-export default function ResultPostCard({ post, currentUser, onToggleBookmark, contestScoringMethod, hideVotersAndComments = false }: ResultPostProps) {
+export default function ResultPostCard({ post, currentUser, onToggleBookmark, contestScoringMethod, hideVotersAndComments = false, initialComments }: ResultPostProps) {
   const [isBookmarked, setIsBookmarked] = useState(post.isBookmarked);
   const [bookmarkCount, setBookmarkCount] = useState(post.bookmarkCount);
 
@@ -228,7 +230,9 @@ return (
                     <div className={`p-2 rounded-full transition-colors ${post.hasCommented || isCommentsOpen ? 'bg-[#1DA1F2]/10' : 'group-hover:bg-[#1DA1F2]/10'}`}>
                         <MessageSquare className={`h-4 w-4 sm:h-5 sm:w-5 ${post.hasCommented || isCommentsOpen ? 'text-[#1DA1F2] fill-current' : 'group-hover:text-[#1DA1F2]'}`} />
                     </div>
-                    <span className={`text-xs sm:text-sm font-bold ml-1 ${post.hasCommented || isCommentsOpen ? 'text-[#1DA1F2]' : 'group-hover:text-[#1DA1F2]'}`}>{post.commentCount || 0}</span>
+                    <span className={`text-xs sm:text-sm font-bold ml-1 ${post.hasCommented || isCommentsOpen ? 'text-[#1DA1F2]' : 'group-hover:text-[#1DA1F2]'}`}>
+                      {post.commentCount ?? post.comment_count ?? 0}
+                    </span>
                 </button>
 
                 {/* いいね */}
@@ -317,11 +321,12 @@ return (
             
             {/* コメント機能 */}
             {!hideVotersAndComments && (
-                <CommentList 
-                    postId={post.post_id} 
-                    currentUser={currentUser} 
-                    contestStatus="closed" 
+                <CommentList
+                    postId={post.post_id}
+                    currentUser={currentUser}
+                    contestStatus="closed"
                     isOpenProp={isCommentsOpen}
+                    initialComments={initialComments}
                     onClose={() => setIsCommentsOpen(false)}
                 />
             )}

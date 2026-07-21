@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect,useRef } from 'react';
+import React, { useState, useEffect,useRef, useMemo } from 'react';
 import { Send, Edit2, Trash2, X, MessageSquare } from 'lucide-react';
 import TimeAgo from './TimeAgo';
+import useSWR from 'swr';
 
 interface Comment {
   id: number;
@@ -28,16 +29,59 @@ interface CommentListProps {
   onClose?: () => void;
   onCommentAdded?: () => void;
   onCommentDeleted?: () => void;
+  initialComments?: Comment[];
 }
 
-export default function CommentList({ postId, currentUser, contestStatus, isAlwaysOpen = false, isOpenProp = false, onClose, onCommentAdded, onCommentDeleted }: CommentListProps) {
-  const [comments, setComments] = useState<Comment[]>([]);
+export default function CommentList({ postId, currentUser, contestStatus, isAlwaysOpen = false, isOpenProp = false, onClose, onCommentAdded, onCommentDeleted, initialComments }: CommentListProps) {
   const [newComment, setNewComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
   const [editContent, setEditContent] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [error, setError] = useState('');
+
+  const [localComments, setLocalComments] = useState<Comment[]>([]);
+
+  const fetcher = (url: string) => fetch(url).then(res => res.json());
+  
+  // 投票期間中は他人のコメントは見えず、自分のコメントは initialComments (一括取得) で賄えるため、
+  // コメント欄を開いたときの個別APIフェッチをスキップする
+  const shouldFetch = (isAlwaysOpen || isOpen || isOpenProp) && contestStatus !== 'voting';
+  
+  const { data: swrComments = initialComments || [], mutate } = useSWR<Comment[]>(
+    shouldFetch ? `/api/posts/${postId}/comments` : null,
+    fetcher,
+    { fallbackData: initialComments || [] }
+  );
+
+  // SWRデータとローカル操作分をマージして一意なリストを作成する
+  const comments = useMemo(() => {
+    const all = [...swrComments, ...localComments];
+    const unique: Comment[] = [];
+    const seen = new Set();
+    // 後から追加されたローカル分（または編集分）が優先されるように、
+    // IDが一致する場合は localComments の内容を採用する
+    const localMap = new Map(localComments.map(c => [c.id, c]));
+    
+    // まずSWRデータを追加（ローカルにあればローカル優先、削除されていればスキップ）
+    for (const c of swrComments) {
+      // 削除フラグを持つ特殊なオブジェクト（ここでは単純に filter で対応しますが、ローカルで消されたものは含まないようにします）
+      if (!localMap.has(c.id) || localMap.get(c.id) !== null) {
+        if (!seen.has(c.id)) {
+           seen.add(c.id);
+           unique.push(localMap.has(c.id) ? localMap.get(c.id)! : c);
+        }
+      }
+    }
+    // 次にローカルで新規追加されたものを追加
+    for (const c of localComments) {
+      if (!seen.has(c.id)) {
+        seen.add(c.id);
+        unique.push(c);
+      }
+    }
+    return unique.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+  }, [swrComments, localComments]);
 
   const newTextareaRef = useRef<HTMLTextAreaElement>(null);
   const editTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -69,22 +113,6 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
     return () => observer.disconnect();
   }, [newComment]);
 
-  const fetchComments = async () => {
-    try {
-      const res = await fetch(`/api/posts/${postId}/comments`);
-      if (res.ok) {
-        const data = await res.json();
-        setComments(data);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  useEffect(() => {
-    fetchComments();
-  }, [postId]);
-
   const hasCommented = comments.some(c => c.user_id === currentUser?.id);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -93,6 +121,25 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
 
     setIsSubmitting(true);
     setError('');
+    
+    // 楽観的更新
+    const optimisticComment = {
+      id: Date.now(),
+      user_id: currentUser?.id,
+      post_id: postId,
+      content: newComment,
+      is_judge: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      user: currentUser
+    } as Comment;
+
+    if (shouldFetch) {
+      mutate([...swrComments, optimisticComment], false);
+    } else {
+      setLocalComments(prev => [...prev, optimisticComment]);
+    }
+
     try {
       const res = await fetch(`/api/posts/${postId}/comments`, {
         method: 'POST',
@@ -100,15 +147,28 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
         body: JSON.stringify({ content: newComment })
       });
       if (res.ok) {
+        const createdComment = await res.json();
         setNewComment('');
-        fetchComments();
+        if (shouldFetch) {
+          mutate();
+        } else {
+          // APIは {'message': '...', 'id': ...} しか返さないので、optimisticComment に id だけ反映して保持する
+          const newCommentData = { ...optimisticComment, id: createdComment.id || optimisticComment.id };
+          setLocalComments(prev => prev.map(c => c.id === optimisticComment.id ? newCommentData : c));
+        }
         onCommentAdded?.();
       } else {
         const data = await res.json();
         setError(data.error || 'エラーが発生しました');
+        if (!shouldFetch) {
+          setLocalComments(prev => prev.filter(c => c.id !== optimisticComment.id));
+        }
       }
     } catch (e) {
       setError('通信エラーが発生しました');
+      if (!shouldFetch) {
+        setLocalComments(prev => prev.filter(c => c.id !== optimisticComment.id));
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -116,10 +176,17 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
 
   const handleDelete = async (commentId: number) => {
     if (!confirm('コメントを削除しますか？')) return;
+    
+    if (shouldFetch) {
+      mutate(swrComments.filter(c => c.id !== commentId), false);
+    } else {
+      setLocalComments(prev => prev.filter(c => c.id !== commentId));
+    }
+    
     try {
       const res = await fetch(`/api/comments/${commentId}`, { method: 'DELETE' });
       if (res.ok) {
-        fetchComments();
+        if (shouldFetch) mutate();
         onCommentDeleted?.();
       }
     } catch (e) {
@@ -129,6 +196,25 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
 
   const handleEditSubmit = async (commentId: number) => {
     if (!editContent.trim() || editContent.length > 140) return;
+    
+    if (shouldFetch) {
+      mutate(swrComments.map(c => c.id === commentId ? { ...c, content: editContent } : c), false);
+    } else {
+      setLocalComments(prev => {
+        const exists = prev.some(c => c.id === commentId);
+        if (exists) {
+          return prev.map(c => c.id === commentId ? { ...c, content: editContent } : c);
+        } else {
+          // initialComments の中にあったものを編集する場合、localComments にコピーして上書き
+          const target = initialComments?.find(c => c.id === commentId);
+          if (target) {
+            return [...prev, { ...target, content: editContent }];
+          }
+          return prev;
+        }
+      });
+    }
+
     try {
       const res = await fetch(`/api/comments/${commentId}`, {
         method: 'PUT',
@@ -137,7 +223,7 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
       });
       if (res.ok) {
         setEditingCommentId(null);
-        fetchComments();
+        if (shouldFetch) mutate();
       }
     } catch (e) {
       console.error(e);

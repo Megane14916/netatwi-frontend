@@ -45,6 +45,9 @@ import RichTextEditor, {
 } from "@/components/RichTextEditor";
 import ProgressRing from "@/components/ProgressRing";
 import { countText, TextCountResult } from "@/lib/twitterText";
+import useSWR from "swr";
+
+const fetcher = (url: string) => fetch(url, { credentials: "include" }).then(res => res.json());
 
 const API_PREFIX = "";
 
@@ -316,39 +319,48 @@ export default function VenueDetailPage() {
   const contestId = parseInt(params?.id as string, 10);
   const { user, judgeContests, refetchUser } = useAuth();
 
-  const [contest, setContest] = useState<Contest | null>(null);
-  const [contestStatus, setContestStatus] = useState<ContestStatus | null>(
-    null,
+  // 1. SWRによるデータ取得を一番上に移動
+  const { data: contestData, error: contestError, mutate: mutateContest } = useSWR(
+    contestId ? `${API_PREFIX}/api/contests/${contestId}` : null,
+    fetcher
   );
-  const [posts, setPosts] = useState<Post[]>([]);
 
-  const [results, setResults] = useState<ResultPost[]>([]);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // 2. contestDataから状態を導出
+  const contest = contestData || null;
+  const { contestStatus, isPostDeadlineExceeded, isVoteDeadlineExceeded } = useMemo(() => {
+    if (!contestData) return { contestStatus: null, isPostDeadlineExceeded: false, isVoteDeadlineExceeded: false };
+    const now = currentTime;
+    const startTime = new Date(contestData.startTime);
+    const endTime = new Date(contestData.endTime);
+    const votingEndTime = new Date(contestData.votingEndTime);
+    
+    let status: ContestStatus = "closed";
+    if (now < startTime) status = "upcoming";
+    else if (now >= startTime && now < endTime) status = "ongoing";
+    else if (now >= endTime && now < votingEndTime) status = "voting";
+    
+    return {
+      contestStatus: status,
+      isPostDeadlineExceeded: now >= endTime,
+      isVoteDeadlineExceeded: now >= votingEndTime
+    };
+  }, [contestData, currentTime]);
+
+  // SWRのデータ取得後、後でuseMemo等を用いて導出するため、ここでは削除します。
   const [sortOrder, setSortOrder] = useState<"asc" | "desc" | "random">("desc");
-  const [sortedResults, setSortedResults] = useState<ResultPost[]>([]);
-  const [judgeAwardsResults, setJudgeAwardsResults] = useState<
-    JudgeAwardResult[]
-  >([]);
 
-  useEffect(() => {
-    let newResults = [...results];
-    if (sortOrder === "desc") {
-      newResults.reverse();
-    } else if (sortOrder === "random") {
-      newResults.sort(() => Math.random() - 0.5);
-    }
-    setSortedResults(newResults);
-  }, [results, sortOrder]);
-
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [totalPosters, setTotalPosters] = useState<number | null>(null);
-  const [totalVoters, setTotalVoters] = useState<number | null>(null);
-  const [totalJudges, setTotalJudges] = useState<number | null>(null);
+  // 投票UI用状態（SWRからの初期値で一度だけ初期化する、またはnullの場合はSWRの値を使う）
+  const [userVotes, setUserVotes] = useState<{ [postId: number]: number } | null>(null);
+  const [userJudgeAwardSelection, setUserJudgeAwardSelection] = useState<{
+    postId: number | null;
+    comment: string;
+  } | null>(null);
 
   const [newPostContent, setNewPostContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [postError, setPostError] = useState<string | null>(null);
-  const [hasPosted, setHasPosted] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -357,23 +369,11 @@ export default function VenueDetailPage() {
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [votes, setVotes] = useState<{ [postId: number]: number }>({});
-  const [judgeAwardSelection, setJudgeAwardSelection] = useState<{
-    postId: number | null;
-    comment: string;
-  }>({ postId: null, comment: "" });
-
   const [isSubmittingVotes, setIsSubmittingVotes] = useState(false);
   const [voteSubmitMessage, setVoteSubmitMessage] = useState<{
     type: "success" | "error";
     text: string;
   } | null>(null);
-  const [userHasVoted, setUserHasVoted] = useState(false);
-  const [totalVotes, setTotalVotes] = useState(0);
-
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [isPostDeadlineExceeded, setIsPostDeadlineExceeded] = useState(false);
-  const [isVoteDeadlineExceeded, setIsVoteDeadlineExceeded] = useState(false);
 
   const [resultTab, setResultTab] = useState<"ranking" | "awards">("ranking");
 
@@ -397,43 +397,7 @@ export default function VenueDetailPage() {
     isValid: false,
     remaining: 280,
   });
-  const [openComments, setOpenComments] = useState<Record<number, boolean>>({});
-  const [sessionCommentedPosts, setSessionCommentedPosts] = useState<
-    Record<number, boolean>
-  >({});
-  const toggleComments = (postId: number) =>
-    setOpenComments((prev) => ({ ...prev, [postId]: !prev[postId] }));
-  const handleCommentAdded = (postId: number) =>
-    setSessionCommentedPosts((prev) => ({ ...prev, [postId]: true }));
-  const handleCommentDeleted = (postId: number) =>
-    setSessionCommentedPosts((prev) => ({ ...prev, [postId]: false }));
-
-  const emojiPickerRef = useRef<HTMLDivElement>(null);
-  const emojiButtonRef = useRef<HTMLButtonElement>(null);
-
-  const editorRef = useRef<RichTextEditorHandle>(null);
-
-  // 文字数カウントの更新
-  useEffect(() => {
-    setTextCount(countText(newPostContent));
-  }, [newPostContent]);
-
-  const maxTotalScore = useMemo(() => {
-    if (!contest || !results || results.length === 0) return 0;
-
-    // 投票した審査員のユニーク数をカウント
-    const uniqueJudges = new Set<string>();
-    results.forEach((post) => {
-      post.voters.forEach((voter) => {
-        if (voter.is_judge) uniqueJudges.add(voter.screen_name);
-      });
-    });
-
-    return (
-      uniqueJudges.size * contest.judgeMaxScore + contest.generalVoteWeight
-    );
-  }, [contest, results]);
-
+  // コメント状態や maxTotalScore の計算は SWR のデータ定義の後に移動しました
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
@@ -516,154 +480,220 @@ export default function VenueDetailPage() {
     }
   };
 
-  // データ取得
-  const fetchData = async (silent = false) => {
-    try {
-      if (!silent) {
-        setLoading(true);
-        setError("");
-        setVoteSubmitMessage(null);
-        setUserHasVoted(false);
-        setPosts([]);
-        setResults([]);
-        setHasPosted(false);
-        setIsEditing(false);
-        setTotalPosters(null);
-        setTotalVoters(null);
-        setTotalJudges(null);
+
+  // postsData の取得（ongoing, votingのときのみ）
+  const { data: postsData, error: postsError, mutate: mutatePosts } = useSWR(
+    (contestStatus === "ongoing" || contestStatus === "voting") 
+      ? `${API_PREFIX}/api/contests/${contestId}/posts` 
+      : null,
+    fetcher
+  );
+
+  // resultsData の取得（closedのときのみ）
+  const { data: resultsDataRaw, error: resultsError, mutate: mutateResults } = useSWR(
+    contestStatus === "closed" ? `${API_PREFIX}/api/contests/${contestId}/results` : null,
+    fetcher,
+    {
+      refreshInterval: (data: any) => {
+        if (!data || !data.results) return 0;
+        const isAggregating = data.results.some((r: any) => r.rank === null);
+        return isAggregating ? 10000 : 0;
       }
+    }
+  );
 
-      const contestRes = await fetch(
-        `${API_PREFIX}/api/contests/${contestId}`,
-        { credentials: "include" },
-      );
-      if (!contestRes.ok) throw new Error("大会情報の取得に失敗しました");
-      const contestData = await contestRes.json();
-      setContest(contestData);
+  // loading と error の導出
+  const loading = !contestData && !contestError;
+  const error = contestError || postsError || resultsError ? "データの取得に失敗しました" : "";
 
-      const now = new Date();
-      const startTime = new Date(contestData.startTime);
-      const endTime = new Date(contestData.endTime);
-      const votingEndTime = new Date(contestData.votingEndTime);
-      let currentStatus: ContestStatus = "closed";
-      if (now < startTime) currentStatus = "upcoming";
-      else if (now >= startTime && now < endTime) currentStatus = "ongoing";
-      else if (now >= endTime && now < votingEndTime) currentStatus = "voting";
-      setContestStatus(currentStatus);
+  // ----------------------------------------------------
+  // 以下、SWRのデータから各状態を直接導出（useEffect不要）
+  // ----------------------------------------------------
 
-      setIsPostDeadlineExceeded(now >= endTime);
-      setIsVoteDeadlineExceeded(now >= votingEndTime);
+  const results = resultsDataRaw?.results || [];
+  const judgeAwardsResults = resultsDataRaw?.judgeAwards || [];
 
-      if (currentStatus === "closed") {
-        const resultsRes = await fetch(
-          `${API_PREFIX}/api/contests/${contestId}/results`,
-          { credentials: "include" },
-        );
-        if (!resultsRes.ok) throw new Error("結果の取得に失敗しました。");
-        const resultsData = await resultsRes.json();
-        setResults(resultsData.results || []);
-        setJudgeAwardsResults(resultsData.judgeAwards || []);
-        setTotalPosters(resultsData.totalPosters);
-        setTotalVoters(resultsData.totalVoters);
-        setTotalJudges(resultsData.totalJudges);
-        // if (resultsData.judgeAwards && resultsData.judgeAwards.length > 0) setResultTab('awards');
-      } else {
-        const postsRes = await fetch(
-          `${API_PREFIX}/api/contests/${contestId}/posts`,
-          { credentials: "include", cache: "no-store" },
-        );
-        if (!postsRes.ok) throw new Error("投稿一覧の取得に失敗しました");
-        const postsData = await postsRes.json();
-        const allPosts: Post[] = postsData.posts;
-        setUserHasVoted(postsData.userHasVotedInContest);
-        setTotalPosters(postsData.totalPosters);
+  const sortedResults = useMemo(() => {
+    const newResults = [...results];
+    if (sortOrder === "desc") {
+      newResults.reverse();
+    } else if (sortOrder === "random") {
+      newResults.sort(() => Math.random() - 0.5);
+    }
+    return newResults;
+  }, [results, sortOrder]);
+  
+  const totalPosters = contestStatus === "closed" ? resultsDataRaw?.totalPosters : postsData?.totalPosters;
+  const totalVoters = resultsDataRaw?.totalVoters || null;
+  const totalJudges = resultsDataRaw?.totalJudges || null;
+  const userHasVoted = postsData?.userHasVotedInContest || false;
+  
+  const hasPosted = user && postsData?.posts ? postsData.posts.some((p: any) => p.user_id === user.id) : false;
 
-        if (user) {
-          const myPost = allPosts.find((p) => p.user_id === user.id);
-          if (myPost) {
-            setHasPosted(true);
-            if (currentStatus === "ongoing") {
-              setPosts([myPost]);
-              setNewPostContent(myPost.content);
+  // myPost (自分の投稿) を特定してテキストエリアにセットするためのフラグ
+  const hasSetInitialPostContentRef = useRef(false);
+  useEffect(() => {
+    if (contestStatus === "ongoing" && user && postsData?.posts && !hasSetInitialPostContentRef.current) {
+       const myPost = postsData.posts.find((p: any) => p.user_id === user.id);
+       if (myPost) {
+           setNewPostContent(myPost.content);
+           hasSetInitialPostContentRef.current = true;
+       }
+    }
+  }, [postsData, contestStatus, user]);
+
+  // posts: 投稿一覧の表示順制御
+  const shuffledPostIdsRef = useRef<number[] | null>(null);
+  
+  const posts = useMemo(() => {
+    if (!postsData || !postsData.posts) return [];
+    const allPosts: Post[] = postsData.posts;
+    
+    if (contestStatus === "ongoing") {
+      if (user) {
+         const myPost = allPosts.find(p => p.user_id === user.id);
+         return myPost ? [myPost] : [];
+      }
+      return [];
+    }
+    
+    if (contestStatus === "voting") {
+       if (!shuffledPostIdsRef.current && allPosts.length > 0) {
+          const shuffled = [...allPosts].sort(() => Math.random() - 0.5);
+          shuffledPostIdsRef.current = shuffled.map(p => p.id);
+          return shuffled;
+       } else if (shuffledPostIdsRef.current) {
+          const idToIndex = new Map(shuffledPostIdsRef.current.map((id, i) => [id, i]));
+          const sorted = [...allPosts].sort((a, b) => {
+             const idxA = idToIndex.has(a.id) ? idToIndex.get(a.id)! : 999999;
+             const idxB = idToIndex.has(b.id) ? idToIndex.get(b.id)! : 999999;
+             return idxA - idxB;
+          });
+          // 追加された投稿があれば、Ref に追記して次回も位置を維持
+          if (sorted.length > shuffledPostIdsRef.current.length) {
+              shuffledPostIdsRef.current = sorted.map(p => p.id);
+          }
+          return sorted;
+       }
+       return allPosts;
+    }
+    return [];
+  }, [postsData, contestStatus, user]);
+
+  // votes と totalVotes (ユーザー編集を優先する)
+  const votes = useMemo(() => {
+     if (userVotes !== null) return userVotes;
+     const initialVotes: { [postId: number]: number } = {};
+     posts.forEach((post) => {
+        initialVotes[post.id] = post.myVotes || 0;
+     });
+     return initialVotes;
+  }, [userVotes, posts]);
+
+  const totalVotes = useMemo(() => Object.values(votes).reduce((sum, c) => sum + c, 0), [votes]);
+
+  // judgeAwardSelection (ユーザー編集を優先する)
+  const judgeAwardSelection = useMemo(() => {
+     if (userJudgeAwardSelection !== null) return userJudgeAwardSelection;
+     let awardPostId: number | null = null;
+     let awardComment = "";
+     posts.forEach((post) => {
+         if (post.myJudgeAward) {
+             awardPostId = post.id;
+             awardComment = post.myJudgeComment || "";
+         }
+     });
+     return { postId: awardPostId, comment: awardComment };
+  }, [userJudgeAwardSelection, posts]);
+  // ----------------------------------------------------
+  // コメント状態および追加計算（SWRデータ導出後に配置）
+  // ----------------------------------------------------
+
+  const [openComments, setOpenComments] = useState<Record<number, boolean>>({});
+  const [sessionCommentedPosts, setSessionCommentedPosts] = useState<Record<number, boolean>>({});
+  const [prefetchedComments, setPrefetchedComments] = useState<Record<number, any[]>>({});
+  const fetchingPostIdsRef = useRef<Set<number>>(new Set());
+
+  useEffect(() => {
+    const allPostIds = new Set<number>();
+    if (posts && posts.length > 0) {
+      posts.forEach((p: any) => {
+        if (p.comment_count > 0 || p.commentCount > 0) {
+          if (contestStatus === "voting") {
+            if (p.hasCommented) {
+              allPostIds.add(p.id);
             }
           } else {
-            setHasPosted(false);
-            if (currentStatus === "ongoing") {
-              setPosts([]);
-            }
-          }
-          if (currentStatus === "voting") {
-            const shuffled = [...allPosts].sort(() => Math.random() - 0.5);
-            setPosts(shuffled);
-            const initialVotes: { [key: number]: number } = {};
-            let currentTotal = 0;
-
-            // 審査員賞の復元ロジック
-            let awardPostId: number | null = null;
-            let awardComment = "";
-
-            shuffled.forEach((post) => {
-              const voteVal = post.myVotes || 0;
-              initialVotes[post.id] = voteVal;
-              currentTotal += voteVal;
-
-              // APIから返ってきた審査員賞情報をStateにセット
-              if (post.myJudgeAward) {
-                awardPostId = post.id;
-                awardComment = post.myJudgeComment || "";
-              }
-            });
-            setVotes(initialVotes);
-            setTotalVotes(currentTotal);
-            if (awardPostId) {
-              setJudgeAwardSelection({
-                postId: awardPostId,
-                comment: awardComment,
-              });
-            }
-          }
-        } else {
-          if (currentStatus === "voting") {
-            const shuffled = [...allPosts].sort(() => Math.random() - 0.5);
-            setPosts(shuffled);
+            allPostIds.add(p.id);
           }
         }
-      }
-    } catch (err: any) {
-      console.error(err);
-      if (!silent) setError(err.message);
-    } finally {
-      if (!silent) setLoading(false);
+      });
     }
-  };
-
-  useEffect(() => {
-    if (contestId) fetchData();
-  }, [contestId, user]);
-
-  // 集計中の自動リロード用タイマー
-  useEffect(() => {
-    let intervalId: NodeJS.Timeout;
-    const isAggregating = contestStatus === "closed" && results.length > 0 && results.some((r) => r.rank === null);
-
-    if (isAggregating) {
-      intervalId = setInterval(() => {
-        fetchData(true);
-      }, 10000); // 10秒に1回
+    if (results && results.length > 0) {
+      results.forEach((r: any) => {
+        if (r.comment_count > 0 || r.commentCount > 0) {
+          allPostIds.add(r.post_id);
+        }
+      });
     }
 
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [contestStatus, results, contestId]);
+    const postIdsToFetch = Array.from(allPostIds).filter(
+      (id) => !prefetchedComments[id] && !fetchingPostIdsRef.current.has(id),
+    );
+
+    if (postIdsToFetch.length > 0) {
+      postIdsToFetch.forEach((id) => fetchingPostIdsRef.current.add(id));
+
+      fetch(
+        `${API_PREFIX}/api/comments?postIds=${postIdsToFetch.join(",")}`,
+        { credentials: "include" },
+      )
+        .then((res) => res.json())
+        .then((data) => {
+          if (!data.error) {
+            setPrefetchedComments((prev) => ({ ...prev, ...data }));
+          }
+        })
+        .catch((err) => {
+          console.error(err);
+          postIdsToFetch.forEach((id) =>
+            fetchingPostIdsRef.current.delete(id),
+          );
+        });
+    }
+  }, [posts, results, prefetchedComments, contestStatus, user?.id]);
+
+  const toggleComments = (postId: number) =>
+    setOpenComments((prev) => ({ ...prev, [postId]: !prev[postId] }));
+  const handleCommentAdded = (postId: number) =>
+    setSessionCommentedPosts((prev) => ({ ...prev, [postId]: true }));
+  const handleCommentDeleted = (postId: number) =>
+    setSessionCommentedPosts((prev) => ({ ...prev, [postId]: false }));
+
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const emojiButtonRef = useRef<HTMLButtonElement>(null);
+  const editorRef = useRef<RichTextEditorHandle>(null);
+
+  useEffect(() => {
+    setTextCount(countText(newPostContent));
+  }, [newPostContent]);
+
+  const maxTotalScore = useMemo(() => {
+    if (!contest || !results || results.length === 0) return 0;
+    const uniqueJudges = new Set<string>();
+    results.forEach((post: any) => {
+      post.voters.forEach((voter: any) => {
+        if (voter.is_judge) uniqueJudges.add(voter.screen_name);
+      });
+    });
+    return uniqueJudges.size * contest.judgeMaxScore + contest.generalVoteWeight;
+  }, [contest, results]);
+
 
   useEffect(() => {
     if (!contest) return;
     const timer = setInterval(() => {
-      const now = new Date();
-      setCurrentTime(now);
-      setIsPostDeadlineExceeded(now >= new Date(contest.endTime));
-      setIsVoteDeadlineExceeded(now >= new Date(contest.votingEndTime));
+      setCurrentTime(new Date());
     }, 1000);
     return () => clearInterval(timer);
   }, [contest]);
@@ -732,13 +762,14 @@ export default function VenueDetailPage() {
         throw new Error(data.error || "投稿に失敗しました");
       }
       const data = await res.json();
-      const updatedPost = { ...data, user_id: user.id };
+      // const updatedPost = { ...data, user_id: user.id };
 
       setNewPostContent("");
       setSelectedImages([]);
       setPreviewUrls([]);
-      setPosts([updatedPost]);
-      setHasPosted(true);
+      
+      mutatePosts(); // サーバーから再取得して再描画
+
       setIsEditing(false);
       setPostError(null);
       alert("投稿しました！");
@@ -760,24 +791,26 @@ export default function VenueDetailPage() {
   };
 
   const handleVoteChange = (postId: number, newCount: number) => {
-    // 変更点: 一般投票でも再投票可能にするため、userHasVoted チェックを削除
-    setVotes((prev) => {
-      const updated = { ...prev, [postId]: newCount };
-      setTotalVotes(Object.values(updated).reduce((sum, c) => sum + c, 0));
-      return updated;
+    setUserVotes((prev) => {
+      const current = prev !== null ? prev : { ...votes };
+      return { ...current, [postId]: newCount };
     });
     setVoteSubmitMessage(null);
   };
 
   const handleJudgeAwardSelect = (postId: number) => {
-    setJudgeAwardSelection((prev) =>
-      prev.postId === postId
+    setUserJudgeAwardSelection((prev) => {
+      const current = prev !== null ? prev : { ...judgeAwardSelection };
+      return current.postId === postId
         ? { postId: null, comment: "" }
-        : { postId, comment: "" },
-    );
+        : { postId, comment: "" };
+    });
   };
   const handleJudgeCommentChange = (val: string) => {
-    setJudgeAwardSelection((prev) => ({ ...prev, comment: val }));
+    setUserJudgeAwardSelection((prev) => {
+      const current = prev !== null ? prev : { ...judgeAwardSelection };
+      return { ...current, comment: val };
+    });
   };
 
   const handleSubmitVotes = async () => {
@@ -803,7 +836,7 @@ export default function VenueDetailPage() {
       );
       const data = await response.json();
       if (response.ok) {
-        setUserHasVoted(true);
+        mutatePosts(); // 投票状態を再取得
         setShowSuccessBanner(true);
         setVoteSubmitMessage({ type: "success", text: "投票が完了しました！" });
         if (isJudgeMode) alert("投票と審査員賞を保存しました！");
@@ -957,7 +990,8 @@ export default function VenueDetailPage() {
                   contestId={contestId}
                   onLoginSuccess={async () => {
                     await refetchUser();
-                    await fetchData();
+                    await mutateContest();
+                    await mutatePosts();
                   }}
                 />
               )}
@@ -1082,7 +1116,7 @@ export default function VenueDetailPage() {
             <PostForm
               contestId={contestId}
               isFinalRound={!!contest.parentContestId}
-              onPostSuccess={() => fetchData()}
+              onPostSuccess={() => mutatePosts()}
             />
           </div>
         )}
@@ -1187,12 +1221,13 @@ export default function VenueDetailPage() {
                             </div>
 
                             {/* コメント機能 (一般) */}
-                            <div className={`mt-3 border-t border-gray-200 dark:border-gray-800 ${!openComments[post.id] ? "hidden" : ""}`}>
+                            <div className={`mt-3 ${!openComments[post.id] ? "hidden" : ""}`}>
                               <CommentList
                                 postId={post.id}
                                 currentUser={user}
                                 contestStatus="voting"
-                                isAlwaysOpen={true}
+                                isOpenProp={openComments[post.id] || false}
+                                initialComments={prefetchedComments[post.id] || []}
                                 onClose={() =>
                                   setOpenComments((prev) => ({
                                     ...prev,
@@ -1247,7 +1282,7 @@ export default function VenueDetailPage() {
               <div className="text-center py-20 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-950 rounded-2xl border border-gray-200 dark:border-gray-800">
                 投稿がありませんでした。
               </div>
-            ) : results.some((r) => r.rank === null) ? (
+            ) : results.some((r: any) => r.rank === null) ? (
               <div className="text-center py-20 bg-gray-50 dark:bg-gray-950 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm mt-8 px-4">
                 <Loader2 className="w-10 h-10 animate-spin text-[#1DA1F2] mx-auto mb-4" />
                 <p className="text-xl font-bold text-gray-700 dark:text-gray-300 mb-2">
@@ -1316,6 +1351,7 @@ export default function VenueDetailPage() {
                             post={result}
                             currentUser={user}
                             contestScoringMethod={contest.scoringMethod}
+                            initialComments={prefetchedComments[result.post_id] || []}
                           />
                         </Fragment>
                       );
@@ -1332,9 +1368,9 @@ export default function VenueDetailPage() {
                         審査員賞
                       </h2>
                       <div className="space-y-12">
-                        {judgeAwardsResults.map((award, idx) => {
+                        {judgeAwardsResults.map((award: any, idx: number) => {
                           const fullPost = results.find(
-                            (r) => r.post_id === award.post.post_id,
+                            (r: any) => r.post_id === award.post.post_id,
                           );
                           return (
                             <div key={idx} className="px-2">
@@ -1370,6 +1406,7 @@ export default function VenueDetailPage() {
                                     currentUser={user}
                                     contestScoringMethod={contest.scoringMethod}
                                     hideVotersAndComments={true}
+                                    initialComments={prefetchedComments[fullPost.post_id] || []}
                                   />
                                 </div>
                               ) : (
