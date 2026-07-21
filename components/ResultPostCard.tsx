@@ -70,6 +70,8 @@ export default function ResultPostCard({ post, currentUser, onToggleBookmark, co
   const [likeCount, setLikeCount] = useState(initialLikeCount);
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [isVotersExpanded, setIsVotersExpanded] = useState(false);
+  const [commentCount, setCommentCount] = useState(post.commentCount ?? post.comment_count ?? 0);
+  const [hasCommented, setHasCommented] = useState(post.hasCommented || false);
 
   // 親から渡されたデータが変わったら同期
   useEffect(() => {
@@ -77,7 +79,9 @@ export default function ResultPostCard({ post, currentUser, onToggleBookmark, co
     setBookmarkCount(post.bookmarkCount);
     setIsLiked(initialIsLiked);
     setLikeCount(initialLikeCount);
-  }, [post.isBookmarked, post.bookmarkCount, post.score, post.voters, currentUser]);
+    setCommentCount(post.commentCount ?? post.comment_count ?? 0);
+    setHasCommented(post.hasCommented || false);
+  }, [post.isBookmarked, post.bookmarkCount, post.score, post.voters, post.commentCount, post.comment_count, post.hasCommented, currentUser]);
 
   // ブックマーク処理
   const handleBookmark = async () => {
@@ -227,11 +231,11 @@ return (
                     className="flex items-center group focus:outline-none" 
                     title="コメント"
                 >
-                    <div className={`p-2 rounded-full transition-colors ${post.hasCommented || isCommentsOpen ? 'bg-[#1DA1F2]/10' : 'group-hover:bg-[#1DA1F2]/10'}`}>
-                        <MessageSquare className={`h-4 w-4 sm:h-5 sm:w-5 ${post.hasCommented || isCommentsOpen ? 'text-[#1DA1F2] fill-current' : 'group-hover:text-[#1DA1F2]'}`} />
+                    <div className={`p-2 rounded-full transition-colors ${hasCommented || isCommentsOpen ? 'bg-[#1DA1F2]/10' : 'group-hover:bg-[#1DA1F2]/10'}`}>
+                        <MessageSquare className={`h-4 w-4 sm:h-5 sm:w-5 ${hasCommented || isCommentsOpen ? 'text-[#1DA1F2] fill-current' : 'group-hover:text-[#1DA1F2]'}`} />
                     </div>
-                    <span className={`text-xs sm:text-sm font-bold ml-1 ${post.hasCommented || isCommentsOpen ? 'text-[#1DA1F2]' : 'group-hover:text-[#1DA1F2]'}`}>
-                      {post.commentCount ?? post.comment_count ?? 0}
+                    <span className={`text-xs sm:text-sm font-bold ml-1 ${hasCommented || isCommentsOpen ? 'text-[#1DA1F2]' : 'group-hover:text-[#1DA1F2]'}`}>
+                      {commentCount}
                     </span>
                 </button>
 
@@ -328,6 +332,14 @@ return (
                     isOpenProp={isCommentsOpen}
                     initialComments={initialComments}
                     onClose={() => setIsCommentsOpen(false)}
+                    onCommentAdded={() => {
+                      setHasCommented(true);
+                      setCommentCount(prev => prev + 1);
+                    }}
+                    onCommentDeleted={() => {
+                      setHasCommented(false);
+                      setCommentCount(prev => Math.max(0, prev - 1));
+                    }}
                 />
             )}
         </div>
