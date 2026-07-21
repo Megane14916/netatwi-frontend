@@ -523,9 +523,9 @@ export default function VenueDetailPage() {
     return newResults;
   }, [results, sortOrder]);
   
-  const totalPosters = contestStatus === "closed" ? resultsDataRaw?.totalPosters : postsData?.totalPosters;
-  const totalVoters = resultsDataRaw?.totalVoters || null;
-  const totalJudges = resultsDataRaw?.totalJudges || null;
+  const totalPosters = contestData?.postCount ?? 0;
+  const totalVoters = contestData?.totalVoters ?? 0;
+  const totalJudges = contestData?.totalJudges ?? 0;
   const userHasVoted = postsData?.userHasVotedInContest || false;
   
   const hasPosted = user && postsData?.posts ? postsData.posts.some((p: any) => p.user_id === user.id) : false;
@@ -1265,6 +1265,11 @@ export default function VenueDetailPage() {
                       </div>
                     );
                   })
+                ) : !postsData ? (
+                  <div className="text-center py-16 text-black/50 dark:text-white/50 flex flex-col items-center">
+                    <Loader2 className="w-8 h-8 animate-spin text-[#1DA1F2] mb-3" />
+                    読み込み中...
+                  </div>
                 ) : (
                   <div className="text-center py-16 text-black/50 dark:text-white/50">
                     投稿がありません。
@@ -1278,7 +1283,12 @@ export default function VenueDetailPage() {
         {/* 結果発表 */}
         {contestStatus === "closed" && (
           <div className="space-y-8 pb-12">
-            {results.length === 0 ? (
+            {!resultsDataRaw ? (
+              <div className="text-center py-20 bg-gray-50 dark:bg-gray-950 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm mt-8 px-4 flex flex-col items-center">
+                <Loader2 className="w-10 h-10 animate-spin text-[#1DA1F2] mb-4" />
+                <p className="text-gray-500 dark:text-gray-400">読み込み中...</p>
+              </div>
+            ) : results.length === 0 ? (
               <div className="text-center py-20 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-950 rounded-2xl border border-gray-200 dark:border-gray-800">
                 投稿がありませんでした。
               </div>
