@@ -26,6 +26,18 @@ export const metadata: Metadata = {
     title: "ネタツイグランプリ",
     description: "140字以内に整えるおもしろインターネット賞レース",
   },
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/favicon.ico",
+  },
+};
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "ネタツイグランプリ",
+  url: "https://n-1gp.vercel.app",
 };
 
 // Google Analyticsの測定IDを環境変数から取得
@@ -51,6 +63,10 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
         {/* Google Analytics Script */}
         {/* GA_IDが設定されている場合のみスクリプトを出力 */}
         {GA_ID && (
