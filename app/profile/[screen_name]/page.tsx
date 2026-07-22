@@ -31,6 +31,10 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
   const [activeTab, setActiveTab] = useState<'posts' | 'bookmarks' | 'likes'>('posts');
   const fetchRef = useRef<string | null>(null);
 
+  // コメント一括取得用の状態
+  const [prefetchedComments, setPrefetchedComments] = useState<Record<number, any[]>>({});
+  const fetchingPostIdsRef = useRef<Set<number>>(new Set());
+
   useEffect(() => {
     if (!screenName) return;
     if (fetchRef.current === screenName) return;
@@ -133,6 +137,47 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
       }
   };
 
+  // 表示する投稿リストの切り替え
+  const displayPosts = profileData ? (activeTab === 'posts' 
+    ? profileData.posts 
+    : activeTab === 'bookmarks' 
+        ? profileData.bookmarks 
+        : profileData.likes) : [];
+
+  // 画面に表示される投稿のコメントを一括取得
+  useEffect(() => {
+    if (!displayPosts || displayPosts.length === 0) return;
+
+    const allPostIds = new Set<number>();
+    displayPosts.forEach((p: any) => {
+      if (p.commentCount > 0 || p.comment_count > 0) {
+        allPostIds.add(p.post_id);
+      }
+    });
+
+    const postIdsToFetch = Array.from(allPostIds).filter(
+      (id) => !prefetchedComments[id] && !fetchingPostIdsRef.current.has(id)
+    );
+
+    if (postIdsToFetch.length > 0) {
+      postIdsToFetch.forEach((id) => fetchingPostIdsRef.current.add(id));
+
+      fetch(`${API_PREFIX}/api/comments?postIds=${postIdsToFetch.join(",")}`, {
+        credentials: "include",
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (!data.error) {
+            setPrefetchedComments((prev) => ({ ...prev, ...data }));
+          }
+        })
+        .catch((err) => {
+          console.error(err);
+          postIdsToFetch.forEach((id) => fetchingPostIdsRef.current.delete(id));
+        });
+    }
+  }, [displayPosts, prefetchedComments]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white dark:bg-black text-gray-600 dark:text-gray-400">
@@ -161,13 +206,6 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
       </div>
     );
   }
-
-  // 表示する投稿リストの切り替え
-  const displayPosts = activeTab === 'posts' 
-    ? profileData.posts 
-    : activeTab === 'bookmarks' 
-        ? profileData.bookmarks 
-        : profileData.likes;
 
   return (
     <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white pb-20">
@@ -271,6 +309,7 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
                     currentUser={currentUser} 
                     onToggleBookmark={handleToggleBookmark}
                     contestScoringMethod={post.contest?.scoringMethod}
+                    initialComments={prefetchedComments[post.post_id]}
                 />
               </div>
             ))
