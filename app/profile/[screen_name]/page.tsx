@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 // import { useParams } from 'next/navigation'; // propsから取得
 import { User as UserIcon,ExternalLink } from 'lucide-react';
 import Link from 'next/link';
@@ -29,9 +29,12 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'posts' | 'bookmarks' | 'likes'>('posts');
+  const fetchRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!screenName) return;
+    if (fetchRef.current === screenName) return;
+    fetchRef.current = screenName;
 
     const fetchProfileData = async () => {
       try {
