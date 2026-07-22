@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 
-export default function RippleLink({ href, children, className, rippleColor = "bg-gray-400 dark:bg-gray-600" }: any) {
+export default function RippleLink({ href, children, className, rippleColor = "bg-gray-400 dark:bg-gray-600", ...props }: any) {
   const [ripples, setRipples] = useState<{ x: number; y: number; id: number; size: number; active: boolean }[]>([]);
 
   const handlePointerDown = (e: React.PointerEvent<HTMLAnchorElement>) => {
@@ -24,6 +24,7 @@ export default function RippleLink({ href, children, className, rippleColor = "b
     <Link
       href={href}
       className={`relative overflow-hidden ${className}`}
+      {...props}
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerUp}

@@ -431,6 +431,7 @@ export default function HomePage() {
                 <div className="mt-7 flex items-center gap-2 md:gap-3">
                   <Link
                     href={`/venue/${displayContest.id}`}
+                    prefetch={true}
                     className="inline-flex shrink-0 items-center rounded-full bg-[#1DA1F2] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#1788cc] md:px-7 md:py-3"
                   >
                     詳しく見る
@@ -439,6 +440,7 @@ export default function HomePage() {
                   {step === 2 && gpQualifier && (
                     <Link
                       href={`/venue/${gpQualifier.id}`}
+                      prefetch={true}
                       className="inline-flex shrink-0 items-center rounded-full bg-gray-200 dark:bg-gray-800 px-5 py-2.5 text-sm font-bold text-gray-700 dark:text-gray-300 transition hover:bg-gray-300 dark:hover:bg-gray-600 md:px-7 md:py-3"
                     >
                       予選結果を見る
@@ -754,6 +756,7 @@ export default function HomePage() {
                   <RippleLink
                     key={c.id}
                     href={`/venue/${c.id}`}
+                    prefetch={true}
                     className="group relative overflow-hidden bg-gray-100 dark:bg-gray-900 py-6 px-3 md:p-8 transition-colors duration-300 hover:bg-gray-200 dark:hover:bg-gray-700"
                   >
                     <div className="relative z-10 flex flex-row items-center justify-between gap-2 md:gap-4">
@@ -853,6 +856,7 @@ export default function HomePage() {
                         <RippleLink
                           key={c.id}
                           href={`/venue/${c.id}`}
+                          prefetch={true}
                           className="group relative overflow-hidden bg-gray-100 dark:bg-gray-900 py-6 px-3 md:p-8 transition-colors duration-300 hover:bg-gray-200 dark:hover:bg-gray-700"
                         >
                           <div className="relative z-10 flex flex-row items-center justify-between gap-2 md:gap-4">

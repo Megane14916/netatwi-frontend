@@ -83,15 +83,17 @@ export default function NotificationsPage() {
               通知はまだありません
             </div>
           ) : (
-            notifications.map(notification => (
-              <div 
+            notifications.map(notification => {
+              const Wrapper: any = notification.contest_id ? Link : 'div';
+              const wrapperProps = notification.contest_id 
+                ? { href: `/venue/${notification.contest_id}`, prefetch: true } 
+                : {};
+
+              return (
+              <Wrapper 
                 key={notification.id} 
-                className={`p-4 border-b border-gray-200 dark:border-gray-800 transition-colors cursor-pointer ${notification.is_read ? 'bg-white dark:bg-black hover:bg-gray-50 dark:hover:bg-gray-900' : 'bg-[#E1F5FE] hover:bg-[#B3E5FC]'}`}
-                onClick={() => {
-                  if (notification.contest_id) {
-                    router.push(`/venue/${notification.contest_id}`);
-                  }
-                }}
+                className={`block p-4 border-b border-gray-200 dark:border-gray-800 transition-colors cursor-pointer ${notification.is_read ? 'bg-white dark:bg-black hover:bg-gray-50 dark:hover:bg-gray-900' : 'bg-[#E1F5FE] hover:bg-[#B3E5FC]'}`}
+                {...wrapperProps}
               >
                 <div className="flex items-start gap-4">
                   <div className="flex-none pt-1">
@@ -145,8 +147,9 @@ export default function NotificationsPage() {
                     )}
                   </div>
                 </div>
-              </div>
-            ))
+              </Wrapper>
+            );
+          })
           )}
         </div>
       </div>
