@@ -92,7 +92,7 @@ export default function NotificationsPage() {
               return (
               <Wrapper 
                 key={notification.id} 
-                className={`block p-4 border-b border-gray-200 dark:border-gray-800 transition-colors cursor-pointer ${notification.is_read ? 'bg-white dark:bg-black hover:bg-gray-50 dark:hover:bg-gray-900' : 'bg-[#E1F5FE] hover:bg-[#B3E5FC]'}`}
+                className={`block p-4 border-b border-gray-200 dark:border-gray-800 transition-colors cursor-pointer ${notification.is_read ? 'bg-white dark:bg-black hover:bg-gray-50 dark:hover:bg-gray-900' : 'bg-[#E1F5FE] dark:bg-blue-900/40 hover:bg-[#B3E5FC] dark:hover:bg-blue-900/60'}`}
                 {...wrapperProps}
               >
                 <div className="flex items-start gap-4">

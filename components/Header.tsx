@@ -48,23 +48,22 @@ export default function Header() {
 
   useEffect(() => {
     if (user) {
-      const fetchNotifications = async () => {
+      const fetchUnreadCount = async () => {
         try {
-          const res = await fetch('/api/notifications');
+          const res = await fetch('/api/notifications/unread-count');
           if (res.ok) {
             const data = await res.json();
-            const unread = data.filter((n: any) => !n.is_read).length;
-            setUnreadCount(unread);
+            setUnreadCount(data.unread_count);
           }
         } catch (e) {
           console.error(e);
         }
       };
-      fetchNotifications();
-      const interval = setInterval(fetchNotifications, 60000);
+      fetchUnreadCount();
+      const interval = setInterval(fetchUnreadCount, 300000); // 5 minutes
       return () => clearInterval(interval);
     }
-  }, [user]);
+  }, [user, pathname]);
 
   // 追加: ページ遷移が発生したらメニューを確実に閉じる
   useEffect(() => {
