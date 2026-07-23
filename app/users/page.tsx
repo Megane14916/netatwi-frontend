@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { UserListRow } from '@/components/UserListRow';
 import { Search, Loader2, ChevronLeft, ChevronRight, Users } from 'lucide-react';
 
@@ -10,8 +10,18 @@ export default function UsersPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const cache = useRef<Record<string, { users: any[], total_pages: number, page: number }>>({});
 
   const fetchUsers = useCallback(async (q: string, p: number) => {
+    const cacheKey = `${q}_${p}`;
+    if (cache.current[cacheKey]) {
+      setUsers(cache.current[cacheKey].users);
+      setTotalPages(cache.current[cacheKey].total_pages);
+      setPage(cache.current[cacheKey].page);
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
@@ -21,6 +31,12 @@ export default function UsersPage() {
         setUsers(data.users);
         setTotalPages(data.total_pages);
         setPage(data.page);
+        
+        cache.current[cacheKey] = {
+          users: data.users,
+          total_pages: data.total_pages,
+          page: data.page
+        };
       }
     } catch (error) {
       console.error('Failed to fetch users', error);
