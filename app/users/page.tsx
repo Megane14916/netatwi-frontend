@@ -5,7 +5,7 @@ import { UserListRow } from '@/components/UserListRow';
 import { Search, Loader2, ChevronLeft, ChevronRight, Users } from 'lucide-react';
 
 export default function UsersPage() {
-  const [users, setUsers] = useState([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
