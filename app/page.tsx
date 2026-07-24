@@ -9,11 +9,18 @@ import {
   ExternalLink,
   Users,
 } from "lucide-react";
-import { Tweet } from "react-tweet";
 import dayjs from "dayjs";
 import useSWR from "swr";
-import PostForm from "@/components/venue/PostForm";
 import RippleLink from "@/components/RippleLink";
+import dynamic from "next/dynamic";
+import CountdownTimer from "@/components/CountdownTimer";
+
+const PostForm = dynamic(() => import("@/components/venue/PostForm"));
+const DynamicTweet = dynamic(() => import("@/components/DynamicTweet"), {
+  loading: () => (
+    <div className="w-full h-[400px] rounded-xl bg-gray-200 dark:bg-gray-800 animate-pulse"></div>
+  ),
+});
 
 interface Contest {
   id: number;
@@ -143,12 +150,7 @@ export default function HomePage() {
     isLoading: contestsLoading,
   } = useSWR<ContestsResponse>("/api/contests", fetcher);
 
-  const [currentTime, setCurrentTime] = useState(() => new Date());
 
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   useEffect(() => {
     const updateHeroTitleFontSize = () => {
@@ -325,9 +327,10 @@ export default function HomePage() {
 
         const step = getGPStep(gpFinals, gpQualifier);
 
+        const nowTime = new Date().getTime();
         const isBeforeStart = gpQualifier
-          ? gpQualifier.startTime && currentTime.getTime() < new Date(gpQualifier.startTime).getTime()
-          : gpFinals.startTime && currentTime.getTime() < new Date(gpFinals.startTime).getTime();
+          ? gpQualifier.startTime && nowTime < new Date(gpQualifier.startTime).getTime()
+          : gpFinals.startTime && nowTime < new Date(gpFinals.startTime).getTime();
 
         // ステータスバッジ
         const statusConfig: Record<number, { label: string; color: string }> = {
@@ -349,17 +352,6 @@ export default function HomePage() {
             ? (gpQualifier.totalPosters ?? 0)
             : (gpFinals.totalPosters ?? 0);
 
-        // 残り時間
-        const getRemainingTime = (deadline: string | null): string => {
-          if (!deadline) return "";
-          const diff = new Date(deadline).getTime() - currentTime.getTime();
-          if (diff <= 0) return "締切済み";
-          const h = Math.floor(diff / 3600000);
-          const m = Math.floor((diff % 3600000) / 60000);
-          const s = Math.floor((diff % 60000) / 1000);
-          return h > 0 ? `${h}時間${m}分${s}秒` : `${m}分${s}秒`;
-        };
-
         const deadlineMap: Record<number, string | null> = {
           0: gpQualifier?.endTime ?? null,
           1: gpQualifier?.votingEndTime ?? null,
@@ -367,9 +359,7 @@ export default function HomePage() {
           3: gpFinals.votingEndTime,
           4: null,
         };
-        const remainingTime = deadlineMap[step]
-          ? getRemainingTime(deadlineMap[step])
-          : null;
+        const activeDeadline = deadlineMap[step];
 
         // フェーズに応じた表示名・リンク先を決定
         // step 0/1（予選期間）は予選の情報を、step 2以降は決勝の情報を表示
@@ -405,15 +395,7 @@ export default function HomePage() {
                       {participants}人
                     </span>
                   </span>
-                  {remainingTime && (
-                    <span className="inline-flex items-center gap-1.5">
-                      <Clock3 className="h-4 w-4 text-[#1DA1F2]" />
-                      残り時間:{" "}
-                      <span className="font-bold text-[#1DA1F2]">
-                        {remainingTime}
-                      </span>
-                    </span>
-                  )}
+                  <CountdownTimer deadline={activeDeadline} />
                 </p>
                 <div className="mt-3 space-y-1 text-sm text-black/70 dark:text-white/70 md:text-base">
                   {gpQualifier && (
@@ -704,7 +686,7 @@ export default function HomePage() {
                   className="snap-start flex-none w-[280px] md:w-[400px] flex justify-center"
                 >
                   <div className="w-full max-w-full pointer-events-none select-none">
-                    <Tweet id={news.tweet_id} />
+                    <DynamicTweet id={news.tweet_id} />
                   </div>
                 </div>
               ))
