@@ -318,7 +318,6 @@ const MyPostDisplay = ({
 
 export default function VenueDetailPage() {
   const { toast } = useToast();
-  const [showVoteConfirm, setShowVoteConfirm] = useState(false);
   const params = useParams();
   const contestId = parseInt(params?.id as string, 10);
   const { user, judgeContests, refetchUser } = useAuth();
@@ -822,11 +821,10 @@ export default function VenueDetailPage() {
       toast({ title: "エラー", description: "終了しました。", variant: "destructive" });
       return;
     }
-    setShowVoteConfirm(true);
+    handleSubmitVotes();
   };
 
   const handleSubmitVotes = async () => {
-    setShowVoteConfirm(false);
     setIsSubmittingVotes(true);
     setVoteSubmitMessage(null);
     const payload: any = { votes };
@@ -1472,23 +1470,10 @@ export default function VenueDetailPage() {
               ? "送信中..."
               : userHasVoted
                 ? "投票を更新する"
-                : "投票を確定する"}
+                : "投票する"}
           </button>
         </div>
       )}
-
-      <AlertDialog open={showVoteConfirm} onOpenChange={setShowVoteConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>投票の確認</AlertDialogTitle>
-            <AlertDialogDescription>投票を確定しますか？</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>キャンセル</AlertDialogCancel>
-            <AlertDialogAction onClick={handleSubmitVotes} className="bg-[#1DA1F2] hover:bg-[#1788cc] text-white">確定する</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
