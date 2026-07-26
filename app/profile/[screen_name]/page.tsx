@@ -6,6 +6,7 @@ import { User as UserIcon,ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import ResultPostCard, { ResultPostProps } from '../../../components/ResultPostCard';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from "@/components/ui/use-toast";
 
 const API_PREFIX = '';
 
@@ -22,6 +23,7 @@ interface ProfileData {
 }
 
 export default function UserProfilePage({ params }: { params: { screen_name: string } }) {
+  const { toast } = useToast();
   const screenName = params?.screen_name as string;
   const { user: currentUser } = useAuth();
 
@@ -132,7 +134,7 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
           // ここで再度 setProfileData しても良いが、チラつき防止のため楽観更新を信じる
       } catch (error) {
           console.error(error);
-          alert('ブックマークの更新に失敗しました');
+          toast({ title: "エラー", description: "ブックマークの更新に失敗しました", variant: "destructive" });
           // エラー時はロールバックが必要だが、今回は省略
       }
   };

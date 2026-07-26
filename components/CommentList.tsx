@@ -4,6 +4,8 @@ import React, { useState, useEffect,useRef, useMemo } from 'react';
 import { Send, Edit2, Trash2, X, MessageSquare } from 'lucide-react';
 import TimeAgo from './TimeAgo';
 import useSWR from 'swr';
+import { useToast } from "@/components/ui/use-toast";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface Comment {
   id: number;
@@ -33,6 +35,8 @@ interface CommentListProps {
 }
 
 export default function CommentList({ postId, currentUser, contestStatus, isAlwaysOpen = false, isOpenProp = false, onClose, onCommentAdded, onCommentDeleted, initialComments }: CommentListProps) {
+  const { toast } = useToast();
+  const [commentToDelete, setCommentToDelete] = useState<number | null>(null);
   const [newComment, setNewComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
@@ -41,6 +45,7 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
   const [error, setError] = useState('');
 
   const [localComments, setLocalComments] = useState<Comment[]>([]);
+  const [deletedCommentIds, setDeletedCommentIds] = useState<Set<number>>(new Set());
 
   const fetcher = (url: string) => fetch(url).then(res => res.json());
   
@@ -56,7 +61,6 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
 
   // SWRデータとローカル操作分をマージして一意なリストを作成する
   const comments = useMemo(() => {
-    const all = [...swrComments, ...localComments];
     const unique: Comment[] = [];
     const seen = new Set();
     // 後から追加されたローカル分（または編集分）が優先されるように、
@@ -65,6 +69,7 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
     
     // まずSWRデータを追加（ローカルにあればローカル優先、削除されていればスキップ）
     for (const c of swrComments) {
+      if (deletedCommentIds.has(c.id)) continue;
       // 削除フラグを持つ特殊なオブジェクト（ここでは単純に filter で対応しますが、ローカルで消されたものは含まないようにします）
       if (!localMap.has(c.id) || localMap.get(c.id) !== null) {
         if (!seen.has(c.id)) {
@@ -75,13 +80,14 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
     }
     // 次にローカルで新規追加されたものを追加
     for (const c of localComments) {
+      if (deletedCommentIds.has(c.id)) continue;
       if (!seen.has(c.id)) {
         seen.add(c.id);
         unique.push(c);
       }
     }
     return unique.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-  }, [swrComments, localComments]);
+  }, [swrComments, localComments, deletedCommentIds]);
 
   const newTextareaRef = useRef<HTMLTextAreaElement>(null);
   const editTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -174,8 +180,17 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
     }
   };
 
-  const handleDelete = async (commentId: number) => {
-    if (!confirm('コメントを削除しますか？')) return;
+  const confirmDeleteComment = (commentId: number) => {
+    setCommentToDelete(commentId);
+  };
+
+  const handleDelete = async () => {
+    if (commentToDelete === null) return;
+    const commentId = commentToDelete;
+    setCommentToDelete(null);
+
+    // 楽観的更新
+    setDeletedCommentIds(prev => new Set(prev).add(commentId));
     
     if (shouldFetch) {
       mutate(swrComments.filter(c => c.id !== commentId), false);
@@ -188,9 +203,22 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
       if (res.ok) {
         if (shouldFetch) mutate();
         onCommentDeleted?.();
+      } else {
+        setDeletedCommentIds(prev => {
+          const next = new Set(prev);
+          next.delete(commentId);
+          return next;
+        });
+        toast({ title: "エラー", description: "コメントの削除に失敗しました", variant: "destructive" });
       }
     } catch (e) {
       console.error(e);
+      setDeletedCommentIds(prev => {
+        const next = new Set(prev);
+        next.delete(commentId);
+        return next;
+      });
+      toast({ title: "エラー", description: "コメントの削除に失敗しました", variant: "destructive" });
     }
   };
 
@@ -319,8 +347,8 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
                   }} className="text-gray-400 dark:text-gray-600 hover:text-[#1DA1F2]">
                     <Edit2 className="w-3.5 h-3.5" />
                   </button>
-                  <button onClick={() => handleDelete(comment.id)} className="text-gray-400 dark:text-gray-600 hover:text-red-500">
-                    <Trash2 className="w-3.5 h-3.5" />
+                  <button onClick={() => confirmDeleteComment(comment.id)} className="text-gray-400 dark:text-gray-600 hover:text-red-500">
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               )}
@@ -352,6 +380,19 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
             </p>
         )}
       </div>
+
+      <AlertDialog open={commentToDelete !== null} onOpenChange={(open) => !open && setCommentToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>コメントの削除</AlertDialogTitle>
+            <AlertDialogDescription>本当にコメントを削除しますか？</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setCommentToDelete(null)}>キャンセル</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700 text-white">削除する</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

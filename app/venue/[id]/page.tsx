@@ -46,6 +46,8 @@ import RichTextEditor, {
 import ProgressRing from "@/components/ProgressRing";
 import { countText, TextCountResult } from "@/lib/twitterText";
 import useSWR from "swr";
+import { useToast } from "@/components/ui/use-toast";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 const fetcher = (url: string) => fetch(url, { credentials: "include" }).then(res => res.json());
 
@@ -315,6 +317,8 @@ const MyPostDisplay = ({
 );
 
 export default function VenueDetailPage() {
+  const { toast } = useToast();
+  const [showVoteConfirm, setShowVoteConfirm] = useState(false);
   const params = useParams();
   const contestId = parseInt(params?.id as string, 10);
   const { user, judgeContests, refetchUser } = useAuth();
@@ -436,7 +440,7 @@ export default function VenueDetailPage() {
       const files = Array.from(e.target.files);
       const totalImages = selectedImages.length + files.length;
       if (totalImages > 4) {
-        alert("画像は最大4枚までです。");
+        toast({ title: "エラー", description: "画像は最大4枚までです。", variant: "destructive" });
         return;
       }
 
@@ -716,7 +720,7 @@ export default function VenueDetailPage() {
     // 文字数チェック
     const check = countText(newPostContent);
     if (!check.isValid && newPostContent.trim().length > 0) {
-      alert("文字数制限（280文字）を超えています");
+      toast({ title: "エラー", description: "文字数制限（280文字）を超えています", variant: "destructive" });
       return;
     }
 
@@ -726,7 +730,7 @@ export default function VenueDetailPage() {
       previewUrls.length === 0 &&
       selectedImages.length === 0
     ) {
-      alert("画像を1枚以上添付してください");
+      toast({ title: "エラー", description: "画像を1枚以上添付してください", variant: "destructive" });
       return;
     }
 
@@ -772,7 +776,7 @@ export default function VenueDetailPage() {
 
       setIsEditing(false);
       setPostError(null);
-      alert("投稿しました！");
+      toast({ title: "成功", description: "投稿しました！" });
     } catch (err: any) {
       setPostError(err.message);
     } finally {
@@ -813,12 +817,16 @@ export default function VenueDetailPage() {
     });
   };
 
-  const handleSubmitVotes = async () => {
+  const handleVoteClick = () => {
     if (isVoteDeadlineExceeded) {
-      alert("終了しました。");
+      toast({ title: "エラー", description: "終了しました。", variant: "destructive" });
       return;
     }
-    if (!confirm("投票を確定しますか？")) return;
+    setShowVoteConfirm(true);
+  };
+
+  const handleSubmitVotes = async () => {
+    setShowVoteConfirm(false);
     setIsSubmittingVotes(true);
     setVoteSubmitMessage(null);
     const payload: any = { votes };
@@ -839,7 +847,7 @@ export default function VenueDetailPage() {
         mutatePosts(); // 投票状態を再取得
         setShowSuccessBanner(true);
         setVoteSubmitMessage({ type: "success", text: "投票が完了しました！" });
-        if (isJudgeMode) alert("投票と審査員賞を保存しました！");
+        if (isJudgeMode) toast({ title: "成功", description: "投票と審査員賞を保存しました！" });
         else setTimeout(() => setShowSuccessBanner(false), 5000);
       } else {
         setVoteSubmitMessage({
@@ -1453,7 +1461,7 @@ export default function VenueDetailPage() {
       {showVoteUI && (
         <div className="sticky bottom-0 w-full z-50 bg-white dark:bg-black/90 backdrop-blur-md border-t border-gray-200 dark:border-gray-800 p-4 flex justify-center mt-auto">
           <button
-            onClick={handleSubmitVotes}
+            onClick={handleVoteClick}
             disabled={isSubmittingVotes}
             className="w-full max-w-md mx-auto py-3.5 px-6 rounded-full font-bold bg-[#1DA1F2] hover:bg-[#1788cc] text-white shadow-md flex items-center justify-center transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed text-[15px]"
           >
@@ -1468,6 +1476,19 @@ export default function VenueDetailPage() {
           </button>
         </div>
       )}
+
+      <AlertDialog open={showVoteConfirm} onOpenChange={setShowVoteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>投票の確認</AlertDialogTitle>
+            <AlertDialogDescription>投票を確定しますか？</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>キャンセル</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSubmitVotes} className="bg-[#1DA1F2] hover:bg-[#1788cc] text-white">確定する</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

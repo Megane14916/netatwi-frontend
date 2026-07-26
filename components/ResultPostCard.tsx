@@ -10,6 +10,7 @@ import CommentList from './CommentList';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/ja';
+import { useToast } from "@/components/ui/use-toast";
 
 dayjs.extend(relativeTime);
 dayjs.locale('ja');
@@ -54,6 +55,7 @@ export interface ResultPostProps {
 }
 
 export default function ResultPostCard({ post, currentUser, onToggleBookmark, contestScoringMethod, hideVotersAndComments = false, initialComments }: ResultPostProps) {
+  const { toast } = useToast();
   const [isBookmarked, setIsBookmarked] = useState(post.isBookmarked);
   const [bookmarkCount, setBookmarkCount] = useState(post.bookmarkCount);
 
@@ -86,7 +88,7 @@ export default function ResultPostCard({ post, currentUser, onToggleBookmark, co
   // ブックマーク処理
   const handleBookmark = async () => {
     if (!currentUser) {
-      alert('ブックマークするにはログインが必要です。');
+      toast({ title: "エラー", description: "ブックマークするにはログインが必要です。", variant: "destructive" });
       return;
     }
 
@@ -137,12 +139,12 @@ export default function ResultPostCard({ post, currentUser, onToggleBookmark, co
         setLikeCount(data.likeCount);
       } else {
         const errData = await res.json();
-        alert(errData.error || "いいねに失敗しました");
+        toast({ title: "エラー", description: errData.error || "いいねに失敗しました", variant: "destructive" });
         setIsLiked(prevIsLiked);
         setLikeCount(prevCount);
       }
     } catch {
-      alert("いいねに失敗しました");
+      toast({ title: "エラー", description: "いいねに失敗しました", variant: "destructive" });
       setIsLiked(prevIsLiked);
       setLikeCount(prevCount);
     }

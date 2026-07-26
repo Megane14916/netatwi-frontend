@@ -14,13 +14,10 @@ import useSWR from "swr";
 import RippleLink from "@/components/RippleLink";
 import dynamic from "next/dynamic";
 import CountdownTimer from "@/components/CountdownTimer";
+import HeroSection from "@/components/home/HeroSection";
+import NewsSection from "@/components/home/NewsSection";
 
 const PostForm = dynamic(() => import("@/components/venue/PostForm"));
-const DynamicTweet = dynamic(() => import("@/components/DynamicTweet"), {
-  loading: () => (
-    <div className="w-full h-[400px] rounded-xl bg-gray-200 dark:bg-gray-800 animate-pulse"></div>
-  ),
-});
 
 interface Contest {
   id: number;
@@ -95,173 +92,19 @@ const formatDateTime = (dt: string | null) => {
 
 
 export default function HomePage() {
-  const heroTitleMeasureRef = useRef<HTMLSpanElement | null>(null);
-  const heroTaglinesRef = useRef<HTMLDivElement | null>(null);
-  const [heroTitleFontSize, setHeroTitleFontSize] = useState<number | null>(
-    null,
-  );
-
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [startX, setStartX] = useState(0);
-  const [scrollLeft, setScrollLeft] = useState(0);
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (!scrollRef.current) return;
-    setIsDragging(true);
-    setStartX(e.pageX - scrollRef.current.offsetLeft);
-    setScrollLeft(scrollRef.current.scrollLeft);
-  };
-  const handleMouseLeave = () => setIsDragging(false);
-  const handleMouseUp = () => setIsDragging(false);
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging || !scrollRef.current) return;
-    e.preventDefault();
-    const x = e.pageX - scrollRef.current.offsetLeft;
-    const walk = (x - startX) * 2;
-    scrollRef.current.scrollLeft = scrollLeft - walk;
-  };
-
   const fetcher = (url: string) => fetch(url).then((res) => {
     if (!res.ok) throw new Error("Failed to fetch");
     return res.json();
   });
 
   const {
-    data: newsList = [],
-    error: newsError,
-    isLoading: newsLoading,
-  } = useSWR<{ id: number; tweet_id: string }[]>("/api/news", fetcher);
-
-  // ツイート埋め込み等によるスクロール位置のバグを防ぐため初期状態では左端に戻す
-  useEffect(() => {
-    if (scrollRef.current && newsList.length > 0) {
-      const timer = setTimeout(() => {
-        if (scrollRef.current) {
-          scrollRef.current.scrollLeft = 0;
-        }
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [newsList]);
-
-  const {
     data: contestsData = null,
     isLoading: contestsLoading,
   } = useSWR<ContestsResponse>("/api/contests", fetcher);
 
-
-
-  useEffect(() => {
-    const updateHeroTitleFontSize = () => {
-      const measureEl = heroTitleMeasureRef.current;
-      const taglinesEl = heroTaglinesRef.current;
-      if (!measureEl || !taglinesEl) return;
-
-      const isMobile = window.matchMedia("(max-width: 767px)").matches;
-      if (!isMobile) {
-        setHeroTitleFontSize(null);
-        return;
-      }
-
-      const baseWidth = measureEl.offsetWidth;
-      const taglinesWidth = taglinesEl.offsetWidth;
-      if (baseWidth === 0 || taglinesWidth === 0) return;
-
-      const baseFontSize = parseFloat(
-        window.getComputedStyle(measureEl).fontSize || "0",
-      );
-      if (!baseFontSize) return;
-
-      const targetWidth = taglinesWidth * 0.9;
-      const ratio = Math.min(targetWidth / baseWidth, 1);
-      const nextFontSize = baseFontSize * ratio;
-
-      setHeroTitleFontSize((prev) => {
-        if (prev === null && Math.abs(ratio - 1) < 0.01) return prev;
-        if (prev !== null && Math.abs(prev - nextFontSize) < 0.5) return prev;
-        return nextFontSize;
-      });
-    };
-
-    updateHeroTitleFontSize();
-    document.fonts?.ready?.then(updateHeroTitleFontSize);
-    window.addEventListener("resize", updateHeroTitleFontSize);
-    return () => window.removeEventListener("resize", updateHeroTitleFontSize);
-  }, []);
-
   return (
     <div className="relative bg-white dark:bg-black text-black dark:text-white">
-      <section className="relative z-0 flex h-[calc(100vh-4rem)] min-h-[640px] items-center bg-white dark:bg-black">
-        {/* Top Left Separator */}
-        <svg
-          className="pointer-events-none absolute left-0 top-0 z-10 w-[50vw] lg:w-[33.333vw]"
-          viewBox="0 0 100 26.8"
-        >
-          <polygon points="0,0 100,0 0,26.8" fill="#1DA1F2" />
-        </svg>
-
-
-
-        {/* Bottom Right Separator (Triangle) */}
-        <svg
-          className="pointer-events-none absolute right-0 z-10 w-[66.666vw] lg:min-w-[700px] lg:w-[50vw]"
-          style={{ top: "100%", transform: "translateY(-34.45%)" }}
-          viewBox="0 0 89.18 84.53"
-        >
-          <path
-            d="M 89.18 0 L 5.02 22.56 A 6.8 6.8 0 0 0 3.38 35.0 L 89.18 84.53 Z"
-            fill="#1DA1F2"
-          />
-        </svg>
-
-        {/* Main Content */}
-        <div className="relative z-20 mx-auto flex h-full w-full max-w-7xl items-end px-6 pb-24 md:px-10">
-          <div className="w-full">
-            <h1
-              className="relative leading-tight tracking-tight"
-              style={{ fontFamily: "var(--font-inter), sans-serif" }}
-            >
-              <span
-                ref={heroTitleMeasureRef}
-                aria-hidden="true"
-                className="pointer-events-none absolute left-0 top-0 whitespace-nowrap text-[2.25rem] font-normal text-black dark:text-white opacity-0 md:text-4xl"
-              >
-                ネタツイグランプリ
-              </span>
-              <span
-                className="block whitespace-nowrap text-[2.25rem] font-normal text-black dark:text-white md:text-4xl"
-                style={
-                  heroTitleFontSize
-                    ? { fontSize: `${heroTitleFontSize}px` }
-                    : undefined
-                }
-              >
-                ネタツイグランプリ
-              </span>
-              <div
-                ref={heroTaglinesRef}
-                className="mt-4 inline-flex flex-col items-start"
-              >
-                <span className="block text-[3.25rem] font-black leading-none text-black/80 dark:text-white md:text-7xl lg:text-[5.25rem]">
-                  <span className="block md:inline">Tiny</span>
-                  <span className="block md:inline md:ml-2">Tweets.</span>
-                </span>
-                <span className="mt-2 block text-[3.25rem] font-black leading-none text-black/80 dark:text-white md:text-7xl lg:text-[5.25rem]">
-                  <span className="block md:inline">Huge</span>
-                  <span className="block md:inline md:ml-2">Laughs.</span>
-                </span>
-              </div>
-            </h1>
-            <Link
-              href="/venue"
-              className="mt-7 inline-flex items-center rounded-full bg-[#1DA1F2] px-7 py-3 text-sm font-bold text-white transition hover:bg-[#1788cc]"
-            >
-              参加する
-            </Link>
-          </div>
-        </div>
-      </section>
+      <HeroSection />
 
       {/* グランプリセクション */}
       {(() => {
@@ -639,64 +482,7 @@ export default function HomePage() {
       </div>
 
       {/* ニュースセクション */}
-      <section id="news" className="bg-white dark:bg-black py-24 md:py-16">
-        <div className="mx-auto max-w-[1200px]">
-          <div className="mb-8 flex items-center justify-between px-6 md:px-10">
-            <h2 className="text-2xl font-bold text-black dark:text-white md:text-[40px]">
-              最新のニュース
-            </h2>
-            <a
-              href="https://x.com/_n1gp"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex shrink-0 items-center rounded-full bg-[#1DA1F2] px-4 py-2 md:px-8 md:py-3 text-xs md:text-sm font-bold text-white transition hover:bg-[#1788cc]"
-            >
-              公式Xへ
-              <ExternalLink className="ml-1 md:ml-2 h-3 w-3 md:h-4 md:w-4" />
-            </a>
-          </div>
-
-          <div
-            ref={scrollRef}
-            onMouseDown={handleMouseDown}
-            onMouseLeave={handleMouseLeave}
-            onMouseUp={handleMouseUp}
-            onMouseMove={handleMouseMove}
-            className={`flex overflow-x-auto gap-6 pb-8 snap-mandatory scroll-pl-6 md:scroll-pl-10 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] ${isDragging ? 'snap-none cursor-grabbing' : 'snap-x cursor-grab'}`}
-          >
-            {/* 左端の余白 (スナップ用) */}
-            <div className="snap-start flex-none w-0 md:w-4"></div>
-
-            {newsLoading ? (
-              <>
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="snap-start flex-none w-[280px] md:w-[400px]">
-                    <div className="w-full h-[400px] rounded-xl bg-gray-200 dark:bg-gray-800 animate-pulse"></div>
-                  </div>
-                ))}
-              </>
-            ) : newsError ? (
-              <p className="text-black dark:text-white">エラーが発生しました</p>
-            ) : newsList.length === 0 ? (
-              <p className="text-black dark:text-white">ニュースはありません</p>
-            ) : (
-              newsList.map((news) => (
-                <div
-                  key={news.id}
-                  className="snap-start flex-none w-[280px] md:w-[400px] flex justify-center"
-                >
-                  <div className="w-full max-w-full pointer-events-none select-none">
-                    <DynamicTweet id={news.tweet_id} />
-                  </div>
-                </div>
-              ))
-            )}
-
-            {/* 右端の余白 */}
-            <div className="flex-none w-0 md:w-4"></div>
-          </div>
-        </div>
-      </section>
+      <NewsSection />
 
       <section className="bg-white dark:bg-black px-0 pt-0 pb-0">
         <div className="relative w-full overflow-hidden rounded-t-[12.5vw] md:rounded-t-[6vw] bg-gray-100 dark:bg-gray-900 px-6 pb-24 pt-12 md:px-16 lg:px-24">

@@ -26,6 +26,8 @@ import RichTextEditor, {
 } from "@/components/RichTextEditor";
 import ProgressRing from "@/components/ProgressRing";
 import { countText, TextCountResult } from "@/lib/twitterText";
+import { useToast } from "@/components/ui/use-toast";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 // ---------------------------------------------------------------------------
 // 型定義
@@ -75,7 +77,9 @@ const MyPostDisplay = ({
   isDeadlinePassed,
   isDeleting,
   user,
-}: MyPostDisplayProps) => (
+}: MyPostDisplayProps) => {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  return (
   <div className={`mb-4 ${isEditing ? "pb-4 border-b border-gray-200 dark:border-gray-800" : ""}`}>
     <div className="flex items-start gap-3">
       <div className="flex-none">
@@ -112,11 +116,7 @@ const MyPostDisplay = ({
     {!isEditing && !isDeadlinePassed && (
       <div className="flex justify-end gap-2 mt-3 pt-3">
         <button
-          onClick={() => {
-            if (window.confirm("本当に投稿を削除しますか？")) {
-              onDelete();
-            }
-          }}
+          onClick={() => setShowDeleteConfirm(true)}
           disabled={isDeleting}
           className="text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 px-3 py-1.5 rounded-full transition-colors inline-flex items-center justify-center gap-1 font-bold disabled:opacity-50 disabled:cursor-not-allowed"
         >
@@ -141,8 +141,22 @@ const MyPostDisplay = ({
         <Clock className="w-3.5 h-3.5 mr-1" /> 編集受付終了
       </div>
     )}
+
+    <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>投稿の削除</AlertDialogTitle>
+          <AlertDialogDescription>本当に投稿を削除しますか？</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>キャンセル</AlertDialogCancel>
+          <AlertDialogAction onClick={() => { setShowDeleteConfirm(false); onDelete(); }} className="bg-red-600 hover:bg-red-700 text-white">削除する</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   </div>
-);
+  );
+};
 
 // ---------------------------------------------------------------------------
 // PostForm メインコンポーネント
@@ -154,6 +168,7 @@ export default function PostForm({
   onPostSuccess,
 }: PostFormProps) {
   const { user } = useAuth();
+  const { toast } = useToast();
 
   // --- コンテスト情報 ---
   const [contestInfo, setContestInfo] = useState<ContestInfo | null>(null);
@@ -361,7 +376,7 @@ export default function PostForm({
       setPostError(null);
       onPostSuccess?.();
     } catch (err: any) {
-      alert(err.message);
+      toast({ title: "エラー", description: err.message, variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
@@ -383,7 +398,7 @@ export default function PostForm({
 
     const check = countText(newPostContent);
     if (!check.isValid && newPostContent.trim().length > 0) {
-      alert("文字数制限（280文字）を超えています");
+      toast({ title: "エラー", description: "文字数制限（280文字）を超えています", variant: "destructive" });
       return;
     }
 
@@ -392,7 +407,7 @@ export default function PostForm({
       previewUrls.length === 0 &&
       selectedImages.length === 0
     ) {
-      alert("画像を1枚以上添付してください");
+      toast({ title: "エラー", description: "画像を1枚以上添付してください", variant: "destructive" });
       return;
     }
 

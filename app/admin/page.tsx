@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { KeyRound, Image as ImageIconLucide, Trophy as TrophyIcon, Trash2, Edit3, Eye, EyeOff, PlusCircle, Settings,Sliders, Newspaper } from 'lucide-react';
 import dayjs from 'dayjs';
+import { useToast } from '@/components/ui/use-toast';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 // --- API_URLの設定 ---
 // Next.jsのRewrite機能(/api/...)を使用するため、プレフィックスは空にします
@@ -92,7 +94,9 @@ interface NewsItem {
 
 export default function AdminPage() {
     const { user } = useAuth();
+    const { toast } = useToast();
     const [activeTab, setActiveTab] = useState<'create' | 'manage' | 'news'>('create');
+    const [newsToDelete, setNewsToDelete] = useState<number | null>(null);
 
     // Create Tab States
     const [createForm, setCreateForm] = useState({
@@ -286,7 +290,7 @@ export default function AdminPage() {
             setManagedContests(prev => prev.filter(c => c.id !== showDeleteModal.id));
             setShowDeleteModal(null);
         } catch (error) {
-            alert(`削除エラー: ${error instanceof Error ? error.message : error}`);
+            toast({ title: "エラー", description: `削除エラー: ${error instanceof Error ? error.message : error}`, variant: "destructive" });
         } finally {
             setIsDeleting(false);
         }
@@ -315,7 +319,7 @@ export default function AdminPage() {
             setManagedContests(prev => prev.map(c => c.id === editingContest.id ? { ...c, ...editingContest } : c));
             setEditingContest(null);
         } catch (error) {
-            alert(`更新エラー: ${error instanceof Error ? error.message : error}`);
+            toast({ title: "エラー", description: `更新エラー: ${error instanceof Error ? error.message : error}`, variant: "destructive" });
         } finally {
             setIsUpdating(false);
         }
@@ -340,14 +344,20 @@ export default function AdminPage() {
                 setNewsList(newData);
             }
         } catch (error) {
-            alert(`追加エラー: ${error instanceof Error ? error.message : error}`);
+            toast({ title: "エラー", description: `追加エラー: ${error instanceof Error ? error.message : error}`, variant: "destructive" });
         } finally {
             setIsAddingNews(false);
         }
     };
 
-    const handleDeleteNews = async (id: number) => {
-        if (!confirm('本当に削除しますか？')) return;
+    const handleDeleteNews = (id: number) => {
+        setNewsToDelete(id);
+    };
+
+    const confirmDeleteNews = async () => {
+        if (newsToDelete === null) return;
+        const id = newsToDelete;
+        setNewsToDelete(null);
         try {
             const response = await fetch(`${API_PREFIX}/api/admin/news/${id}`, {
                 method: 'DELETE',
@@ -359,7 +369,7 @@ export default function AdminPage() {
             }
             setNewsList(prev => prev.filter(n => n.id !== id));
         } catch (error) {
-            alert(`削除エラー: ${error instanceof Error ? error.message : error}`);
+            toast({ title: "エラー", description: `削除エラー: ${error instanceof Error ? error.message : error}`, variant: "destructive" });
         }
     };
 
@@ -383,6 +393,19 @@ export default function AdminPage() {
                     <button onClick={() => setActiveTab('news')} className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm focus:outline-none ${activeTab === 'news' ? 'border-[#1DA1F2] text-[#1DA1F2]' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-500'}`} > <Newspaper className="inline-block h-5 w-5 mr-1.5 align-text-bottom" /> ニュース管理 </button>
                 </nav>
             </div>
+
+            <AlertDialog open={newsToDelete !== null} onOpenChange={(open) => !open && setNewsToDelete(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>ニュース削除</AlertDialogTitle>
+                        <AlertDialogDescription>本当に削除しますか？この操作は取り消せません。</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setNewsToDelete(null)}>キャンセル</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDeleteNews} className="bg-red-600 hover:bg-red-700 text-white">削除する</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
             <div>
                 {activeTab === 'create' && (

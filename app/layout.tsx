@@ -4,6 +4,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { Toaster } from "@/components/ui/toaster";
 import Script from "next/script"; // Scriptコンポーネントをインポート
 import { Noto_Sans_JP, Inter } from "next/font/google";
 
@@ -100,6 +101,7 @@ export default function RootLayout({
             <Header />
             <main className="flex-grow flex flex-col">{children}</main>
             <Footer />
+            <Toaster />
           </AuthProvider>
         </ThemeProvider>
       </body>
