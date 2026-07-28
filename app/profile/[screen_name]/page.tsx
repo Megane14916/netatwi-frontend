@@ -2,11 +2,22 @@
 
 import { useState, useEffect, useRef } from 'react';
 // import { useParams } from 'next/navigation'; // propsから取得
-import { User as UserIcon,ExternalLink } from 'lucide-react';
+import { User as UserIcon,ExternalLink, MoreHorizontal } from 'lucide-react';
+import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import ResultPostCard, { ResultPostProps } from '../../../components/ResultPostCard';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from "@/components/ui/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const API_PREFIX = '';
 
@@ -33,6 +44,37 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
   const [activeTab, setActiveTab] = useState<'posts' | 'bookmarks' | 'likes'>('posts');
   const fetchRef = useRef<string | null>(null);
 
+  const [showMenu, setShowMenu] = useState(false);
+  const [showWithdrawDialog, setShowWithdrawDialog] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleWithdraw = async () => {
+    try {
+      const res = await fetch(`${API_PREFIX}/api/users/me`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (res.ok) {
+        toast({ title: "退会処理が完了しました" });
+        window.location.href = "/";
+      } else {
+        toast({ title: "退会処理に失敗しました", variant: "destructive" });
+      }
+    } catch (err) {
+      toast({ title: "エラーが発生しました", variant: "destructive" });
+    }
+  };
+
   // コメント一括取得用の状態
   const [prefetchedComments, setPrefetchedComments] = useState<Record<number, any[]>>({});
   const fetchingPostIdsRef = useRef<Set<number>>(new Set());
@@ -53,7 +95,7 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
 
         if (!res.ok) {
           if (res.status === 404) {
-            setProfileData(null);
+            setError("404");
             setLoading(false);
             return;
           }
@@ -192,6 +234,9 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
   }
 
   if (error) {
+    if (error === "404") {
+      return notFound();
+    }
     return (
       <div className="min-h-screen flex items-center justify-center bg-white dark:bg-black text-red-500">
         <p>{error}</p>
@@ -227,8 +272,8 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
                 onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/133')}
               />
             </div>
-            {/* Xプロフィールへのリンクボタン (境界線上の右のすぐ下側) */}
-            <div className="pt-3">
+            {/* Xプロフィールへのリンクボタンと三点リーダー (境界線上の右のすぐ下側) */}
+            <div className="pt-3 flex items-center gap-2 relative">
               <a 
                 href={`https://x.com/${profileData.user.screen_name}`}
                 target="_blank"
@@ -238,6 +283,30 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
                 Xのプロフィールページへ
                 <ExternalLink className="w-3 h-3 ml-1" />
               </a>
+
+              {currentUser && currentUser.id === profileData.user.id && (
+                <div ref={menuRef}>
+                  <button 
+                    onClick={() => setShowMenu(!showMenu)}
+                    className="flex items-center justify-center w-8 h-8 rounded-full border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  >
+                    <MoreHorizontal className="w-4 h-4 text-gray-500" />
+                  </button>
+                  {showMenu && (
+                    <div className="absolute right-0 top-12 w-32 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-md shadow-lg z-50 overflow-hidden">
+                      <button 
+                        onClick={() => {
+                          setShowMenu(false);
+                          setShowWithdrawDialog(true);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                      >
+                        退会する
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
           
@@ -318,6 +387,21 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
           )}
         </div>
       </div>
+      {/* 退会確認ダイアログ */}
+      <AlertDialog open={showWithdrawDialog} onOpenChange={setShowWithdrawDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>本当に退会しますか？</AlertDialogTitle>
+            <AlertDialogDescription>
+              退会すると、プロフィールやユーザー一覧からは非表示になりますが、過去の投稿や投票は会場ページに残ります。この操作は取り消せません。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>キャンセル</AlertDialogCancel>
+            <AlertDialogAction onClick={handleWithdraw} className="bg-red-600 hover:bg-red-700 text-white">退会する</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

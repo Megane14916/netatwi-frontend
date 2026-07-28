@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo, Fragment } from "react";
-import { useParams } from "next/navigation";
+import { useParams, notFound } from "next/navigation";
 import Link from "next/link";
 import {
   Send,
@@ -861,6 +861,7 @@ export default function VenueDetailPage() {
   };
 
   const renderTitle = (name: string) => {
+    if (!name || typeof name !== "string") return "";
     if (!name.includes("ネタツイグランプリ")) return name;
     const parts = name.split("ネタツイグランプリ");
     return (
@@ -878,6 +879,13 @@ export default function VenueDetailPage() {
         <Loader2 className="w-8 h-8 animate-spin text-[#1DA1F2]" />
       </div>
     );
+  if (
+    contestData?.error === "Not found" ||
+    contestData?.error === "Contest not found" ||
+    (contestError && contestError.status === 404)
+  ) {
+    return notFound();
+  }
   if (error)
     return (
       <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center text-red-500">
