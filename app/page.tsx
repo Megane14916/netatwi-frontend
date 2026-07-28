@@ -211,7 +211,7 @@ export default function HomePage() {
         const displayName = displayContest.name;
 
         // 投稿フォームを表示するか
-        const showPostForm = step === 0 || step === 2;
+        const showPostForm = !isBeforeStart && (step === 0 || step === 2);
         const postFormContestId =
           step === 0 ? (gpQualifier?.id ?? gpFinals.id) : gpFinals.id;
         const postFormIsFinalRound = step === 2;
@@ -230,16 +230,18 @@ export default function HomePage() {
                 <h2 className="mt-4 text-3xl font-extrabold leading-tight md:text-5xl">
                   {renderGPTitle(displayName)}
                 </h2>
-                <p className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm font-medium text-black/80 dark:text-white/80 md:text-base">
-                  <span className="inline-flex items-center gap-1.5">
-                    <Users className="h-4 w-4 text-[#1DA1F2]" />
-                    参加人数:{" "}
-                    <span className="font-bold text-[#1DA1F2]">
-                      {participants}人
+                {!isBeforeStart && (
+                  <p className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm font-medium text-black/80 dark:text-white/80 md:text-base">
+                    <span className="inline-flex items-center gap-1.5">
+                      <Users className="h-4 w-4 text-[#1DA1F2]" />
+                      参加人数:{" "}
+                      <span className="font-bold text-[#1DA1F2]">
+                        {participants}人
+                      </span>
                     </span>
-                  </span>
-                  <CountdownTimer deadline={activeDeadline} />
-                </p>
+                    <CountdownTimer deadline={activeDeadline} />
+                  </p>
+                )}
                 <div className="mt-3 space-y-1 text-sm text-black/70 dark:text-white/70 md:text-base">
                   {gpQualifier && (
                     <p>

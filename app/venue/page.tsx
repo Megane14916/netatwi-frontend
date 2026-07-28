@@ -121,6 +121,7 @@ export default function VenuePage() {
   let activeGpId = gpFinals?.id;
   let activeGpName = gpFinals?.name;
   let step = 0;
+  let isBeforeStart = false;
 
   if (gpFinals) {
     const gpQualifier = gpFinals.parentContestId 
@@ -134,6 +135,11 @@ export default function VenuePage() {
       activeGpId = gpQualifier.id;
       activeGpName = gpQualifier.name;
     }
+
+    const nowTime = new Date().getTime();
+    isBeforeStart = gpQualifier
+      ? !!(gpQualifier.startTime && nowTime < new Date(gpQualifier.startTime).getTime())
+      : !!(gpFinals.startTime && nowTime < new Date(gpFinals.startTime).getTime());
   }
 
   // デイリー: type === 'daily' のもののみ
@@ -220,7 +226,7 @@ export default function VenuePage() {
     <div className="relative min-h-screen bg-white dark:bg-black text-black dark:text-white flex flex-col overflow-clip pb-20">
       
       {/* グランプリエリア */}
-      {gpFinals && (() => {
+      {gpFinals && !isBeforeStart && (() => {
         const isPosting = step === 0 || step === 2;
         const isVoting = step === 1 || step === 3;
         const isResults = step === 4;
