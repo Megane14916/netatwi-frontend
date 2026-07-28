@@ -393,7 +393,7 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
           <AlertDialogHeader>
             <AlertDialogTitle>本当に退会しますか？</AlertDialogTitle>
             <AlertDialogDescription>
-              退会すると、プロフィールやユーザー一覧からは非表示になりますが、過去の投稿や投票は会場ページに残ります。この操作は取り消せません。
+              退会すると、プロフィールやユーザー一覧からは非表示になりますが、過去の投稿や投票は残ります。この操作は取り消せません。
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
