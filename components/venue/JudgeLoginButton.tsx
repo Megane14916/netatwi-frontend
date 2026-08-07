@@ -59,22 +59,22 @@ export default function JudgeLoginButton({ contestId, onLoginSuccess }: JudgeLog
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 dark:bg-white/70 backdrop-blur-sm">
-          <div className="bg-gray-900 dark:bg-gray-100 border border-gray-800 rounded-xl shadow-2xl w-full max-w-md overflow-hidden relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 dark:bg-black/70 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-2xl w-full max-w-md overflow-hidden relative">
             <button
               onClick={() => setIsOpen(false)}
-              className="absolute top-4 right-4 text-gray-400 dark:text-gray-600 hover:text-white"
+              className="absolute top-4 right-4 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
             >
               <X className="w-5 h-5" />
             </button>
 
             <div className="p-6">
               <div className="flex flex-col items-center mb-6">
-                <div className="w-12 h-12 bg-indigo-900/50 rounded-full flex items-center justify-center mb-4 text-indigo-400">
+                <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/50 rounded-full flex items-center justify-center mb-4 text-indigo-600 dark:text-indigo-400">
                   <Lock className="w-6 h-6" />
                 </div>
-                <h3 className="text-xl font-bold text-white">審査員認証</h3>
-                <p className="text-gray-400 dark:text-gray-600 text-sm mt-1">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">審査員認証</h3>
+                <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
                   主催者から配布されたパスワードを入力してください
                 </p>
               </div>
@@ -86,7 +86,7 @@ export default function JudgeLoginButton({ contestId, onLoginSuccess }: JudgeLog
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="パスワード"
-                    className="w-full bg-gray-800 dark:bg-gray-200 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+                    className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
                     autoFocus
                   />
                 </div>
