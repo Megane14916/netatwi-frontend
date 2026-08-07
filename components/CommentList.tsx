@@ -121,6 +121,16 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
 
   const hasCommented = comments.some(c => c.user_id === currentUser?.id);
 
+  useEffect(() => {
+    if ((isOpenProp || isOpen) && contestStatus === 'voting' && currentUser && !hasCommented) {
+      setTimeout(() => {
+        if (newTextareaRef.current) {
+          newTextareaRef.current.focus();
+        }
+      }, 50);
+    }
+  }, [isOpenProp, isOpen, contestStatus, currentUser, hasCommented]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newComment.trim() || newComment.length > 140 || isSubmitting) return;

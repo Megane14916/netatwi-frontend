@@ -182,14 +182,13 @@ const JudgeVoteSelector = ({
   maxScore: number;
 }) => {
   return (
-    <div className="bg-gray-50 dark:bg-gray-950 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-800 inline-flex flex-col justify-center">
-      <div className="flex justify-between items-center mb-1.5 px-1 gap-3">
-        <span className="text-xs text-indigo-600 font-bold flex items-center gap-1">
-          <ShieldCheck className="w-3 h-3" /> 審査員評価
+    <div className="inline-flex flex-col justify-center">
+      <div className="flex items-center mb-1 px-1">
+        <span className="text-[10px] md:text-xs text-indigo-600 font-bold flex items-center gap-1">
+          <ShieldCheck className="w-2.5 h-2.5 md:w-3 md:h-3" /> 審査員評価
         </span>
-        <span className="text-xs text-gray-500 dark:text-gray-400">満点: {maxScore}</span>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5 md:gap-2">
         <input
           type="number"
           min="0"
@@ -201,10 +200,11 @@ const JudgeVoteSelector = ({
             onSelect(postId, isNaN(val) ? 0 : Math.min(val, maxScore));
           }}
           disabled={disabled}
-          className="w-20 bg-white dark:bg-black border border-indigo-200 rounded-lg px-2 py-1 text-right text-black dark:text-white focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 shadow-sm"
+          className="w-16 md:w-20 text-sm md:text-base bg-white dark:bg-black border border-indigo-200 rounded-lg px-1.5 py-0.5 md:px-2 md:py-1 text-right text-black dark:text-white focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 shadow-sm"
           placeholder="0"
+          onFocus={(e) => e.target.select()}
         />
-        <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">点</span>
+        <span className="text-xs md:text-sm text-gray-500 dark:text-gray-400 font-medium">点</span>
       </div>
     </div>
   );
@@ -233,7 +233,12 @@ const JudgeAwardSelector = ({
         type="radio"
         name="judgeAward"
         checked={isSelected}
-        onChange={() => onSelect(postId)}
+        onChange={() => {
+          if (!isSelected) onSelect(postId);
+        }}
+        onClick={() => {
+          if (isSelected) onSelect(postId);
+        }}
         disabled={disabled}
         className="w-4 h-4 text-yellow-500 border-gray-300 dark:border-gray-700 focus:ring-yellow-500 flex-shrink-0 cursor-pointer"
       />
@@ -547,6 +552,7 @@ export default function VenueDetailPage() {
 
   // posts: 投稿一覧の表示順制御
   const shuffledPostIdsRef = useRef<number[] | null>(null);
+  const hasLoadedJudgeOrderRef = useRef(false);
   
   const posts = useMemo(() => {
     if (!postsData || !postsData.posts) return [];
@@ -561,9 +567,30 @@ export default function VenueDetailPage() {
     }
     
     if (contestStatus === "voting") {
+       const storageKey = `judge_order_contest_${contestId}`;
+       
+       if (isJudgeMode && !hasLoadedJudgeOrderRef.current && typeof window !== "undefined") {
+           const stored = localStorage.getItem(storageKey);
+           if (stored) {
+               try {
+                   const parsed = JSON.parse(stored);
+                   if (Array.isArray(parsed) && parsed.length > 0) {
+                       shuffledPostIdsRef.current = parsed;
+                   }
+               } catch (e) {}
+           }
+           hasLoadedJudgeOrderRef.current = true;
+           if (!stored && shuffledPostIdsRef.current) {
+               localStorage.setItem(storageKey, JSON.stringify(shuffledPostIdsRef.current));
+           }
+       }
+
        if (!shuffledPostIdsRef.current && allPosts.length > 0) {
           const shuffled = [...allPosts].sort(() => Math.random() - 0.5);
           shuffledPostIdsRef.current = shuffled.map(p => p.id);
+          if (isJudgeMode && typeof window !== "undefined") {
+              localStorage.setItem(storageKey, JSON.stringify(shuffledPostIdsRef.current));
+          }
           return shuffled;
        } else if (shuffledPostIdsRef.current) {
           const idToIndex = new Map(shuffledPostIdsRef.current.map((id, i) => [id, i]));
@@ -575,13 +602,16 @@ export default function VenueDetailPage() {
           // 追加された投稿があれば、Ref に追記して次回も位置を維持
           if (sorted.length > shuffledPostIdsRef.current.length) {
               shuffledPostIdsRef.current = sorted.map(p => p.id);
+              if (isJudgeMode && typeof window !== "undefined") {
+                  localStorage.setItem(storageKey, JSON.stringify(shuffledPostIdsRef.current));
+              }
           }
           return sorted;
        }
        return allPosts;
     }
     return [];
-  }, [postsData, contestStatus, user]);
+  }, [postsData, contestStatus, user, isJudgeMode, contestId]);
 
   // votes と totalVotes (ユーザー編集を優先する)
   const votes = useMemo(() => {
@@ -845,8 +875,7 @@ export default function VenueDetailPage() {
         mutatePosts(); // 投票状態を再取得
         setShowSuccessBanner(true);
         setVoteSubmitMessage({ type: "success", text: "投票が完了しました！" });
-        if (isJudgeMode) toast({ title: "成功", description: "投票と審査員賞を保存しました！" });
-        else setTimeout(() => setShowSuccessBanner(false), 5000);
+        setTimeout(() => setShowSuccessBanner(false), 5000);
       } else {
         setVoteSubmitMessage({
           type: "error",
@@ -1187,22 +1216,9 @@ export default function VenueDetailPage() {
                             )}
 
                             {/* 投票UIとコメントボタン（横並び） */}
-                            <div className="flex items-end justify-between gap-2 w-full mt-2">
-                              {/* 左側: 審査員モード評価点 */}
-                              <div className="flex-grow">
-                                {showVoteUI && isJudgeMode && (
-                                  <JudgeVoteSelector
-                                    postId={post.id}
-                                    currentScore={votes[post.id] || 0}
-                                    onSelect={handleVoteChange}
-                                    disabled={Boolean(isVoteDeadlineExceeded || (user && String(post.user_id) === String(user.id)))}
-                                    maxScore={contest.judgeMaxScore || 10}
-                                  />
-                                )}
-                              </div>
-
-                              {/* 右側: コメントボタン・一般投票ボタン */}
-                              <div className="flex items-center justify-end gap-2 flex-shrink-0">
+                            <div className={`flex items-end gap-2 w-full mt-2 ${showVoteUI && isJudgeMode ? "justify-between" : "justify-end"}`}>
+                              {/* 左側: コメントボタン・一般投票ボタン */}
+                              <div className="flex items-center gap-2 flex-shrink-0">
                                 <button
                                   onClick={() => toggleComments(post.id)}
                                   className={`flex items-center gap-1.5 px-2 py-1 md:px-3 md:py-1.5 rounded-full transition-all group ${
@@ -1232,6 +1248,19 @@ export default function VenueDetailPage() {
                                   />
                                 )}
                               </div>
+
+                              {/* 右側: 審査員モード評価点 */}
+                              {showVoteUI && isJudgeMode && (
+                                <div className="flex-grow flex justify-end">
+                                  <JudgeVoteSelector
+                                    postId={post.id}
+                                    currentScore={votes[post.id] || 0}
+                                    onSelect={handleVoteChange}
+                                    disabled={Boolean(isVoteDeadlineExceeded || (user && String(post.user_id) === String(user.id)))}
+                                    maxScore={contest.judgeMaxScore || 10}
+                                  />
+                                </div>
+                              )}
                             </div>
 
                             {/* コメント機能 (一般) */}
@@ -1465,7 +1494,31 @@ export default function VenueDetailPage() {
 
       {/* 投票確定ボタン (固定) */}
       {showVoteUI && (
-        <div className="sticky bottom-0 w-full z-50 bg-white dark:bg-black/90 backdrop-blur-md border-t border-gray-200 dark:border-gray-800 p-4 flex justify-center mt-auto">
+        <div className="sticky bottom-0 w-full z-50 bg-white dark:bg-black/90 backdrop-blur-md border-t border-gray-200 dark:border-gray-800 p-4 flex flex-col items-center mt-auto">
+          {isJudgeMode && (() => {
+            const votablePosts = posts.filter((p) => !user || String(p.user_id) !== String(user.id));
+            const totalVotable = votablePosts.length;
+            const votedCount = votablePosts.filter((p) => votes[p.id] > 0).length;
+            const commentedCount = votablePosts.filter((p) => p.hasCommented || sessionCommentedPosts[p.id]).length;
+            
+            const isVoteComplete = totalVotable > 0 && votedCount === totalVotable;
+            const isJudgeAwardComplete = !!(judgeAwardSelection.postId && judgeAwardSelection.comment?.trim());
+            const isCommentComplete = totalVotable > 0 && commentedCount === totalVotable;
+
+            return (
+              <div className="w-full max-w-md mb-3 flex items-center justify-between text-xs md:text-sm font-bold text-gray-600 dark:text-gray-300 border-b border-gray-200 dark:border-gray-800 pb-2 px-1">
+                <span className={`transition-colors ${isVoteComplete ? "text-[#84cc16]" : ""}`}>
+                  投票: {votedCount}/{totalVotable}
+                </span>
+                <span className={`transition-colors ${isJudgeAwardComplete ? "text-[#84cc16]" : ""}`}>
+                  審査員賞: {isJudgeAwardComplete ? <CheckCircle className="w-4 h-4 inline-block ml-0.5 mb-0.5" /> : <X className="w-4 h-4 inline-block ml-0.5 mb-0.5" />}
+                </span>
+                <span className={`transition-colors ${isCommentComplete ? "text-[#84cc16]" : ""}`}>
+                  コメント: {commentedCount}/{totalVotable}
+                </span>
+              </div>
+            );
+          })()}
           <button
             onClick={handleVoteClick}
             disabled={isSubmittingVotes}
