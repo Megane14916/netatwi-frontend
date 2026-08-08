@@ -32,9 +32,10 @@ interface CommentListProps {
   onCommentAdded?: () => void;
   onCommentDeleted?: () => void;
   initialComments?: Comment[];
+  isJudgeMode?: boolean;
 }
 
-export default function CommentList({ postId, currentUser, contestStatus, isAlwaysOpen = false, isOpenProp = false, onClose, onCommentAdded, onCommentDeleted, initialComments }: CommentListProps) {
+export default function CommentList({ postId, currentUser, contestStatus, isAlwaysOpen = false, isOpenProp = false, onClose, onCommentAdded, onCommentDeleted, initialComments, isJudgeMode = false }: CommentListProps) {
   const { toast } = useToast();
   const [commentToDelete, setCommentToDelete] = useState<number | null>(null);
   const [newComment, setNewComment] = useState('');
@@ -133,7 +134,7 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newComment.trim() || newComment.length > 140 || isSubmitting) return;
+    if (!newComment.trim() || (!isJudgeMode && newComment.length > 140) || isSubmitting) return;
 
     setIsSubmitting(true);
     setError('');
@@ -233,7 +234,7 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
   };
 
   const handleEditSubmit = async (commentId: number) => {
-    if (!editContent.trim() || editContent.length > 140) return;
+    if (!editContent.trim() || (!isJudgeMode && editContent.length > 140)) return;
     
     if (shouldFetch) {
       mutate(swrComments.map(c => c.id === commentId ? { ...c, content: editContent } : c), false);
@@ -299,14 +300,14 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
                 ref={newTextareaRef}
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
-                placeholder="コメントを入力... (140文字まで)"
-                maxLength={140}
+                placeholder={isJudgeMode ? "コメントを入力..." : "コメントを入力... (140文字まで)"}
+                maxLength={isJudgeMode ? undefined : 140}
                 rows={1}
                 className="w-full bg-transparent border-0 rounded-lg py-1.5 px-0 text-[15px] text-black dark:text-white placeholder-gray-400 focus:outline-none focus:ring-0 resize-none overflow-hidden"
               />
               <div className="flex justify-between items-center border-t border-gray-100 dark:border-gray-800 pt-2 mt-1">
-                <span className={`text-xs font-bold ${newComment.length >= 140 ? 'text-red-500' : 'text-gray-400 dark:text-gray-600'}`}>
-                  {newComment.length}/140
+                <span className={`text-xs font-bold ${!isJudgeMode && newComment.length >= 140 ? 'text-red-500' : 'text-gray-400 dark:text-gray-600'}`}>
+                  {isJudgeMode ? `${newComment.length}文字` : `${newComment.length}/140`}
                 </span>
                 <div className="flex items-center space-x-2">
                   {(onClose || !isAlwaysOpen) && (
@@ -370,7 +371,7 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
                   ref={editTextareaRef}
                   value={editContent}
                   onChange={(e) => setEditContent(e.target.value)}
-                  maxLength={140}
+                  maxLength={isJudgeMode ? undefined : 140}
                   className="w-full bg-transparent border-0 rounded-lg p-2 text-[15px] text-black dark:text-white outline-none resize-none overflow-hidden placeholder-gray-400 focus:ring-0"
                   rows={1}
                 />

@@ -1269,6 +1269,7 @@ export default function VenueDetailPage() {
                                 postId={post.id}
                                 currentUser={user}
                                 contestStatus="voting"
+                                isJudgeMode={isJudgeMode}
                                 isOpenProp={openComments[post.id] || false}
                                 initialComments={prefetchedComments[post.id] || []}
                                 onClose={() =>
