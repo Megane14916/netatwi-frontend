@@ -24,6 +24,7 @@ import {
   Share2,
   Edit2,
   MessageSquare,
+  ArrowUpDown,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import TimeAgo from "@/components/TimeAgo";
@@ -385,6 +386,8 @@ export default function VenueDetailPage() {
 
   const [resultTab, setResultTab] = useState<"ranking" | "awards">("ranking");
 
+  const [judgeSortOrder, setJudgeSortOrder] = useState<"original" | "asc" | "desc">("original");
+
   const isJudgeMode = judgeContests.includes(contestId);
 
   const isVotePeriod = !isVoteDeadlineExceeded && contestStatus === "voting";
@@ -405,6 +408,30 @@ export default function VenueDetailPage() {
     isValid: false,
     remaining: 280,
   });
+
+  const sortSentinelRef = useRef<HTMLDivElement>(null);
+  const stickyContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isJudgeMode) return;
+    const handleScroll = () => {
+      if (sortSentinelRef.current && stickyContainerRef.current) {
+         const top = sortSentinelRef.current.getBoundingClientRect().top;
+         const headerHeight = window.innerWidth >= 768 ? 64 : 48;
+         if (top <= headerHeight) {
+            stickyContainerRef.current.classList.remove("md:rounded-t-2xl");
+            stickyContainerRef.current.classList.add("border-t-0");
+         } else {
+            stickyContainerRef.current.classList.add("md:rounded-t-2xl");
+            stickyContainerRef.current.classList.remove("border-t-0");
+         }
+      }
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [isJudgeMode]);
+
   // コメント状態や maxTotalScore の計算は SWR のデータ定義の後に移動しました
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -638,6 +665,22 @@ export default function VenueDetailPage() {
      });
      return { postId: awardPostId, comment: awardComment };
   }, [userJudgeAwardSelection, posts]);
+
+  const displayPosts = useMemo(() => {
+    if (contestStatus !== "voting" || !isJudgeMode || judgeSortOrder === "original") {
+      return posts;
+    }
+    
+    return [...posts].sort((a, b) => {
+      const scoreA = votes[a.id] || 0;
+      const scoreB = votes[b.id] || 0;
+      if (judgeSortOrder === "desc") {
+        return scoreB - scoreA;
+      } else {
+        return scoreA - scoreB;
+      }
+    });
+  }, [posts, votes, judgeSortOrder, isJudgeMode, contestStatus]);
   // ----------------------------------------------------
   // コメント状態および追加計算（SWRデータ導出後に配置）
   // ----------------------------------------------------
@@ -1172,11 +1215,34 @@ export default function VenueDetailPage() {
                 現在投票期間中のため、投稿は非公開です。
               </div>
             ) : (
-              <div className="-mx-4 md:mx-0 bg-white dark:bg-black md:rounded-2xl border-y border-[#d9e1e7] dark:border-gray-800 md:border-x shadow-sm overflow-hidden divide-y divide-gray-100 dark:divide-gray-800">
-                {posts.length > 0 ? (
-                  posts.map((post) => {
-                    return (
-                      <div
+              <div className="relative">
+                {isJudgeMode && displayPosts.length > 0 && (
+                  <>
+                    <div ref={sortSentinelRef} className="h-0 w-full" aria-hidden="true" />
+                    <div 
+                      ref={stickyContainerRef}
+                      className="sticky top-[48px] md:top-[64px] z-30 bg-gray-50/95 dark:bg-gray-950/95 backdrop-blur-md border-y border-[#d9e1e7] dark:border-gray-800 md:border-x md:rounded-t-2xl py-2 px-3 md:px-5 flex items-center justify-between -mx-4 md:mx-0 shadow-sm transition-all duration-200"
+                    >
+                      <span className="text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                      <ArrowUpDown className="w-4 h-4" /> 並び順
+                    </span>
+                    <select
+                      value={judgeSortOrder}
+                      onChange={(e) => setJudgeSortOrder(e.target.value as any)}
+                      className="text-sm bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-md py-1 px-2 text-black dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-400 font-bold cursor-pointer"
+                    >
+                      <option value="original">標準 (元の順序)</option>
+                      <option value="desc">得点: 高い順</option>
+                      <option value="asc">得点: 低い順</option>
+                    </select>
+                    </div>
+                  </>
+                )}
+                <div className={`-mx-4 md:mx-0 bg-white dark:bg-black border-b border-[#d9e1e7] dark:border-gray-800 md:border-x shadow-sm divide-y divide-gray-100 dark:divide-gray-800 ${isJudgeMode ? 'md:rounded-b-2xl' : 'md:rounded-2xl border-t'}`}>
+                  {displayPosts.length > 0 ? (
+                    displayPosts.map((post) => {
+                      return (
+                        <div
                         key={post.id}
                         className="py-4 px-3 sm:p-5 transition-colors hover:bg-gray-50 dark:hover:bg-gray-900"
                       >
@@ -1320,6 +1386,7 @@ export default function VenueDetailPage() {
                   </div>
                 )}
               </div>
+            </div>
             )}
           </div>
         )}
