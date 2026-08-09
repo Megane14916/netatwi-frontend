@@ -226,7 +226,7 @@ const JudgeAwardSelector = ({
   onCommentChange: (val: string) => void;
   disabled: boolean;
 }) => (
-  <div className="mt-4 px-1 border-t border-gray-200 dark:border-gray-800 pt-4 w-full">
+  <div className="mt-2 px-1 border-t border-gray-200 dark:border-gray-800 pt-2 w-full">
     <label
       className={`flex items-center cursor-pointer ${disabled ? "opacity-50" : ""} group`}
     >
@@ -250,12 +250,12 @@ const JudgeAwardSelector = ({
       </span>
     </label>
     {isSelected && (
-      <div className="mt-3 w-full animate-fade-in">
+      <div className="mt-2 w-full animate-fade-in">
         <textarea
           value={comment}
           onChange={(e) => onCommentChange(e.target.value)}
           placeholder="選評コメントを入力してください..."
-          className="w-full bg-white dark:bg-black border border-yellow-300 rounded-lg p-3 text-sm text-black dark:text-white focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 shadow-sm resize-y min-h-[80px]"
+          className="w-full bg-white dark:bg-black border border-yellow-300 rounded-lg p-2 text-sm text-black dark:text-white focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 shadow-sm resize-y min-h-[60px]"
           disabled={disabled}
         />
       </div>
@@ -379,10 +379,6 @@ export default function VenueDetailPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isSubmittingVotes, setIsSubmittingVotes] = useState(false);
-  const [voteSubmitMessage, setVoteSubmitMessage] = useState<{
-    type: "success" | "error";
-    text: string;
-  } | null>(null);
 
   const [resultTab, setResultTab] = useState<"ranking" | "awards">("ranking");
 
@@ -871,7 +867,6 @@ export default function VenueDetailPage() {
       const current = prev !== null ? prev : { ...votes };
       return { ...current, [postId]: newCount };
     });
-    setVoteSubmitMessage(null);
   };
 
   const handleJudgeAwardSelect = (postId: number) => {
@@ -899,7 +894,6 @@ export default function VenueDetailPage() {
 
   const handleSubmitVotes = async () => {
     setIsSubmittingVotes(true);
-    setVoteSubmitMessage(null);
     const payload: any = { votes };
     if (isJudgeMode && judgeAwardSelection.postId)
       payload.judgeAward = judgeAwardSelection;
@@ -917,16 +911,20 @@ export default function VenueDetailPage() {
       if (response.ok) {
         mutatePosts(); // 投票状態を再取得
         setShowSuccessBanner(true);
-        setVoteSubmitMessage({ type: "success", text: "投票が完了しました！" });
         setTimeout(() => setShowSuccessBanner(false), 5000);
       } else {
-        setVoteSubmitMessage({
-          type: "error",
-          text: data.error || "投票に失敗しました。",
+        toast({
+          title: "エラー",
+          description: data.error || "投票に失敗しました。",
+          variant: "destructive",
         });
       }
     } catch (err) {
-      setVoteSubmitMessage({ type: "error", text: "エラーが発生しました。" });
+      toast({
+        title: "エラー",
+        description: "通信エラーが発生しました。",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmittingVotes(false);
     }
@@ -972,7 +970,7 @@ export default function VenueDetailPage() {
     );
 
   return (
-    <div className="relative min-h-screen bg-white dark:bg-black text-black dark:text-white flex flex-col overflow-clip">
+    <div className="relative min-h-[100dvh] bg-white dark:bg-black text-black dark:text-white flex flex-col overflow-x-clip">
       {/* Top Parallel Background */}
       <div className="absolute left-0 top-0 w-full h-[280px] md:h-[320px] overflow-hidden z-0 select-none pointer-events-none">
         <div className="absolute inset-0 bg-[linear-gradient(15deg,#1DA1F2,#70c8f7)] overflow-hidden flex items-center justify-center">
@@ -1221,20 +1219,37 @@ export default function VenueDetailPage() {
                     <div ref={sortSentinelRef} className="h-0 w-full" aria-hidden="true" />
                     <div 
                       ref={stickyContainerRef}
-                      className="sticky top-[48px] md:top-[64px] z-30 bg-gray-50/95 dark:bg-gray-950/95 backdrop-blur-md border-y border-[#d9e1e7] dark:border-gray-800 md:border-x md:rounded-t-2xl py-2 px-3 md:px-5 flex items-center justify-between -mx-4 md:mx-0 shadow-sm transition-all duration-200"
+                      className="sticky top-[48px] md:top-[64px] z-30 bg-gray-50/95 dark:bg-gray-950/95 backdrop-blur-md border-y border-[#d9e1e7] dark:border-gray-800 md:border-x md:rounded-t-2xl py-1 md:py-2 px-2 md:px-5 flex items-center justify-between -mx-4 md:mx-0 shadow-sm transition-all duration-200"
                     >
-                      <span className="text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-                      <ArrowUpDown className="w-4 h-4" /> 並び順
+                      <span className="text-[13px] md:text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1">
+                      <ArrowUpDown className="w-3.5 h-3.5 md:w-4 md:h-4" /> 並び順
                     </span>
-                    <select
-                      value={judgeSortOrder}
-                      onChange={(e) => setJudgeSortOrder(e.target.value as any)}
-                      className="text-sm bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-md py-1 px-2 text-black dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-400 font-bold cursor-pointer"
-                    >
-                      <option value="original">標準 (元の順序)</option>
-                      <option value="desc">得点: 高い順</option>
-                      <option value="asc">得点: 低い順</option>
-                    </select>
+                      <div className="flex items-center gap-1.5 md:gap-2">
+                        <select
+                          value={judgeSortOrder}
+                          onChange={(e) => setJudgeSortOrder(e.target.value as any)}
+                          className="text-[13px] md:text-sm bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-md py-0.5 md:py-1 px-1.5 md:px-2 text-black dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-400 font-bold cursor-pointer"
+                        >
+                          <option value="original">標準 (元の順序)</option>
+                          <option value="desc">得点: 高い順</option>
+                          <option value="asc">得点: 低い順</option>
+                        </select>
+                        
+                        <button
+                          onClick={handleVoteClick}
+                          disabled={isSubmittingVotes}
+                          className="py-1 px-3 rounded-full font-bold bg-[#1DA1F2] hover:bg-[#1788cc] text-white shadow-sm flex items-center justify-center transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed text-xs whitespace-nowrap"
+                        >
+                          {isSubmittingVotes ? (
+                            <Loader2 className="animate-spin mr-1.5 w-3.5 h-3.5" />
+                          ) : null}
+                          {isSubmittingVotes
+                            ? "送信中..."
+                            : userHasVoted
+                              ? "更新"
+                              : "投票"}
+                        </button>
+                      </div>
                     </div>
                   </>
                 )}
@@ -1562,7 +1577,7 @@ export default function VenueDetailPage() {
 
       {/* 投票確定ボタン (固定) */}
       {showVoteUI && (
-        <div className="sticky bottom-0 w-full z-50 bg-white dark:bg-black/90 backdrop-blur-md border-t border-gray-200 dark:border-gray-800 p-4 flex flex-col items-center mt-auto">
+        <div className="sticky bottom-0 w-full z-50 bg-white dark:bg-black/90 backdrop-blur-md border-t border-gray-200 dark:border-gray-800 px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] flex flex-col items-center mt-auto">
           {isJudgeMode && (() => {
             const votablePosts = posts.filter((p) => !user || String(p.user_id) !== String(user.id));
             const totalVotable = votablePosts.length;
@@ -1574,12 +1589,12 @@ export default function VenueDetailPage() {
             const isCommentComplete = totalVotable > 0 && commentedCount === totalVotable;
 
             return (
-              <div className="w-full max-w-md mb-3 flex items-center justify-between text-xs md:text-sm font-bold text-gray-600 dark:text-gray-300 border-b border-gray-200 dark:border-gray-800 pb-2 px-1">
+              <div className="w-full max-w-md mb-1.5 flex items-center justify-between text-[11px] md:text-xs font-bold text-gray-600 dark:text-gray-300 border-b border-gray-200 dark:border-gray-800 pb-1.5 px-1">
                 <span className={`transition-colors ${isVoteComplete ? "text-[#84cc16]" : ""}`}>
                   投票: {votedCount}/{totalVotable}
                 </span>
                 <span className={`transition-colors ${isJudgeAwardComplete ? "text-[#84cc16]" : ""}`}>
-                  審査員賞: {isJudgeAwardComplete ? <CheckCircle className="w-4 h-4 inline-block ml-0.5 mb-0.5" /> : <X className="w-4 h-4 inline-block ml-0.5 mb-0.5" />}
+                  審査員賞: {isJudgeAwardComplete ? <CheckCircle className="w-3.5 h-3.5 inline-block ml-0.5 mb-0.5" /> : <X className="w-3.5 h-3.5 inline-block ml-0.5 mb-0.5" />}
                 </span>
                 <span className={`transition-colors ${isCommentComplete ? "text-[#84cc16]" : ""}`}>
                   コメント: {commentedCount}/{totalVotable}
