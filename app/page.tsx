@@ -323,7 +323,14 @@ export default function HomePage() {
             ...contestsData.upcoming,
             ...contestsData.closed,
           ];
-          const dailyContests = allContests.filter((c) => c.type === "daily");
+          const dailyContests = allContests.filter((c) => {
+            if (c.type !== "daily") return false;
+            const now = dayjs();
+            if (c.startTime && now.isBefore(dayjs(c.startTime))) {
+              return dayjs(c.startTime).diff(now, "hour", true) <= 1;
+            }
+            return true;
+          });
 
           // startTime降順でソートして最新3件のみ表示
           const visibleDailies = dailyContests
