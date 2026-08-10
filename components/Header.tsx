@@ -49,6 +49,7 @@ export default function Header() {
   useEffect(() => {
     if (user) {
       const fetchUnreadCount = async () => {
+        if (document.hidden) return; // タブが隠れている場合はリクエストしない
         try {
           const res = await fetch('/api/notifications/unread-count');
           if (res.ok) {
@@ -59,11 +60,15 @@ export default function Header() {
           console.error(e);
         }
       };
+      
       fetchUnreadCount();
-      const interval = setInterval(fetchUnreadCount, 300000); // 5 minutes
+      
+      // 10分ごとのポーリング
+      const interval = setInterval(fetchUnreadCount, 600000); 
+
       return () => clearInterval(interval);
     }
-  }, [user, pathname]);
+  }, [user]);
 
   // 追加: ページ遷移が発生したらメニューを確実に閉じる
   useEffect(() => {
