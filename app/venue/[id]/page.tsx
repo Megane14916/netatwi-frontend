@@ -25,6 +25,8 @@ import {
   Edit2,
   MessageSquare,
   ArrowUpDown,
+  Download,
+  Upload,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import TimeAgo from "@/components/TimeAgo";
@@ -396,6 +398,11 @@ export default function VenueDetailPage() {
 
   const [showSuccessBanner, setShowSuccessBanner] = useState(false);
   const [hideJudgeBanner, setHideJudgeBanner] = useState(false);
+
+  const [isRestoreDialogOpen, setIsRestoreDialogOpen] = useState(false);
+  const [pendingRestoreData, setPendingRestoreData] = useState<any>(null);
+  const [pendingRestoreFileName, setPendingRestoreFileName] = useState("");
+  const restoreFileInputRef = useRef<HTMLInputElement>(null);
 
   // 文字数カウント状態を追加
   const [textCount, setTextCount] = useState<TextCountResult>({
@@ -884,6 +891,62 @@ export default function VenueDetailPage() {
     });
   };
 
+  const handleBackupVotes = () => {
+    const data = {
+      votes: votes,
+      judgeAwardSelection: judgeAwardSelection,
+    };
+    const jsonStr = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const timestamp = dayjs().format("YYYYMMDD_HHmmss");
+    a.download = `netatwi_votes_backup_contest_${contestId}_${timestamp}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleRestoreFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const json = JSON.parse(event.target?.result as string);
+        if (json && typeof json === "object" && json.votes) {
+          setPendingRestoreData(json);
+          setPendingRestoreFileName(file.name);
+          setIsRestoreDialogOpen(true);
+        } else {
+          throw new Error("Invalid format");
+        }
+      } catch (err) {
+        toast({ title: "エラー", description: "ファイルの読み込みに失敗しました。正しいフォーマットか確認してください。", variant: "destructive" });
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
+  const confirmRestoreVotes = () => {
+    if (pendingRestoreData) {
+      if (pendingRestoreData.votes) {
+        setUserVotes(pendingRestoreData.votes);
+      }
+      if (pendingRestoreData.judgeAwardSelection) {
+        setUserJudgeAwardSelection(pendingRestoreData.judgeAwardSelection);
+      }
+      toast({ title: "成功", description: "投票を復元しました" });
+    }
+    setIsRestoreDialogOpen(false);
+    setPendingRestoreData(null);
+    setPendingRestoreFileName("");
+  };
+
   const handleVoteClick = () => {
     if (isVoteDeadlineExceeded) {
       toast({ title: "エラー", description: "終了しました。", variant: "destructive" });
@@ -1184,6 +1247,32 @@ export default function VenueDetailPage() {
                 ルールを詳しく見る→
               </Link>
             </div>
+
+            {showVoteUI && isJudgeMode && (
+              <div className="mt-4 flex flex-col gap-2 w-full max-w-sm">
+                <button
+                  onClick={handleBackupVotes}
+                  className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 px-4 py-2 text-[14px] font-bold text-gray-700 dark:text-gray-300 transition hover:bg-gray-200 dark:hover:bg-gray-700 shadow-sm"
+                >
+                  <Download className="w-4 h-4" />
+                  現在の投票をバックアップ
+                </button>
+                <button
+                  onClick={() => restoreFileInputRef.current?.click()}
+                  className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 px-4 py-2 text-[14px] font-bold text-gray-700 dark:text-gray-300 transition hover:bg-gray-200 dark:hover:bg-gray-700 shadow-sm"
+                >
+                  <Upload className="w-4 h-4" />
+                  バックアップから復元
+                </button>
+                <input
+                  type="file"
+                  accept="application/json"
+                  ref={restoreFileInputRef}
+                  style={{ display: "none" }}
+                  onChange={handleRestoreFileChange}
+                />
+              </div>
+            )}
           </div>
         </div>
 
@@ -1618,6 +1707,22 @@ export default function VenueDetailPage() {
           </button>
         </div>
       )}
+
+      <AlertDialog open={isRestoreDialogOpen} onOpenChange={setIsRestoreDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>投票の復元</AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{pendingRestoreFileName}</strong> を読み込もうとしています。<br />
+              現在の投票状況をこのファイルの内容で上書きしますか？
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setIsRestoreDialogOpen(false)}>キャンセル</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRestoreVotes} className="bg-[#1DA1F2] hover:bg-[#1788cc] text-white">復元する</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
