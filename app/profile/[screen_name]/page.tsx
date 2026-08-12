@@ -367,7 +367,7 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
                 {/* 大会リンク (カードの外に表示) */}
                 {post.contest && (
                     <div className="px-4 pt-3 pb-1 text-xs text-gray-500 dark:text-gray-400 hover:text-[#1DA1F2] transition-colors flex items-center">
-                        <Link href={`/venue/${post.contest.id}`} prefetch={true} className="hover:underline">
+                        <Link href={`/venue/${post.contest.id}`} prefetch={false} className="hover:underline">
                             {post.contest.name}
                         </Link>
                         {post.contest.theme && <span className="ml-2 text-gray-400 dark:text-gray-600">/ お題: {post.contest.theme}</span>}

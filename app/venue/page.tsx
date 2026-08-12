@@ -196,6 +196,7 @@ export default function VenuePage() {
       <RippleLink
         key={contest.id}
         href={`/venue/${contest.id}`}
+        prefetch={false}
         className="block group relative overflow-hidden bg-white dark:bg-black py-6 px-3 md:p-8 transition-colors duration-300 hover:bg-gray-100 dark:hover:bg-gray-800"
       >
         <div className="relative z-10 flex flex-row items-center justify-between gap-2 md:gap-4">
@@ -295,12 +296,12 @@ export default function VenuePage() {
                   {/* アクションエリア (青背景に合わせて白ボタンに変更、サイズ縮小) */}
                   <div className="flex justify-start">
                     {isPosting && (
-                      <Link href={`/venue/${activeGpId}`} className="inline-block text-center bg-white text-[#1DA1F2] font-bold px-8 py-2.5 rounded-full hover:bg-gray-50 transition-colors text-[14px]">
+                      <Link href={`/venue/${activeGpId}`} prefetch={false} className="inline-block text-center bg-white text-[#1DA1F2] font-bold px-8 py-2.5 rounded-full hover:bg-gray-50 transition-colors text-[14px]">
                         投稿する
                       </Link>
                     )}
                     {isResults && (
-                      <Link href={`/venue/${activeGpId}`} className="inline-block text-center bg-white text-[#1DA1F2] font-bold px-8 py-2.5 rounded-full hover:bg-gray-50 transition-colors text-[14px]">
+                      <Link href={`/venue/${activeGpId}`} prefetch={false} className="inline-block text-center bg-white text-[#1DA1F2] font-bold px-8 py-2.5 rounded-full hover:bg-gray-50 transition-colors text-[14px]">
                         結果を見る
                       </Link>
                     )}

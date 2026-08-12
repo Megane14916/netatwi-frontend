@@ -27,6 +27,7 @@ export default function HistoryTabs({ contests }: { contests: Contest[] }) {
     <RippleLink
       key={contest.id}
       href={`/venue/${contest.id}`}
+      prefetch={false}
       className="block group relative overflow-hidden bg-white dark:bg-black py-6 px-3 md:p-8 transition-colors duration-300 hover:bg-gray-100 dark:hover:bg-gray-800"
     >
       <div className="relative z-10 flex flex-row items-center justify-between gap-2 md:gap-4">

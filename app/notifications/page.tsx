@@ -86,7 +86,7 @@ export default function NotificationsPage() {
             notifications.map(notification => {
               const Wrapper: any = notification.contest_id ? Link : 'div';
               const wrapperProps = notification.contest_id 
-                ? { href: `/venue/${notification.contest_id}`, prefetch: true } 
+                ? { href: `/venue/${notification.contest_id}`, prefetch: false } 
                 : {};
 
               return (
