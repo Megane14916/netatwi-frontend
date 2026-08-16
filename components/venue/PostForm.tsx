@@ -630,11 +630,10 @@ export default function PostForm({
               <button
                 type="submit"
                 disabled={
-                  (contestInfo?.imageRule !== "required" &&
-                    !newPostContent.trim() &&
-                    previewUrls.length === 0) ||
                   isSubmitting ||
-                  !textCount.isValid
+                  (!textCount.isValid && newPostContent.trim().length > 0) ||
+                  (!newPostContent.trim() && previewUrls.length === 0) ||
+                  (contestInfo?.imageRule === "required" && previewUrls.length === 0)
                 }
                 className="inline-flex items-center rounded-full bg-[#1DA1F2] px-4 py-1.5 text-xs md:px-5 md:py-2 md:text-sm font-bold text-white transition hover:bg-[#1788cc] disabled:bg-blue-300 disabled:cursor-not-allowed shadow-sm"
               >
