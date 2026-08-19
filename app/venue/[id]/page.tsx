@@ -184,6 +184,16 @@ const JudgeVoteSelector = ({
   disabled: boolean;
   maxScore: number;
 }) => {
+  const [inputValue, setInputValue] = useState<string>(
+    currentScore !== undefined && currentScore !== null && currentScore !== 0 ? String(currentScore) : ""
+  );
+
+  useEffect(() => {
+    if (parseFloat(inputValue || "0") !== currentScore) {
+      setInputValue(currentScore !== undefined && currentScore !== null && currentScore !== 0 ? String(currentScore) : "");
+    }
+  }, [currentScore]);
+
   return (
     <div className="inline-flex flex-col justify-center">
       <div className="flex items-center mb-1 px-1">
@@ -197,9 +207,11 @@ const JudgeVoteSelector = ({
           min="0"
           max={maxScore}
           step="0.1"
-          value={currentScore || ""}
+          value={inputValue}
           onChange={(e) => {
-            const val = parseFloat(e.target.value);
+            const valStr = e.target.value;
+            setInputValue(valStr);
+            const val = parseFloat(valStr);
             onSelect(postId, isNaN(val) ? 0 : Math.min(val, maxScore));
           }}
           disabled={disabled}
