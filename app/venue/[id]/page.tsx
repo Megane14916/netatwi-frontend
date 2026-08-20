@@ -913,8 +913,18 @@ export default function VenueDetailPage() {
   };
 
   const handleBackupVotes = () => {
+    const votesArray = Object.entries(votes).map(([idStr, score]) => {
+      const postId = parseInt(idStr, 10);
+      const post = posts.find((p) => p.id === postId);
+      return {
+        id: postId,
+        score: score,
+        content: post ? post.content : "",
+      };
+    });
+
     const data = {
-      votes: votes,
+      votes: votesArray,
       judgeAwardSelection: judgeAwardSelection,
     };
     const jsonStr = JSON.stringify(data, null, 2);
@@ -956,7 +966,17 @@ export default function VenueDetailPage() {
   const confirmRestoreVotes = () => {
     if (pendingRestoreData) {
       if (pendingRestoreData.votes) {
-        setUserVotes(pendingRestoreData.votes);
+        let restoredVotes: { [postId: number]: number } = {};
+        if (Array.isArray(pendingRestoreData.votes)) {
+          pendingRestoreData.votes.forEach((v: any) => {
+            if (v && v.id != null && v.score != null) {
+              restoredVotes[v.id] = v.score;
+            }
+          });
+        } else {
+          restoredVotes = pendingRestoreData.votes;
+        }
+        setUserVotes(restoredVotes);
       }
       if (pendingRestoreData.judgeAwardSelection) {
         setUserJudgeAwardSelection(pendingRestoreData.judgeAwardSelection);
