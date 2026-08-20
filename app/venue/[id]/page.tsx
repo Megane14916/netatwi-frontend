@@ -209,10 +209,19 @@ const JudgeVoteSelector = ({
           step="0.1"
           value={inputValue}
           onChange={(e) => {
-            const valStr = e.target.value;
+            let valStr = e.target.value;
+            let val = parseFloat(valStr);
+            if (!isNaN(val)) {
+              if (val > maxScore) {
+                valStr = String(maxScore);
+                val = maxScore;
+              } else if (val < 0) {
+                valStr = "0";
+                val = 0;
+              }
+            }
             setInputValue(valStr);
-            const val = parseFloat(valStr);
-            onSelect(postId, isNaN(val) ? 0 : Math.min(val, maxScore));
+            onSelect(postId, isNaN(val) ? 0 : val);
           }}
           disabled={disabled}
           className="w-16 md:w-20 text-sm md:text-base bg-white dark:bg-black border border-indigo-200 rounded-lg px-1.5 py-0.5 md:px-2 md:py-1 text-right text-black dark:text-white focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 shadow-sm"
