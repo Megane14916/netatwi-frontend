@@ -690,21 +690,31 @@ export default function VenueDetailPage() {
      return { postId: awardPostId, comment: awardComment };
   }, [userJudgeAwardSelection, posts]);
 
+  const [snapshotTrigger, setSnapshotTrigger] = useState<{
+    order: string;
+    posts: Post[];
+    votes: { [postId: number]: number };
+  }>({ order: judgeSortOrder, posts, votes });
+
+  if (judgeSortOrder !== snapshotTrigger.order || posts !== snapshotTrigger.posts) {
+    setSnapshotTrigger({ order: judgeSortOrder, posts, votes });
+  }
+
   const displayPosts = useMemo(() => {
-    if (contestStatus !== "voting" || !isJudgeMode || judgeSortOrder === "original") {
+    if (contestStatus !== "voting" || !isJudgeMode || snapshotTrigger.order === "original") {
       return posts;
     }
     
     return [...posts].sort((a, b) => {
-      const scoreA = votes[a.id] || 0;
-      const scoreB = votes[b.id] || 0;
-      if (judgeSortOrder === "desc") {
+      const scoreA = snapshotTrigger.votes[a.id] || 0;
+      const scoreB = snapshotTrigger.votes[b.id] || 0;
+      if (snapshotTrigger.order === "desc") {
         return scoreB - scoreA;
       } else {
         return scoreA - scoreB;
       }
     });
-  }, [posts, votes, judgeSortOrder, isJudgeMode, contestStatus]);
+  }, [posts, isJudgeMode, contestStatus, snapshotTrigger]);
   // ----------------------------------------------------
   // コメント状態および追加計算（SWRデータ導出後に配置）
   // ----------------------------------------------------
