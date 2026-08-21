@@ -86,7 +86,7 @@ interface Post {
   images?: string[]; // 画像URLリスト
   created_at: string;
   user_id: number;
-  myVotes: number;
+  myVotes?: number | null;
   myJudgeAward?: boolean;
   myJudgeComment?: string | null;
   hasCommented?: boolean;
@@ -154,11 +154,11 @@ const GeneralVoteButton = ({
 }: {
   postId: number;
   isLiked: boolean;
-  onToggle: (postId: number, val: number) => void;
+  onToggle: (postId: number, val: number | null) => void;
   disabled: boolean;
 }) => (
   <button
-    onClick={() => onToggle(postId, isLiked ? 0 : 1)}
+    onClick={() => onToggle(postId, isLiked ? null : 1)}
     disabled={disabled}
     className={`flex items-center gap-1.5 px-2 py-1 md:px-3 md:py-1.5 rounded-full transition-all group ${
       isLiked
@@ -179,18 +179,19 @@ const JudgeVoteSelector = ({
   maxScore,
 }: {
   postId: number;
-  currentScore: number;
-  onSelect: (postId: number, val: number) => void;
+  currentScore: number | null;
+  onSelect: (postId: number, val: number | null) => void;
   disabled: boolean;
   maxScore: number;
 }) => {
   const [inputValue, setInputValue] = useState<string>(
-    currentScore !== undefined && currentScore !== null && currentScore !== 0 ? String(currentScore) : ""
+    currentScore !== undefined && currentScore !== null ? String(currentScore) : ""
   );
 
   useEffect(() => {
-    if (parseFloat(inputValue || "0") !== currentScore) {
-      setInputValue(currentScore !== undefined && currentScore !== null && currentScore !== 0 ? String(currentScore) : "");
+    const parsedInput = inputValue === "" ? null : parseFloat(inputValue);
+    if (parsedInput !== currentScore) {
+      setInputValue(currentScore !== undefined && currentScore !== null ? String(currentScore) : "");
     }
   }, [currentScore]);
 
@@ -221,7 +222,7 @@ const JudgeVoteSelector = ({
               }
             }
             setInputValue(valStr);
-            onSelect(postId, isNaN(val) ? 0 : val);
+            onSelect(postId, isNaN(val) ? null : val);
           }}
           disabled={disabled}
           className="w-16 md:w-20 text-sm md:text-base bg-white dark:bg-black border border-indigo-200 rounded-lg px-1.5 py-0.5 md:px-2 md:py-1 text-right text-black dark:text-white focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 shadow-sm"
@@ -669,7 +670,9 @@ export default function VenueDetailPage() {
      if (userVotes !== null) return userVotes;
      const initialVotes: { [postId: number]: number } = {};
      posts.forEach((post) => {
-        initialVotes[post.id] = post.myVotes || 0;
+        if (post.myVotes !== null && post.myVotes !== undefined) {
+           initialVotes[post.id] = post.myVotes;
+        }
      });
      return initialVotes;
   }, [userVotes, posts]);
@@ -900,9 +903,14 @@ export default function VenueDetailPage() {
     }
   };
 
-  const handleVoteChange = (postId: number, newCount: number) => {
+  const handleVoteChange = (postId: number, newCount: number | null) => {
     setUserVotes((prev) => {
       const current = prev !== null ? prev : { ...votes };
+      if (newCount === null) {
+        const next = { ...current };
+        delete next[postId];
+        return next;
+      }
       return { ...current, [postId]: newCount };
     });
   };
@@ -971,6 +979,21 @@ export default function VenueDetailPage() {
     };
     reader.readAsText(file);
     e.target.value = "";
+  };
+
+  const fillUnvotedWithZero = () => {
+    setUserVotes((prev) => {
+      const current = prev !== null ? prev : { ...votes };
+      const next = { ...current };
+      posts.forEach((post) => {
+        if (user && String(post.user_id) === String(user.id)) return;
+        if (next[post.id] === undefined) {
+          next[post.id] = 0;
+        }
+      });
+      return next;
+    });
+    toast({ title: "一括入力", description: "未投票の投稿に0点を入力しました。" });
   };
 
   const confirmRestoreVotes = () => {
@@ -1315,6 +1338,12 @@ export default function VenueDetailPage() {
                   <Upload className="w-4 h-4" />
                   バックアップから復元
                 </button>
+                <button
+                  onClick={fillUnvotedWithZero}
+                  className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 px-4 py-2 text-[14px] font-bold text-gray-700 dark:text-gray-300 transition hover:bg-gray-200 dark:hover:bg-gray-700 shadow-sm"
+                >
+                  未投票を0点で埋める
+                </button>
                 <input
                   type="file"
                   accept="application/json"
@@ -1475,7 +1504,7 @@ export default function VenueDetailPage() {
                                 <div className="flex-grow flex justify-end">
                                   <JudgeVoteSelector
                                     postId={post.id}
-                                    currentScore={votes[post.id] || 0}
+                                    currentScore={votes[post.id] !== undefined ? votes[post.id] : null}
                                     onSelect={handleVoteChange}
                                     disabled={Boolean(isVoteDeadlineExceeded || (user && String(post.user_id) === String(user.id)))}
                                     maxScore={contest.judgeMaxScore || 10}
@@ -1721,7 +1750,7 @@ export default function VenueDetailPage() {
           {isJudgeMode && (() => {
             const votablePosts = posts.filter((p) => !user || String(p.user_id) !== String(user.id));
             const totalVotable = votablePosts.length;
-            const votedCount = votablePosts.filter((p) => votes[p.id] > 0).length;
+            const votedCount = votablePosts.filter((p) => votes[p.id] !== undefined).length;
             const commentedCount = votablePosts.filter((p) => p.hasCommented || sessionCommentedPosts[p.id]).length;
             
             const isVoteComplete = totalVotable > 0 && votedCount === totalVotable;
