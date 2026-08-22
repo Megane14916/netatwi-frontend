@@ -1665,7 +1665,6 @@ export default function VenueDetailPage() {
                 </div>
 
                 {/* 審査員賞 */}
-                {/*
                 {contest.scoringMethod !== "general" &&
                   judgeAwardsResults.length > 0 && (
                     <div className="mt-24">
@@ -1680,6 +1679,7 @@ export default function VenueDetailPage() {
                           );
                           return (
                             <div key={idx} className="px-2">
+                              {/* Header */}
                               <div className="flex items-center gap-3 mb-4">
                                 <Link
                                   href={`/profile/${encodeURIComponent(award.judge.screen_name)}`}
@@ -1703,6 +1703,7 @@ export default function VenueDetailPage() {
                                 </span>
                               </div>
 
+                              {/* Post */}
                               {fullPost ? (
                                 <div className="border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden mb-4 bg-white dark:bg-black shadow-sm">
                                   <ResultPostCard
@@ -1719,6 +1720,7 @@ export default function VenueDetailPage() {
                                 </div>
                               )}
 
+                              {/* Judge Comment */}
                               <div className="text-black/90 dark:text-white/90 text-base leading-relaxed whitespace-pre-wrap break-words [line-break:anywhere] ml-1">
                                 {award.comment ? award.comment + '\u200B' : "（コメントなし）"}
                               </div>
@@ -1728,7 +1730,6 @@ export default function VenueDetailPage() {
                       </div>
                     </div>
                   )}
-                */}
 
                 {contest.resultCommentBottom && (
                   <div
