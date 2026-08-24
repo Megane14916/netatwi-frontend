@@ -804,12 +804,14 @@ export default function VenueDetailPage() {
 
 
   useEffect(() => {
-    if (!contest) return;
+    // 結果発表後は contestStatus が変化しないため、監視タイマーは不要。
+    // 不要な親コンポーネントの再描画を止め、結果本文のテキスト選択を維持する。
+    if (!contest || contestStatus === "closed") return;
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
     return () => clearInterval(timer);
-  }, [contest]);
+  }, [contest, contestStatus]);
 
   const handleStartEdit = () => {
     if (posts.length > 0) {
