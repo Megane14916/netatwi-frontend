@@ -813,6 +813,7 @@ export default function VenueDetailPage() {
     return () => clearInterval(timer);
   }, [contest, contestStatus]);
 
+  
   const handleStartEdit = () => {
     if (posts.length > 0) {
       const post = posts[0];
