@@ -43,6 +43,10 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'posts' | 'bookmarks' | 'likes'>('posts');
   const fetchRef = useRef<string | null>(null);
+  const bookmarkTargetsRef = useRef<Map<number, boolean>>(new Map());
+  const bookmarkConfirmedRef = useRef<Map<number, boolean>>(new Map());
+  const bookmarkConfirmedCountRef = useRef<Map<number, number>>(new Map());
+  const bookmarkProcessingRef = useRef<Set<number>>(new Set());
 
   const [showMenu, setShowMenu] = useState(false);
   const [showWithdrawDialog, setShowWithdrawDialog] = useState(false);
@@ -115,41 +119,34 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
     fetchProfileData();
   }, [screenName]);
 
-  const handleToggleBookmark = async (post: any) => {
-      const isAdding = !post.isBookmarked;
-      
-      // 更新対象の投稿オブジェクトを作成
-      const updatedPost = {
-          ...post,
-          isBookmarked: isAdding,
-          bookmarkCount: post.bookmarkCount + (isAdding ? 1 : -1)
-      };
-
-      // リスト内の該当投稿を更新するヘルパー
-      const updateList = (list: any[]) => list.map(p => p.post_id === post.post_id ? updatedPost : p);
-
-      // 状態を即座に更新
+  const applyBookmarkState = (postId: number, isBookmarked: boolean, serverCount?: number) => {
       setProfileData(prev => {
           if (!prev) return null;
 
-          let newBookmarks = [...prev.bookmarks];
-          if (isAdding) {
-              // 追加: リストに存在しなければ先頭に追加
-              // ※ 本来はブックマークされた日時順などが理想だが、簡易的に先頭に追加
-              if (!newBookmarks.some(p => p.post_id === post.post_id)) {
-                  newBookmarks = [updatedPost, ...newBookmarks];
-              } else {
-                  newBookmarks = updateList(newBookmarks);
+          const updateList = (list: any[]) => list.map(item => {
+              if (item.post_id !== postId) return item;
+              const nextCount = serverCount ?? (
+                  item.isBookmarked === isBookmarked
+                      ? item.bookmarkCount
+                      : Math.max(0, item.bookmarkCount + (isBookmarked ? 1 : -1))
+              );
+              return { ...item, isBookmarked, bookmarkCount: nextCount };
+          });
+
+          let newBookmarks = updateList(prev.bookmarks);
+          if (isBookmarked && !newBookmarks.some(item => item.post_id === postId)) {
+              const source = [...prev.posts, ...prev.likes].find(item => item.post_id === postId);
+              if (source) {
+                  newBookmarks = [{
+                      ...source,
+                      isBookmarked: true,
+                      bookmarkCount: serverCount ?? source.bookmarkCount + 1,
+                  }, ...newBookmarks];
               }
-          } else {
-              // 解除: ブックマークタブで見ている場合はリストから即座に消す
-              // ただし、自分のプロフィールを見ている場合のみ
+          } else if (!isBookmarked) {
               const isMyProfile = currentUser && String(currentUser.id) === String(prev.user.id);
               if (isMyProfile) {
-                  newBookmarks = newBookmarks.filter(p => p.post_id !== post.post_id);
-              } else {
-                  // 他人のプロフィールならステータス更新のみ（リストからは消さないのが一般的）
-                  newBookmarks = updateList(newBookmarks);
+                  newBookmarks = newBookmarks.filter(item => item.post_id !== postId);
               }
           }
 
@@ -157,28 +154,54 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
               ...prev,
               posts: updateList(prev.posts),
               likes: updateList(prev.likes),
-              bookmarks: newBookmarks
+              bookmarks: newBookmarks,
           };
       });
+  };
 
-      // API通信
+  const processBookmarkQueue = async (postId: number) => {
+      if (bookmarkProcessingRef.current.has(postId)) return;
+      bookmarkProcessingRef.current.add(postId);
+
       try {
-          const res = await fetch(`${API_PREFIX}/api/posts/${post.post_id}/bookmark`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-          });
+          while (true) {
+              const requestedState = bookmarkTargetsRef.current.get(postId) ?? false;
+              const res = await fetch(`${API_PREFIX}/api/posts/${postId}/bookmark`, {
+                  method: requestedState ? 'PUT' : 'DELETE',
+                  credentials: 'include',
+              });
+              if (!res.ok) throw new Error('Failed');
 
-          if (!res.ok) throw new Error('Failed');
-          
-          // サーバーからの最新データで同期 (オプション)
-          const data = await res.json();
-          // ここで再度 setProfileData しても良いが、チラつき防止のため楽観更新を信じる
+              const data = await res.json();
+              bookmarkConfirmedRef.current.set(postId, data.isBookmarked);
+              bookmarkConfirmedCountRef.current.set(postId, Math.max(0, data.bookmarkCount));
+              applyBookmarkState(postId, data.isBookmarked, Math.max(0, data.bookmarkCount));
+
+              if ((bookmarkTargetsRef.current.get(postId) ?? false) === requestedState) break;
+          }
       } catch (error) {
           console.error(error);
+          const confirmed = bookmarkConfirmedRef.current.get(postId) ?? false;
+          bookmarkTargetsRef.current.set(postId, confirmed);
+          applyBookmarkState(postId, confirmed, bookmarkConfirmedCountRef.current.get(postId));
           toast({ title: "エラー", description: "ブックマークの更新に失敗しました", variant: "destructive" });
-          // エラー時はロールバックが必要だが、今回は省略
+      } finally {
+          bookmarkProcessingRef.current.delete(postId);
       }
+  };
+
+  const handleToggleBookmark = (post: any) => {
+      const current = bookmarkTargetsRef.current.get(post.post_id) ?? post.isBookmarked;
+      const next = !current;
+      bookmarkTargetsRef.current.set(post.post_id, next);
+      if (!bookmarkConfirmedRef.current.has(post.post_id)) {
+          bookmarkConfirmedRef.current.set(post.post_id, post.isBookmarked);
+          bookmarkConfirmedCountRef.current.set(post.post_id, post.bookmarkCount);
+      }
+
+      // API完了を待たずに表示だけ更新する
+      applyBookmarkState(post.post_id, next);
+      void processBookmarkQueue(post.post_id);
   };
 
   // 表示する投稿リストの切り替え

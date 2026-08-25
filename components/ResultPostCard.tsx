@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 // import Link from 'next/link'; // エラー回避のため削除
 import { Heart, Bookmark, Share2, Award, Crown, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
 import ImageGrid from './ImageGrid';
@@ -74,9 +74,25 @@ export default function ResultPostCard({ post, currentUser, onToggleBookmark, co
   const [isVotersExpanded, setIsVotersExpanded] = useState(false);
   const [commentCount, setCommentCount] = useState(post.commentCount ?? post.comment_count ?? 0);
   const [hasCommented, setHasCommented] = useState(post.hasCommented || false);
+  const bookmarkTargetRef = useRef(post.isBookmarked);
+  const bookmarkConfirmedRef = useRef(post.isBookmarked);
+  const bookmarkConfirmedCountRef = useRef(post.bookmarkCount);
+  const bookmarkProcessingRef = useRef(false);
+  const likeTargetRef = useRef(Boolean(initialIsLiked));
+  const likeConfirmedRef = useRef(Boolean(initialIsLiked));
+  const likeProcessingRef = useRef(false);
 
   // 親から渡されたデータが変わったら同期
   useEffect(() => {
+    if (!bookmarkProcessingRef.current) {
+      bookmarkTargetRef.current = post.isBookmarked;
+      bookmarkConfirmedRef.current = post.isBookmarked;
+      bookmarkConfirmedCountRef.current = post.bookmarkCount;
+    }
+    if (!likeProcessingRef.current) {
+      likeTargetRef.current = Boolean(initialIsLiked);
+      likeConfirmedRef.current = Boolean(initialIsLiked);
+    }
     setIsBookmarked(post.isBookmarked);
     setBookmarkCount(post.bookmarkCount);
     setIsLiked(initialIsLiked);
@@ -86,7 +102,40 @@ export default function ResultPostCard({ post, currentUser, onToggleBookmark, co
   }, [post.isBookmarked, post.bookmarkCount, post.score, post.voters, post.commentCount, post.comment_count, post.hasCommented, currentUser]);
 
   // ブックマーク処理
-  const handleBookmark = async () => {
+  const processBookmarkQueue = async () => {
+    if (bookmarkProcessingRef.current) return;
+    bookmarkProcessingRef.current = true;
+
+    try {
+      while (true) {
+        const requestedState = bookmarkTargetRef.current;
+        const res = await fetch(`/api/posts/${post.post_id}/bookmark`, {
+          method: requestedState ? 'PUT' : 'DELETE',
+          credentials: 'include',
+        });
+
+        if (!res.ok) throw new Error('Failed');
+
+        const data = await res.json();
+        bookmarkConfirmedRef.current = data.isBookmarked;
+        bookmarkConfirmedCountRef.current = Math.max(0, data.bookmarkCount);
+        setIsBookmarked(data.isBookmarked);
+        setBookmarkCount(bookmarkConfirmedCountRef.current);
+
+        // 通信中に状態が変わっていた場合は、最新の希望状態だけを送る
+        if (bookmarkTargetRef.current === requestedState) break;
+      }
+    } catch (e) {
+      bookmarkTargetRef.current = bookmarkConfirmedRef.current;
+      setIsBookmarked(bookmarkConfirmedRef.current);
+      setBookmarkCount(bookmarkConfirmedCountRef.current);
+      console.error(e);
+    } finally {
+      bookmarkProcessingRef.current = false;
+    }
+  };
+
+  const handleBookmark = () => {
     if (!currentUser) {
       toast({ title: "エラー", description: "ブックマークするにはログインが必要です。", variant: "destructive" });
       return;
@@ -97,57 +146,51 @@ export default function ResultPostCard({ post, currentUser, onToggleBookmark, co
         return;
     }
 
-    // 楽観的更新
-    const prevIsBookmarked = isBookmarked;
-    const prevCount = bookmarkCount;
-    
-    setIsBookmarked(!prevIsBookmarked);
-    setBookmarkCount(prevIsBookmarked ? prevCount - 1 : prevCount + 1);
+    const nextState = !bookmarkTargetRef.current;
+    bookmarkTargetRef.current = nextState;
+    setIsBookmarked(nextState);
+    setBookmarkCount(prev => Math.max(0, prev + (nextState ? 1 : -1)));
+    void processBookmarkQueue();
+  };
+
+  const processLikeQueue = async () => {
+    if (likeProcessingRef.current) return;
+    likeProcessingRef.current = true;
 
     try {
-      const res = await fetch(`/api/posts/${post.post_id}/bookmark`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-      });
-      
-      if (!res.ok) throw new Error('Failed');
-      
-      const data = await res.json();
-      // サーバーの正確な値で補正
-      setIsBookmarked(data.isBookmarked);
-      setBookmarkCount(data.bookmarkCount);
-    } catch (e) {
-      // エラー時はロールバック
-      setIsBookmarked(prevIsBookmarked);
-      setBookmarkCount(prevCount);
-      console.error(e);
+      while (true) {
+        const requestedState = likeTargetRef.current;
+        const res = await fetch(`/api/posts/${post.post_id}/like`, {
+          method: requestedState ? 'PUT' : 'DELETE',
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          likeConfirmedRef.current = data.isLiked;
+          setIsLiked(data.isLiked);
+          setLikeCount(data.likeCount);
+          if (likeTargetRef.current === requestedState) break;
+        } else {
+          const errData = await res.json();
+          throw new Error(errData.error || 'いいねに失敗しました');
+        }
+      }
+    } catch (error) {
+      likeTargetRef.current = likeConfirmedRef.current;
+      setIsLiked(likeConfirmedRef.current);
+      toast({ title: "エラー", description: error instanceof Error ? error.message : "いいねに失敗しました", variant: "destructive" });
+    } finally {
+      likeProcessingRef.current = false;
     }
   };
 
-  const handleLike = async () => {
+  const handleLike = () => {
     if (!currentUser || contestScoringMethod !== 'judge') return;
-    const prevIsLiked = isLiked;
-    const prevCount = likeCount;
-    setIsLiked(!prevIsLiked);
-    setLikeCount(prevIsLiked ? prevCount - 1 : prevCount + 1);
-    try {
-      const res = await fetch(`/api/posts/${post.post_id}/like`, { method: 'POST' });
-      if (res.ok) {
-        const data = await res.json();
-        setIsLiked(data.isLiked);
-        setLikeCount(data.likeCount);
-      } else {
-        const errData = await res.json();
-        toast({ title: "エラー", description: errData.error || "いいねに失敗しました", variant: "destructive" });
-        setIsLiked(prevIsLiked);
-        setLikeCount(prevCount);
-      }
-    } catch {
-      toast({ title: "エラー", description: "いいねに失敗しました", variant: "destructive" });
-      setIsLiked(prevIsLiked);
-      setLikeCount(prevCount);
-    }
+    const nextState = !likeTargetRef.current;
+    likeTargetRef.current = nextState;
+    setIsLiked(nextState);
+    setLikeCount(prev => Math.max(0, prev + (nextState ? 1 : -1)));
+    void processLikeQueue();
   };
 
   // シェア機能
