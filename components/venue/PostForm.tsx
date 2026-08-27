@@ -26,8 +26,15 @@ import RichTextEditor, {
 } from "@/components/RichTextEditor";
 import ProgressRing from "@/components/ProgressRing";
 import { countText, TextCountResult } from "@/lib/twitterText";
+import { compressImage } from "@/lib/imageCompression";
 import { useToast } from "@/components/ui/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+
+const MAX_IMAGE_TOTAL_BYTES = 16 * 1024 * 1024;
+const IMAGE_SIZE_ERROR = "画像の合計サイズが上限を超えています（最大16 MiB）";
+
+const getTotalImageSize = (files: File[]) =>
+  files.reduce((total, file) => total + file.size, 0);
 
 // ---------------------------------------------------------------------------
 // 型定義
@@ -184,6 +191,7 @@ export default function PostForm({
   // --- 画像アップロード ---
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [isCompressingImages, setIsCompressingImages] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // --- 絵文字ピッカー ---
@@ -308,17 +316,50 @@ export default function PostForm({
   // ---------------------------------------------------------------------------
   // ハンドラ: 画像選択
   // ---------------------------------------------------------------------------
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.currentTarget;
     const files = Array.from(e.target.files || []);
     const remaining = 4 - previewUrls.length;
     const toAdd = files.slice(0, remaining);
+    input.value = "";
 
-    const newUrls = toAdd.map((file) => URL.createObjectURL(file));
-    setSelectedImages((prev) => [...prev, ...toAdd]);
-    setPreviewUrls((prev) => [...prev, ...newUrls]);
+    if (toAdd.length === 0) return;
 
-    // 同じファイルを再選択できるようリセット
-    if (e.target) e.target.value = "";
+    setIsCompressingImages(true);
+
+    try {
+      // 大きな画像を同時に展開してブラウザのメモリを圧迫しないよう、順番に圧縮する。
+      const compressedFiles: File[] = [];
+      for (const file of toAdd) {
+        compressedFiles.push(await compressImage(file));
+      }
+
+      if (getTotalImageSize([...selectedImages, ...compressedFiles]) > MAX_IMAGE_TOTAL_BYTES) {
+        setPostError(IMAGE_SIZE_ERROR);
+        toast({
+          title: "画像サイズが大きすぎます",
+          description: IMAGE_SIZE_ERROR,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const newUrls = compressedFiles.map((file) => URL.createObjectURL(file));
+      setSelectedImages((prev) => [...prev, ...compressedFiles]);
+      setPreviewUrls((prev) => [...prev, ...newUrls]);
+      setPostError(null);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "画像の圧縮に失敗しました";
+      setPostError(message);
+      toast({
+        title: "画像を追加できませんでした",
+        description: message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsCompressingImages(false);
+    }
   };
 
   // ---------------------------------------------------------------------------
@@ -394,7 +435,7 @@ export default function PostForm({
   // ---------------------------------------------------------------------------
   const handlePostSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isPostDeadlineExceeded) return;
+    if (isPostDeadlineExceeded || isCompressingImages) return;
 
     const check = countText(newPostContent);
     if (!check.isValid && newPostContent.trim().length > 0) {
@@ -413,6 +454,16 @@ export default function PostForm({
 
     if (!newPostContent.trim() && previewUrls.length === 0) return;
     if (!user) return;
+
+    if (getTotalImageSize(selectedImages) > MAX_IMAGE_TOTAL_BYTES) {
+      setPostError(IMAGE_SIZE_ERROR);
+      toast({
+        title: "画像サイズが大きすぎます",
+        description: IMAGE_SIZE_ERROR,
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsSubmitting(true);
     setPostError(null);
@@ -440,8 +491,21 @@ export default function PostForm({
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "投稿に失敗しました");
+        let message =
+          res.status === 413
+            ? IMAGE_SIZE_ERROR
+            : `投稿に失敗しました（HTTP ${res.status}）`;
+
+        if (res.headers.get("content-type")?.includes("application/json")) {
+          try {
+            const data = await res.json();
+            message = data.error || message;
+          } catch {
+            // 壊れたJSONでも、ステータスに応じたメッセージを表示する。
+          }
+        }
+
+        throw new Error(message);
       }
 
       const data: PostData = await res.json();
@@ -554,7 +618,8 @@ export default function PostForm({
                   <button
                     type="button"
                     onClick={() => removeImage(idx)}
-                    className="absolute top-2 right-2 bg-black/70 dark:bg-white/70 text-white rounded-full p-1.5 hover:bg-black transition-colors backdrop-blur-sm"
+                    disabled={isCompressingImages}
+                    className="absolute top-2 right-2 bg-black/70 dark:bg-white/70 text-white rounded-full p-1.5 hover:bg-black transition-colors backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -576,6 +641,7 @@ export default function PostForm({
                 ref={fileInputRef}
                 disabled={
                   isPostDeadlineExceeded ||
+                  isCompressingImages ||
                   previewUrls.length >= 4
                 }
               />
@@ -584,14 +650,22 @@ export default function PostForm({
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={isPostDeadlineExceeded || previewUrls.length >= 4}
-                  className={`rounded-full p-2 hover:bg-blue-50 dark:hover:bg-[#1DA1F2]/10 transition-colors ${
+                  disabled={
+                    isPostDeadlineExceeded ||
+                    isCompressingImages ||
                     previewUrls.length >= 4
+                  }
+                  className={`rounded-full p-2 hover:bg-blue-50 dark:hover:bg-[#1DA1F2]/10 transition-colors ${
+                    previewUrls.length >= 4 || isCompressingImages
                       ? "opacity-50 cursor-not-allowed"
                       : ""
                   }`}
                 >
-                  <ImageIcon className="h-5 w-5" />
+                  {isCompressingImages ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <ImageIcon className="h-5 w-5" />
+                  )}
                 </button>
               )}
 
@@ -631,6 +705,7 @@ export default function PostForm({
                 type="submit"
                 disabled={
                   isSubmitting ||
+                  isCompressingImages ||
                   (!textCount.isValid && newPostContent.trim().length > 0) ||
                   (!newPostContent.trim() && previewUrls.length === 0) ||
                   (contestInfo?.imageRule === "required" && previewUrls.length === 0)
