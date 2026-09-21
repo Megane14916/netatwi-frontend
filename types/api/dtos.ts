@@ -119,7 +119,7 @@ export interface ContestResultsResponseDto {
   judgeAwards: JudgeAwardDto[];
   totalPosters: number;
   totalVoters: number;
-  totalJudges: number;
+  totalJudges?: number;
 }
 
 export interface CommentDto {

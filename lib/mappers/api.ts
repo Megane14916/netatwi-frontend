@@ -202,5 +202,5 @@ export const mapContestResults = (dto: ContestResultsResponseDto): ContestResult
   })),
   totalPosters: dto.totalPosters,
   totalVoters: dto.totalVoters,
-  totalJudges: dto.totalJudges,
+  totalJudges: dto.totalJudges ?? 0,
 });

@@ -126,7 +126,7 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newComment.trim() || (!isJudgeMode && newComment.length > 140) || isSubmitting) return;
+    if (!currentUser || !newComment.trim() || (!isJudgeMode && newComment.length > 140) || isSubmitting) return;
 
     setIsSubmitting(true);
     setError('');
@@ -134,13 +134,13 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
     // 楽観的更新
     const optimisticComment: Comment = {
       id: Date.now(),
-      userId: currentUser!.id,
+      userId: currentUser.id,
       postId,
       content: newComment,
       isJudge: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      user: currentUser!,
+      user: currentUser,
     };
 
     if (shouldFetch) {
