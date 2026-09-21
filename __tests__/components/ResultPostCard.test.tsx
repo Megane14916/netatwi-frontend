@@ -1,6 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import ResultPostCard from '@/components/ResultPostCard';
 
+jest.mock('@/components/Twemoji', () => ({ text }: { text: string }) => text);
+
 const mockPost = {
   post_id: 1,
   content: 'テスト投稿',
@@ -22,7 +24,12 @@ describe('ResultPostCard Component', () => {
     render(
       <ResultPostCard
         post={mockPost}
-        currentUser={{ screen_name: 'currentUser' }}
+        currentUser={{
+          id: 2,
+          screen_name: 'currentUser',
+          name: 'Current User',
+          profile_image_url: null,
+        }}
         contestScoringMethod="general"
       />
     );

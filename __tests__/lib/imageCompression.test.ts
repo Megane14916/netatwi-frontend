@@ -20,12 +20,12 @@ describe("compressImage", () => {
     if (originalCreateObjectURL) {
       Object.defineProperty(URL, "createObjectURL", originalCreateObjectURL);
     } else {
-      delete (URL as typeof URL & { createObjectURL?: unknown }).createObjectURL;
+      Reflect.deleteProperty(URL, "createObjectURL");
     }
     if (originalRevokeObjectURL) {
       Object.defineProperty(URL, "revokeObjectURL", originalRevokeObjectURL);
     } else {
-      delete (URL as typeof URL & { revokeObjectURL?: unknown }).revokeObjectURL;
+      Reflect.deleteProperty(URL, "revokeObjectURL");
     }
   });
 
