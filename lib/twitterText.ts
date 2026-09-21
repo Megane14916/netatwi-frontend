@@ -22,7 +22,7 @@ export const countText = (text: string): TextCountResult => {
       isValid: result.valid,
       remaining: 280 - result.weightedLength
     };
-  } catch (e) {
+  } catch {
     // フォールバック処理
     return countTextFallback(text);
   }

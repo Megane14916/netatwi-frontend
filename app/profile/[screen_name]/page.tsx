@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-// import { useParams } from 'next/navigation'; // propsから取得
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { User as UserIcon,ExternalLink, MoreHorizontal } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import ResultPostCard, { ResultPostProps } from '../../../components/ResultPostCard';
+import ResultPostCard from '../../../components/ResultPostCard';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from "@/components/ui/use-toast";
 import {
@@ -74,7 +73,7 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
       } else {
         toast({ title: "退会処理に失敗しました", variant: "destructive" });
       }
-    } catch (err) {
+    } catch {
       toast({ title: "エラーが発生しました", variant: "destructive" });
     }
   };
@@ -205,11 +204,12 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
   };
 
   // 表示する投稿リストの切り替え
-  const displayPosts = profileData ? (activeTab === 'posts' 
-    ? profileData.posts 
-    : activeTab === 'bookmarks' 
-        ? profileData.bookmarks 
-        : profileData.likes) : [];
+  const displayPosts = useMemo(() => {
+    if (!profileData) return [];
+    if (activeTab === 'posts') return profileData.posts;
+    if (activeTab === 'bookmarks') return profileData.bookmarks;
+    return profileData.likes;
+  }, [activeTab, profileData]);
 
   // 画面に表示される投稿のコメントを一括取得
   useEffect(() => {

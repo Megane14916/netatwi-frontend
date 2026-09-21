@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect,useRef, useMemo } from 'react';
-import { Send, Edit2, Trash2, X, MessageSquare } from 'lucide-react';
+import { Send, Edit2, Trash2, X } from 'lucide-react';
 import TimeAgo from './TimeAgo';
 import useSWR from 'swr';
 import { useToast } from "@/components/ui/use-toast";
@@ -181,7 +181,7 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
           setLocalComments(prev => prev.filter(c => c.id !== optimisticComment.id));
         }
       }
-    } catch (e) {
+    } catch {
       setError('通信エラーが発生しました');
       if (!shouldFetch) {
         setLocalComments(prev => prev.filter(c => c.id !== optimisticComment.id));
@@ -335,7 +335,7 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
       )}
 
       <div className={`divide-y divide-gray-100 dark:divide-gray-800 mb-4 border-b border-gray-100 dark:border-gray-800 ${showTopClose ? 'border-t' : 'border-t mt-4'}`}>
-        {visibleComments.map((comment, idx) => (
+              {visibleComments.map((comment) => (
           <div key={comment.id} className="bg-transparent py-4 px-2">
             <div className="flex justify-between items-start">
               <div className="flex items-center space-x-2">

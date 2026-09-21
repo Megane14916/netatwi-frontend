@@ -11,8 +11,7 @@ export async function generateMetadata({ params }: { params: { screen_name: stri
         return { title: { absolute: `${data.user.name}さん | ネタツイグランプリ` } };
       }
     }
-  } catch (e) {
-    // console.error(e);
+  } catch {
   }
   return { title: "ユーザー" };
 }

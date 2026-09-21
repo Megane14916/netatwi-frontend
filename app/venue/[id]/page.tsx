@@ -4,8 +4,6 @@ import { useState, useEffect, useRef, useMemo, Fragment } from "react";
 import { useParams, notFound } from "next/navigation";
 import Link from "next/link";
 import {
-  Send,
-  Smile,
   Heart,
   Info,
   CheckCircle,
@@ -16,38 +14,23 @@ import {
   User,
   Users,
   AlertTriangle,
-  AlertCircle,
   Loader2,
   Award,
   Image as ImageIcon,
   UserStar,
   Share2,
-  Edit2,
   MessageSquare,
   ArrowUpDown,
   Download,
   Upload,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import TimeAgo from "@/components/TimeAgo";
-import EmojiPicker, {
-  EmojiClickData,
-  Theme,
-  EmojiStyle,
-  SkinTonePickerLocation,
-} from "emoji-picker-react";
-import Twemoji from "@/components/Twemoji";
 import dayjs from "dayjs";
 import JudgeLoginButton from "@/components/venue/JudgeLoginButton";
 import PostForm from "@/components/venue/PostForm";
 import ImageGrid from "@/components/ImageGrid";
 import ResultPostCard from "@/components/ResultPostCard";
 import CommentList from "@/components/CommentList";
-import RichTextEditor, {
-  RichTextEditorHandle,
-} from "@/components/RichTextEditor";
-import ProgressRing from "@/components/ProgressRing";
-import { countText, TextCountResult } from "@/lib/twitterText";
 import useSWR from "swr";
 import { useToast } from "@/components/ui/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -57,29 +40,6 @@ const fetcher = (url: string) => fetch(url, { credentials: "include" }).then(res
 const API_PREFIX = "";
 
 // --- 型定義 ---
-interface Contest {
-  id: number;
-  name: string;
-  theme: string | null;
-  hasTheme: boolean;
-  hasQualifier: boolean;
-  startTime: string;
-  endTime: string;
-  votingEndTime: string;
-  generalVoteWeight: number;
-  judgeMaxScore: number;
-  imageRule: string;
-  isVotingVisible: boolean;
-  advancementNumerator?: number | null;
-  advancementDenominator?: number | null;
-  parentContestId?: number;
-  isAdvancedToFinal?: boolean | null;
-  scoringMethod: string;
-  type: string;
-  resultCommentTop?: string | null;
-  resultCommentBottom?: string | null;
-}
-
 interface Post {
   id: number;
   content: string;
@@ -90,54 +50,6 @@ interface Post {
   myJudgeAward?: boolean;
   myJudgeComment?: string | null;
   hasCommented?: boolean;
-}
-
-interface Voter {
-  screen_name: string;
-  name: string;
-  count: number;
-  is_judge: boolean;
-}
-
-interface JudgeObj {
-  screen_name: string;
-  name: string;
-  profile_image_url: string | null;
-}
-
-interface ResultPost {
-  rank: number | null;
-  post_id: number;
-  content: string;
-  images?: string[];
-  created_at: string;
-  score: number;
-  user: {
-    screen_name: string;
-    name: string;
-    profile_image_url: string | null;
-  };
-  voters: Voter[];
-  bookmarkCount: number;
-  isBookmarked: boolean;
-  awards: string[];
-  is_advanced?: boolean;
-}
-
-interface JudgeAwardResult {
-  judge: JudgeObj;
-  comment: string | null;
-  post: {
-    post_id: number;
-    content: string;
-    images?: string[];
-    user: {
-      screen_name: string;
-      name: string;
-      profile_image_url: string | null;
-    };
-    created_at: string;
-  };
 }
 
 type ContestStatus = "upcoming" | "ongoing" | "voting" | "closed";
@@ -187,11 +99,12 @@ const JudgeVoteSelector = ({
   const [inputValue, setInputValue] = useState<string>(
     currentScore !== undefined && currentScore !== null ? String(currentScore) : ""
   );
+  const previousScoreRef = useRef(currentScore);
 
   useEffect(() => {
-    const parsedInput = inputValue === "" ? null : parseFloat(inputValue);
-    if (parsedInput !== currentScore) {
+    if (previousScoreRef.current !== currentScore) {
       setInputValue(currentScore !== undefined && currentScore !== null ? String(currentScore) : "");
+      previousScoreRef.current = currentScore;
     }
   }, [currentScore]);
 
@@ -287,65 +200,6 @@ const JudgeAwardSelector = ({
   </div>
 );
 
-// 自分の投稿表示用
-const MyPostDisplay = ({
-  post,
-  isEditing,
-  onStartEdit,
-  isDeadlinePassed,
-  user,
-}: any) => (
-  <div className={`mb-4 ${isEditing ? "pb-4 border-b border-gray-200 dark:border-gray-800" : ""}`}>
-    <div className="flex items-start gap-3">
-      <div className="flex-none">
-        <img
-          src={user?.profile_image_url || "https://via.placeholder.com/40"}
-          alt={user?.screen_name}
-          className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-800 object-cover bg-white dark:bg-black"
-          onError={(e) =>
-            (e.currentTarget.src = "https://via.placeholder.com/40")
-          }
-        />
-      </div>
-      <div className="flex-grow min-w-0">
-        <div className="flex items-center justify-between mb-1">
-          <div className="flex items-center">
-            <span className="font-bold text-black dark:text-white mr-1">
-              {user?.name || user?.screen_name}
-            </span>
-            <span className="text-gray-500 dark:text-gray-400 text-sm">@{user?.screen_name}</span>
-          </div>
-          <TimeAgo timestamp={post.created_at} />
-        </div>
-        <div className="mt-1 text-[15px] text-black/90 dark:text-white/90 leading-relaxed whitespace-pre-wrap">
-          <Twemoji text={post.content} />
-        </div>
-        {post.images && (
-          <div className="mt-2">
-            <ImageGrid images={post.images} />
-          </div>
-        )}
-      </div>
-    </div>
-    {!isEditing && !isDeadlinePassed && (
-      <div className="text-right mt-3 pt-3">
-        <button
-          onClick={onStartEdit}
-          className="text-sm text-[#1DA1F2] hover:bg-[#1DA1F2]/10 px-3 py-1.5 rounded-full transition-colors inline-flex items-center justify-end ml-auto gap-1 font-bold"
-        >
-          <Edit2 className="w-4 h-4 fill-current" /> 編集する
-        </button>
-      </div>
-    )}
-    {!isEditing && isDeadlinePassed && (
-      <div className="text-right mt-3 pt-3 text-xs text-red-500 flex justify-end items-center font-bold">
-        {" "}
-        <Clock className="w-3.5 h-3.5 mr-1" /> 編集受付終了{" "}
-      </div>
-    )}
-  </div>
-);
-
 export default function VenueDetailPage() {
   const { toast } = useToast();
   const params = useParams();
@@ -391,32 +245,17 @@ export default function VenueDetailPage() {
     comment: string;
   } | null>(null);
 
-  const [newPostContent, setNewPostContent] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [postError, setPostError] = useState<string | null>(null);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-
-  // 画像アップロード用
-  const [selectedImages, setSelectedImages] = useState<File[]>([]);
-  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
   const [isSubmittingVotes, setIsSubmittingVotes] = useState(false);
-
-  const [resultTab, setResultTab] = useState<"ranking" | "awards">("ranking");
 
   const [judgeSortOrder, setJudgeSortOrder] = useState<"original" | "asc" | "desc">("original");
 
   const isJudgeMode = judgeContests.includes(contestId);
 
   const isVotePeriod = !isVoteDeadlineExceeded && contestStatus === "voting";
-  const canVote = contestStatus === "voting" && user;
   const showVoteUI =
     contestStatus === "voting" &&
     ((contest?.scoringMethod !== "judge" && user) || isJudgeMode);
   const voteUIDisabled = false;
-  const isVoteSubmitDisabled = isSubmittingVotes || isVoteDeadlineExceeded;
 
   const [showSuccessBanner, setShowSuccessBanner] = useState(false);
   const [hideJudgeBanner, setHideJudgeBanner] = useState(false);
@@ -425,14 +264,6 @@ export default function VenueDetailPage() {
   const [pendingRestoreData, setPendingRestoreData] = useState<any>(null);
   const [pendingRestoreFileName, setPendingRestoreFileName] = useState("");
   const restoreFileInputRef = useRef<HTMLInputElement>(null);
-
-  // 文字数カウント状態を追加
-  const [textCount, setTextCount] = useState<TextCountResult>({
-    length: 0,
-    permillage: 0,
-    isValid: false,
-    remaining: 280,
-  });
 
   const sortSentinelRef = useRef<HTMLDivElement>(null);
   const stickyContainerRef = useRef<HTMLDivElement>(null);
@@ -457,7 +288,6 @@ export default function VenueDetailPage() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [isJudgeMode]);
 
-  // コメント状態や maxTotalScore の計算は SWR のデータ定義の後に移動しました
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
@@ -471,76 +301,6 @@ export default function VenueDetailPage() {
     }
   }, []);
 
-  // 絵文字ピッカーの外側クリック検知
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        showEmojiPicker &&
-        emojiPickerRef.current &&
-        !emojiPickerRef.current.contains(event.target as Node) &&
-        emojiButtonRef.current &&
-        !emojiButtonRef.current.contains(event.target as Node)
-      ) {
-        setShowEmojiPicker(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showEmojiPicker]);
-
-  // 画像選択処理
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const files = Array.from(e.target.files);
-      const totalImages = selectedImages.length + files.length;
-      if (totalImages > 4) {
-        toast({ title: "エラー", description: "画像は最大4枚までです。", variant: "destructive" });
-        return;
-      }
-
-      const newImages = [...selectedImages, ...files];
-      setSelectedImages(newImages);
-
-      // プレビューURL生成
-      const newPreviews = files.map((file) => URL.createObjectURL(file));
-      setPreviewUrls([...previewUrls, ...newPreviews]);
-    }
-  };
-
-  // 画像削除処理
-  const removeImage = (index: number) => {
-    const targetUrl = previewUrls[index];
-
-    // 1. previewUrls から削除 (非破壊的)
-    setPreviewUrls((prev) => {
-      const newArr = prev.filter((_, i) => i !== index);
-      return newArr;
-    });
-
-    // 2. Blobだった場合 (新規画像)、selectedImages からも対応するファイルを削除
-    if (targetUrl.startsWith("blob:")) {
-      // targetUrlがプレビュー内の何番目のBlobかを探す
-      // (URL.createObjectURL で生成されたURLは一意なので、それを使って特定も可能だが、
-      //  selectedImagesにはURL情報がないので、インデックスで同期をとる必要がある)
-
-      // 削除前の配列において、index番目より前にあるBlobの数を数える
-      const blobIndex = previewUrls
-        .slice(0, index)
-        .filter((u) => u.startsWith("blob:")).length;
-
-      setSelectedImages((prev) => {
-        const newArr = [...prev];
-        newArr.splice(blobIndex, 1);
-        return newArr;
-      });
-
-      URL.revokeObjectURL(targetUrl); // メモリ解放
-    }
-  };
-
-
   // postsData の取得（ongoing, votingのときのみ）
   const { data: postsData, error: postsError, mutate: mutatePosts } = useSWR(
     (contestStatus === "ongoing" || contestStatus === "voting") 
@@ -550,7 +310,7 @@ export default function VenueDetailPage() {
   );
 
   // resultsData の取得（closedのときのみ）
-  const { data: resultsDataRaw, error: resultsError, mutate: mutateResults } = useSWR(
+  const { data: resultsDataRaw, error: resultsError } = useSWR(
     contestStatus === "closed" ? `${API_PREFIX}/api/contests/${contestId}/results` : null,
     fetcher,
     {
@@ -570,7 +330,10 @@ export default function VenueDetailPage() {
   // 以下、SWRのデータから各状態を直接導出（useEffect不要）
   // ----------------------------------------------------
 
-  const results = resultsDataRaw?.results || [];
+  const results = useMemo(
+    () => resultsDataRaw?.results || [],
+    [resultsDataRaw?.results],
+  );
   const judgeAwardsResults = resultsDataRaw?.judgeAwards || [];
 
   const sortedResults = useMemo(() => {
@@ -588,20 +351,6 @@ export default function VenueDetailPage() {
   const totalJudges = contestData?.totalJudges ?? 0;
   const userHasVoted = postsData?.userHasVotedInContest || false;
   
-  const hasPosted = user && postsData?.posts ? postsData.posts.some((p: any) => p.user_id === user.id) : false;
-
-  // myPost (自分の投稿) を特定してテキストエリアにセットするためのフラグ
-  const hasSetInitialPostContentRef = useRef(false);
-  useEffect(() => {
-    if (contestStatus === "ongoing" && user && postsData?.posts && !hasSetInitialPostContentRef.current) {
-       const myPost = postsData.posts.find((p: any) => p.user_id === user.id);
-       if (myPost) {
-           setNewPostContent(myPost.content);
-           hasSetInitialPostContentRef.current = true;
-       }
-    }
-  }, [postsData, contestStatus, user]);
-
   // posts: 投稿一覧の表示順制御
   const shuffledPostIdsRef = useRef<number[] | null>(null);
   const hasLoadedJudgeOrderRef = useRef(false);
@@ -629,7 +378,7 @@ export default function VenueDetailPage() {
                    if (Array.isArray(parsed) && parsed.length > 0) {
                        shuffledPostIdsRef.current = parsed;
                    }
-               } catch (e) {}
+               } catch {}
            }
            hasLoadedJudgeOrderRef.current = true;
            if (!stored && shuffledPostIdsRef.current) {
@@ -665,7 +414,7 @@ export default function VenueDetailPage() {
     return [];
   }, [postsData, contestStatus, user, isJudgeMode, contestId]);
 
-  // votes と totalVotes (ユーザー編集を優先する)
+  // ユーザーが編集した投票をサーバーの初期値より優先する
   const votes = useMemo(() => {
      if (userVotes !== null) return userVotes;
      const initialVotes: { [postId: number]: number } = {};
@@ -676,8 +425,6 @@ export default function VenueDetailPage() {
      });
      return initialVotes;
   }, [userVotes, posts]);
-
-  const totalVotes = useMemo(() => Object.values(votes).reduce((sum, c) => sum + c, 0), [votes]);
 
   // judgeAwardSelection (ユーザー編集を優先する)
   const judgeAwardSelection = useMemo(() => {
@@ -783,26 +530,6 @@ export default function VenueDetailPage() {
   const handleCommentDeleted = (postId: number) =>
     setSessionCommentedPosts((prev) => ({ ...prev, [postId]: false }));
 
-  const emojiPickerRef = useRef<HTMLDivElement>(null);
-  const emojiButtonRef = useRef<HTMLButtonElement>(null);
-  const editorRef = useRef<RichTextEditorHandle>(null);
-
-  useEffect(() => {
-    setTextCount(countText(newPostContent));
-  }, [newPostContent]);
-
-  const maxTotalScore = useMemo(() => {
-    if (!contest || !results || results.length === 0) return 0;
-    const uniqueJudges = new Set<string>();
-    results.forEach((post: any) => {
-      post.voters.forEach((voter: any) => {
-        if (voter.is_judge) uniqueJudges.add(voter.screen_name);
-      });
-    });
-    return uniqueJudges.size * contest.judgeMaxScore + contest.generalVoteWeight;
-  }, [contest, results]);
-
-
   useEffect(() => {
     // 結果発表後は contestStatus が変化しないため、監視タイマーは不要。
     // 不要な親コンポーネントの再描画を止め、結果本文のテキスト選択を維持する。
@@ -812,99 +539,6 @@ export default function VenueDetailPage() {
     }, 1000);
     return () => clearInterval(timer);
   }, [contest, contestStatus]);
-
-  
-  const handleStartEdit = () => {
-    if (posts.length > 0) {
-      const post = posts[0];
-      setNewPostContent(post.content);
-      setPreviewUrls(post.images || []);
-      setSelectedImages([]); // 新規追加分はリセット
-      setIsEditing(true);
-    }
-  };
-
-  // 投稿処理 (FormDataを使用)
-  const handlePostSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isPostDeadlineExceeded) return;
-
-    // 文字数チェック
-    const check = countText(newPostContent);
-    if (!check.isValid && newPostContent.trim().length > 0) {
-      toast({ title: "エラー", description: "文字数制限（280文字）を超えています", variant: "destructive" });
-      return;
-    }
-
-    // 画像必須チェック
-    if (
-      contest?.imageRule === "required" &&
-      previewUrls.length === 0 &&
-      selectedImages.length === 0
-    ) {
-      toast({ title: "エラー", description: "画像を1枚以上添付してください", variant: "destructive" });
-      return;
-    }
-
-    // エディタの内容は state (newPostContent) に同期されている前提
-    if ((!newPostContent.trim() && previewUrls.length === 0) || !user) return;
-
-    setIsSubmitting(true);
-    setPostError(null);
-    const url = isEditing
-      ? `${API_PREFIX}/api/contests/${contestId}/posts/${posts[0]?.id}`
-      : `${API_PREFIX}/api/contests/${contestId}/posts`;
-    const method = isEditing ? "PUT" : "POST";
-
-    const formData = new FormData();
-    formData.append("content", newPostContent);
-
-    if (isEditing) {
-      // Blob以外のURL（=既存の画像）のみをリスト化して送信
-      const keptImages = previewUrls.filter((url) => !url.startsWith("blob:"));
-      formData.append("kept_images", JSON.stringify(keptImages));
-    }
-    selectedImages.forEach((file) => formData.append("images", file));
-
-    try {
-      const res = await fetch(url, {
-        method,
-        body: formData, // JSONではなくFormDataを送信
-        credentials: "include",
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "投稿に失敗しました");
-      }
-      const data = await res.json();
-      // const updatedPost = { ...data, user_id: user.id };
-
-      setNewPostContent("");
-      setSelectedImages([]);
-      setPreviewUrls([]);
-      
-      mutatePosts(); // サーバーから再取得して再描画
-
-      setIsEditing(false);
-      setPostError(null);
-      toast({ title: "成功", description: "投稿しました！" });
-    } catch (err: any) {
-      setPostError(err.message);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const onEmojiClick = (emojiData: EmojiClickData) => {
-    // ref経由でエディタに絵文字画像を挿入
-    if (editorRef.current) {
-      editorRef.current.insertEmoji(emojiData.emoji);
-    } else {
-      // フォールバック (textarea使用時など)
-      setNewPostContent((prev) => prev + emojiData.emoji);
-    }
-  };
 
   const handleVoteChange = (postId: number, newCount: number | null) => {
     setUserVotes((prev) => {
@@ -976,7 +610,7 @@ export default function VenueDetailPage() {
         } else {
           throw new Error("Invalid format");
         }
-      } catch (err) {
+      } catch {
         toast({ title: "エラー", description: "ファイルの読み込みに失敗しました。正しいフォーマットか確認してください。", variant: "destructive" });
       }
     };
@@ -1059,7 +693,7 @@ export default function VenueDetailPage() {
           variant: "destructive",
         });
       }
-    } catch (err) {
+    } catch {
       toast({
         title: "エラー",
         description: "通信エラーが発生しました。",
@@ -1692,6 +1326,7 @@ export default function VenueDetailPage() {
                                       award.judge.profile_image_url ||
                                       "https://via.placeholder.com/40"
                                     }
+                                    alt={award.judge.name}
                                     className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-800 object-cover bg-white dark:bg-black"
                                   />
                                 </Link>

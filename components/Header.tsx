@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
-import { Crown, Twitter, LogOut, User as UserIcon, ChevronDown, Bell, Loader2, Moon, Sun } from 'lucide-react';
+import { Twitter, ChevronDown, Bell, Loader2, Moon, Sun } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from 'next-themes';
 import Link from 'next/link';
