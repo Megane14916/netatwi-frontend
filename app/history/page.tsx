@@ -1,6 +1,11 @@
 import HistoryTabs from './HistoryTabs';
 import dayjs from 'dayjs';
 
+// Fetch contest history at request time so production builds do not depend on
+// the backend being reachable. The fetch-level revalidation below still keeps
+// successful responses cached for 60 seconds.
+export const dynamic = 'force-dynamic';
+
 // --- API_URLの設定 ---
 // Server Componentなので、内部通信用のBACKEND_URLを使用
 // (クライアント用の NEXT_PUBLIC_API_URL は使用しない)
