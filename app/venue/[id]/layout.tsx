@@ -8,8 +8,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
       const contest = await res.json();
       return { title: { absolute: `${contest.name} | ネタツイグランプリ` } };
     }
-  } catch (e) {
-    // console.error(e);
+  } catch {
   }
   return { title: "大会" };
 }

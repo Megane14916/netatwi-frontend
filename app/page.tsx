@@ -1,14 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import logoImage from "@/assets/logo.png";
-import {
-  Clock3,
-  ExternalLink,
-  Users,
-} from "lucide-react";
+import { ExternalLink, Users } from "lucide-react";
 import dayjs from "dayjs";
 import useSWR from "swr";
 import RippleLink from "@/components/RippleLink";

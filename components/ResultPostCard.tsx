@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-// import Link from 'next/link'; // エラー回避のため削除
-import { Heart, Bookmark, Share2, Award, Crown, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { Heart, Bookmark, Share2, Crown, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
 import ImageGrid from './ImageGrid';
 import TimeAgo from './TimeAgo';
 import Twemoji from './Twemoji';
@@ -59,14 +58,22 @@ export default function ResultPostCard({ post, currentUser, onToggleBookmark, co
   const [isBookmarked, setIsBookmarked] = useState(post.isBookmarked);
   const [bookmarkCount, setBookmarkCount] = useState(post.bookmarkCount);
 
-  const initialIsLiked = (post.myVotes !== undefined && post.myVotes > 0) ||
-    (currentUser && post.voters?.some(v => v.screen_name === currentUser.screen_name && !v.is_judge));
+  const initialIsLiked = useMemo(
+    () => Boolean(
+      (post.myVotes !== undefined && post.myVotes > 0) ||
+      (currentUser && post.voters?.some(v => v.screen_name === currentUser.screen_name && !v.is_judge)),
+    ),
+    [currentUser, post.myVotes, post.voters],
+  );
     
   const isJudgeForThisPost = currentUser && post.voters?.some(v => v.screen_name === currentUser.screen_name && v.is_judge);
 
-  const initialLikeCount = contestScoringMethod === 'judge' 
-    ? (post.voters?.filter(v => !v.is_judge).reduce((sum, v) => sum + v.count, 0) || 0)
-    : post.score;
+  const initialLikeCount = useMemo(
+    () => contestScoringMethod === 'judge'
+      ? (post.voters?.filter(v => !v.is_judge).reduce((sum, v) => sum + v.count, 0) || 0)
+      : post.score,
+    [contestScoringMethod, post.score, post.voters],
+  );
 
   const [isLiked, setIsLiked] = useState(initialIsLiked);
   const [likeCount, setLikeCount] = useState(initialLikeCount);
@@ -99,7 +106,7 @@ export default function ResultPostCard({ post, currentUser, onToggleBookmark, co
     setLikeCount(initialLikeCount);
     setCommentCount(post.commentCount ?? post.comment_count ?? 0);
     setHasCommented(post.hasCommented || false);
-  }, [post.isBookmarked, post.bookmarkCount, post.score, post.voters, post.commentCount, post.comment_count, post.hasCommented, currentUser]);
+  }, [post.isBookmarked, post.bookmarkCount, post.commentCount, post.comment_count, post.hasCommented, initialIsLiked, initialLikeCount]);
 
   // ブックマーク処理
   const processBookmarkQueue = async () => {

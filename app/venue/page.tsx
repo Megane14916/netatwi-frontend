@@ -1,10 +1,9 @@
 "use client";
 
-import { Timer, Zap, Calendar, CheckSquare, Trophy, Users, CheckCircle, UserStar, ChevronRight, ExternalLink, Loader2 } from 'lucide-react';
+import { Calendar, ChevronRight, ExternalLink, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import dayjs from 'dayjs';
 import RippleLink from "@/components/RippleLink";
-import Countdown from '@/components/venue/Countdown';
 import React from 'react';
 import useSWR from 'swr';
 
@@ -236,7 +235,6 @@ export default function VenuePage() {
       {/* グランプリエリア */}
       {gpFinals && !isBeforeStart && (() => {
         const isPosting = step === 0 || step === 2;
-        const isVoting = step === 1 || step === 3;
         const isResults = step === 4;
 
         let bannerText = "";

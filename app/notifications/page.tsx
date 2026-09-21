@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { Heart, MessageSquare, Trophy, Bell, Speaker } from 'lucide-react';
+import { Heart, MessageSquare, Trophy, Bell } from 'lucide-react';
 import TimeAgo from '@/components/TimeAgo';
 import Link from 'next/link';
 
@@ -156,4 +156,3 @@ export default function NotificationsPage() {
     </div>
   );
 }
-

@@ -8,23 +8,31 @@ interface ImageGridProps {
 }
 
 export default function ImageGrid({ images }: ImageGridProps) {
-  // 【修正】フックは必ず条件分岐の前に呼ぶ必要があります
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [aspectRatio, setAspectRatio] = useState<number | null>(null);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchOffset, setTouchOffset] = useState<number>(0);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const imageCount = images?.length ?? 0;
 
-  // キーボード操作対応 (フックなので上に配置)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (lightboxIndex === null) return;
-      if (e.key === 'Escape') closeLightbox();
-      if (e.key === 'ArrowRight') nextImage(e as any);
-      if (e.key === 'ArrowLeft') prevImage(e as any);
+      if (e.key === 'Escape') {
+        setLightboxIndex(null);
+      } else if (e.key === 'ArrowRight') {
+        setLightboxIndex((current) =>
+          current !== null && current < imageCount - 1 ? current + 1 : current,
+        );
+      } else if (e.key === 'ArrowLeft') {
+        setLightboxIndex((current) =>
+          current !== null && current > 0 ? current - 1 : current,
+        );
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [lightboxIndex]);
+  }, [imageCount]);
 
-  // 画像がない場合のガード句はフックの後に行う
   if (!images || images.length === 0) return null;
 
   const count = images.length;
@@ -39,9 +47,6 @@ export default function ImageGrid({ images }: ImageGridProps) {
   const openLightbox = (index: number) => setLightboxIndex(index);
   const closeLightbox = () => setLightboxIndex(null);
   
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchOffset, setTouchOffset] = useState<number>(0);
-  const [isDragging, setIsDragging] = useState<boolean>(false);
   const minSwipeDistance = 50;
 
   const onTouchStart = (e: React.TouchEvent) => {
