@@ -4,19 +4,25 @@ import ResultPostCard from '@/components/ResultPostCard';
 jest.mock('@/components/Twemoji', () => ({ text }: { text: string }) => text);
 
 const mockPost = {
-  post_id: 1,
+  id: 1,
   content: 'テスト投稿',
+  images: [],
   user: {
-    screen_name: 'testuser',
+    screenName: 'testuser',
     name: 'Test User',
-    profile_image_url: 'http://example.com/image.jpg'
+    profileImageUrl: 'http://example.com/image.jpg'
   },
-  created_at: '2026-05-24T10:00:00Z',
+  createdAt: '2026-05-24T10:00:00Z',
   score: 150,
   rank: 1,
+  commentCount: 0,
+  hasCommented: false,
   bookmarkCount: 0,
   isBookmarked: false,
-  voters: []
+  voters: [],
+  awards: [],
+  myVotes: null,
+  isAdvanced: false,
 };
 
 describe('ResultPostCard Component', () => {
@@ -26,9 +32,10 @@ describe('ResultPostCard Component', () => {
         post={mockPost}
         currentUser={{
           id: 2,
-          screen_name: 'currentUser',
+          screenName: 'currentUser',
           name: 'Current User',
-          profile_image_url: null,
+          profileImageUrl: null,
+          isAdmin: false,
         }}
         contestScoringMethod="general"
       />

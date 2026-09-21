@@ -34,25 +34,82 @@ import CommentList from "@/components/CommentList";
 import useSWR from "swr";
 import { useToast } from "@/components/ui/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { mapComment, mapContest, mapContestPosts, mapContestResults } from '@/lib/mappers/api';
+import type { CommentsByPostDto, ContestDto, ContestPostsResponseDto, ContestResultsResponseDto } from '@/types/api';
+import type { Comment, Contest, ContestPosts, ContestResults, ContestStatus, Post } from '@/types/domain';
 
-const fetcher = (url: string) => fetch(url, { credentials: "include" }).then(res => res.json());
+const fetchDto = async <T,>(url: string): Promise<T> => {
+  const response = await fetch(url, { credentials: "include" });
+  if (!response.ok) throw new Error(`Request failed: ${response.status}`);
+  return (await response.json()) as T;
+};
+
+const fetchContest = (url: string): Promise<Contest> =>
+  fetchDto<ContestDto>(url).then(mapContest);
+const fetchContestPosts = (url: string): Promise<ContestPosts> =>
+  fetchDto<ContestPostsResponseDto>(url).then(mapContestPosts);
+const fetchContestResults = (url: string): Promise<ContestResults> =>
+  fetchDto<ContestResultsResponseDto>(url).then(mapContestResults);
 
 const API_PREFIX = "";
 
-// --- 型定義 ---
-interface Post {
-  id: number;
-  content: string;
-  images?: string[]; // 画像URLリスト
-  created_at: string;
-  user_id: number;
-  myVotes?: number | null;
-  myJudgeAward?: boolean;
-  myJudgeComment?: string | null;
-  hasCommented?: boolean;
+interface JudgeAwardSelection {
+  postId: number | null;
+  comment: string;
 }
 
-type ContestStatus = "upcoming" | "ongoing" | "voting" | "closed";
+interface VoteBackup {
+  votes: Record<number, number>;
+  judgeAwardSelection: JudgeAwardSelection | null;
+}
+
+interface VotePayload {
+  votes: Record<number, number>;
+  judgeAward?: JudgeAwardSelection;
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const parseVoteBackup = (value: unknown): VoteBackup | null => {
+  if (!isRecord(value) || !("votes" in value)) return null;
+
+  const restoredVotes: Record<number, number> = {};
+  if (Array.isArray(value.votes)) {
+    for (const entry of value.votes) {
+      if (!isRecord(entry) || typeof entry.id !== "number" || typeof entry.score !== "number") {
+        return null;
+      }
+      restoredVotes[entry.id] = entry.score;
+    }
+  } else if (isRecord(value.votes)) {
+    for (const [postId, score] of Object.entries(value.votes)) {
+      const numericPostId = Number(postId);
+      if (!Number.isInteger(numericPostId) || typeof score !== "number") return null;
+      restoredVotes[numericPostId] = score;
+    }
+  } else {
+    return null;
+  }
+
+  let judgeAwardSelection: JudgeAwardSelection | null = null;
+  if (value.judgeAwardSelection != null) {
+    const selection = value.judgeAwardSelection;
+    if (
+      !isRecord(selection) ||
+      (selection.postId !== null && typeof selection.postId !== "number") ||
+      typeof selection.comment !== "string"
+    ) {
+      return null;
+    }
+    judgeAwardSelection = {
+      postId: selection.postId as number | null,
+      comment: selection.comment,
+    };
+  }
+
+  return { votes: restoredVotes, judgeAwardSelection };
+};
 
 // --- UIコンポーネント ---
 
@@ -207,9 +264,9 @@ export default function VenueDetailPage() {
   const { user, judgeContests, refetchUser } = useAuth();
 
   // 1. SWRによるデータ取得を一番上に移動
-  const { data: contestData, error: contestError, mutate: mutateContest } = useSWR(
+  const { data: contestData, error: contestError, mutate: mutateContest } = useSWR<Contest>(
     contestId ? `${API_PREFIX}/api/contests/${contestId}` : null,
-    fetcher
+    fetchContest
   );
 
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -261,7 +318,7 @@ export default function VenueDetailPage() {
   const [hideJudgeBanner, setHideJudgeBanner] = useState(false);
 
   const [isRestoreDialogOpen, setIsRestoreDialogOpen] = useState(false);
-  const [pendingRestoreData, setPendingRestoreData] = useState<any>(null);
+  const [pendingRestoreData, setPendingRestoreData] = useState<VoteBackup | null>(null);
   const [pendingRestoreFileName, setPendingRestoreFileName] = useState("");
   const restoreFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -302,21 +359,21 @@ export default function VenueDetailPage() {
   }, []);
 
   // postsData の取得（ongoing, votingのときのみ）
-  const { data: postsData, error: postsError, mutate: mutatePosts } = useSWR(
+  const { data: postsData, error: postsError, mutate: mutatePosts } = useSWR<ContestPosts>(
     (contestStatus === "ongoing" || contestStatus === "voting") 
       ? `${API_PREFIX}/api/contests/${contestId}/posts` 
       : null,
-    fetcher
+    fetchContestPosts
   );
 
   // resultsData の取得（closedのときのみ）
-  const { data: resultsDataRaw, error: resultsError } = useSWR(
+  const { data: resultsDataRaw, error: resultsError } = useSWR<ContestResults>(
     contestStatus === "closed" ? `${API_PREFIX}/api/contests/${contestId}/results` : null,
-    fetcher,
+    fetchContestResults,
     {
-      refreshInterval: (data: any) => {
+      refreshInterval: (data?: ContestResults) => {
         if (!data || !data.results) return 0;
-        const isAggregating = data.results.some((r: any) => r.rank === null);
+        const isAggregating = data.results.some((result) => result.rank === null);
         return isAggregating ? 10000 : 0;
       }
     }
@@ -361,7 +418,7 @@ export default function VenueDetailPage() {
     
     if (contestStatus === "ongoing") {
       if (user) {
-         const myPost = allPosts.find(p => p.user_id === user.id);
+         const myPost = allPosts.find(p => p.userId === user.id);
          return myPost ? [myPost] : [];
       }
       return [];
@@ -471,28 +528,28 @@ export default function VenueDetailPage() {
 
   const [openComments, setOpenComments] = useState<Record<number, boolean>>({});
   const [sessionCommentedPosts, setSessionCommentedPosts] = useState<Record<number, boolean>>({});
-  const [prefetchedComments, setPrefetchedComments] = useState<Record<number, any[]>>({});
+  const [prefetchedComments, setPrefetchedComments] = useState<Record<number, Comment[]>>({});
   const fetchingPostIdsRef = useRef<Set<number>>(new Set());
 
   useEffect(() => {
     const allPostIds = new Set<number>();
     if (posts && posts.length > 0) {
-      posts.forEach((p: any) => {
-        if (p.comment_count > 0 || p.commentCount > 0) {
+      posts.forEach((post) => {
+        if (post.commentCount > 0) {
           if (contestStatus === "voting") {
-            if (p.hasCommented) {
-              allPostIds.add(p.id);
+            if (post.hasCommented) {
+              allPostIds.add(post.id);
             }
           } else {
-            allPostIds.add(p.id);
+            allPostIds.add(post.id);
           }
         }
       });
     }
     if (results && results.length > 0) {
-      results.forEach((r: any) => {
-        if (r.comment_count > 0 || r.commentCount > 0) {
-          allPostIds.add(r.post_id);
+      results.forEach((result) => {
+        if (result.commentCount > 0) {
+          allPostIds.add(result.id);
         }
       });
     }
@@ -509,10 +566,11 @@ export default function VenueDetailPage() {
         { credentials: "include" },
       )
         .then((res) => res.json())
-        .then((data) => {
-          if (!data.error) {
-            setPrefetchedComments((prev) => ({ ...prev, ...data }));
-          }
+        .then((data: CommentsByPostDto) => {
+          const mapped = Object.fromEntries(
+            Object.entries(data).map(([postId, comments]) => [postId, comments.map(mapComment)]),
+          );
+          setPrefetchedComments((prev) => ({ ...prev, ...mapped }));
         })
         .catch((err) => {
           console.error(err);
@@ -602,9 +660,9 @@ export default function VenueDetailPage() {
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
-        const json = JSON.parse(event.target?.result as string);
-        if (json && typeof json === "object" && json.votes) {
-          setPendingRestoreData(json);
+        const parsed = parseVoteBackup(JSON.parse(event.target?.result as string) as unknown);
+        if (parsed) {
+          setPendingRestoreData(parsed);
           setPendingRestoreFileName(file.name);
           setIsRestoreDialogOpen(true);
         } else {
@@ -623,7 +681,7 @@ export default function VenueDetailPage() {
       const current = prev !== null ? prev : { ...votes };
       const next = { ...current };
       posts.forEach((post) => {
-        if (user && String(post.user_id) === String(user.id)) return;
+        if (user && String(post.userId) === String(user.id)) return;
         if (next[post.id] === undefined) {
           next[post.id] = 0;
         }
@@ -635,19 +693,7 @@ export default function VenueDetailPage() {
 
   const confirmRestoreVotes = () => {
     if (pendingRestoreData) {
-      if (pendingRestoreData.votes) {
-        let restoredVotes: { [postId: number]: number } = {};
-        if (Array.isArray(pendingRestoreData.votes)) {
-          pendingRestoreData.votes.forEach((v: any) => {
-            if (v && v.id != null && v.score != null) {
-              restoredVotes[v.id] = v.score;
-            }
-          });
-        } else {
-          restoredVotes = pendingRestoreData.votes;
-        }
-        setUserVotes(restoredVotes);
-      }
+      setUserVotes(pendingRestoreData.votes);
       if (pendingRestoreData.judgeAwardSelection) {
         setUserJudgeAwardSelection(pendingRestoreData.judgeAwardSelection);
       }
@@ -668,7 +714,7 @@ export default function VenueDetailPage() {
 
   const handleSubmitVotes = async () => {
     setIsSubmittingVotes(true);
-    const payload: any = { votes };
+    const payload: VotePayload = { votes };
     if (isJudgeMode && judgeAwardSelection.postId)
       payload.judgeAward = judgeAwardSelection;
     try {
@@ -723,11 +769,7 @@ export default function VenueDetailPage() {
         <Loader2 className="w-8 h-8 animate-spin text-[#1DA1F2]" />
       </div>
     );
-  if (
-    contestData?.error === "Not found" ||
-    contestData?.error === "Contest not found" ||
-    (contestError && contestError.status === 404)
-  ) {
+  if (contestError instanceof Error && contestError.message.endsWith(": 404")) {
     return notFound();
   }
   if (error)
@@ -1033,7 +1075,7 @@ export default function VenueDetailPage() {
                       <div className="flex items-center gap-1.5 md:gap-2">
                         <select
                           value={judgeSortOrder}
-                          onChange={(e) => setJudgeSortOrder(e.target.value as any)}
+                          onChange={(e) => setJudgeSortOrder(e.target.value as "original" | "asc" | "desc")}
                           className="text-[13px] md:text-sm bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-md py-0.5 md:py-1 px-1.5 md:px-2 text-black dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-400 font-bold cursor-pointer"
                         >
                           <option value="original">標準 (元の順序)</option>
@@ -1069,9 +1111,9 @@ export default function VenueDetailPage() {
                       >
                         <div className="flex items-start gap-2 md:gap-3">
                           <div className="flex-none">
-                            {user && String(post.user_id) === String(user.id) ? (
+                            {user && String(post.userId) === String(user.id) ? (
                                 <img 
-                                  src={user.profile_image_url || 'https://via.placeholder.com/40'} 
+                                  src={user.profileImageUrl || 'https://via.placeholder.com/40'}
                                   alt={user.name} 
                                   className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-800 object-cover" 
                                 />
@@ -1083,7 +1125,7 @@ export default function VenueDetailPage() {
                           </div>
                           <div className="flex-grow min-w-0">
                             <div className="flex items-center justify-between mb-1">
-                              {user && String(post.user_id) === String(user.id) ? (
+                              {user && String(post.userId) === String(user.id) ? (
                                   <span className="font-bold text-black dark:text-white text-sm">
                                     {user.name}
                                   </span>
@@ -1130,7 +1172,7 @@ export default function VenueDetailPage() {
                                     isLiked={votes[post.id] === 1}
                                     onToggle={handleVoteChange}
                                     disabled={
-                                      Boolean(voteUIDisabled || isVoteDeadlineExceeded || (user && String(post.user_id) === String(user.id)))
+                                      Boolean(voteUIDisabled || isVoteDeadlineExceeded || (user && String(post.userId) === String(user.id)))
                                     }
                                   />
                                 )}
@@ -1143,7 +1185,7 @@ export default function VenueDetailPage() {
                                     postId={post.id}
                                     currentScore={votes[post.id] !== undefined ? votes[post.id] : null}
                                     onSelect={handleVoteChange}
-                                    disabled={Boolean(isVoteDeadlineExceeded || (user && String(post.user_id) === String(user.id)))}
+                                    disabled={Boolean(isVoteDeadlineExceeded || (user && String(post.userId) === String(user.id)))}
                                     maxScore={contest.judgeMaxScore || 10}
                                   />
                                 </div>
@@ -1186,7 +1228,7 @@ export default function VenueDetailPage() {
                                   comment={judgeAwardSelection.comment}
                                   onCommentChange={handleJudgeCommentChange}
                                   disabled={
-                                    Boolean(voteUIDisabled || isVoteDeadlineExceeded || (user && String(post.user_id) === String(user.id)))
+                                    Boolean(voteUIDisabled || isVoteDeadlineExceeded || (user && String(post.userId) === String(user.id)))
                                   }
                                 />
                               </div>
@@ -1224,7 +1266,7 @@ export default function VenueDetailPage() {
               <div className="text-center py-20 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-950 rounded-2xl border border-gray-200 dark:border-gray-800">
                 投稿がありませんでした。
               </div>
-            ) : results.some((r: any) => r.rank === null) ? (
+            ) : results.some((result) => result.rank === null) ? (
               <div className="text-center py-20 bg-gray-50 dark:bg-gray-950 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm mt-8 px-4">
                 <Loader2 className="w-10 h-10 animate-spin text-[#1DA1F2] mx-auto mb-4" />
                 <p className="text-xl font-bold text-gray-700 dark:text-gray-300 mb-2">
@@ -1266,18 +1308,18 @@ export default function VenueDetailPage() {
                       if (sortOrder === "asc") {
                         showBorder = Boolean(
                           index > 0 &&
-                          sortedResults[index - 1].is_advanced &&
-                          !result.is_advanced,
+                          sortedResults[index - 1].isAdvanced &&
+                          !result.isAdvanced,
                         );
                       } else if (sortOrder === "desc") {
                         showBorder = Boolean(
                           index > 0 &&
-                          !sortedResults[index - 1].is_advanced &&
-                          result.is_advanced,
+                          !sortedResults[index - 1].isAdvanced &&
+                          result.isAdvanced,
                         );
                       }
                       return (
-                        <Fragment key={result.post_id}>
+                        <Fragment key={result.id}>
                           {showBorder &&
                             contest.advancementNumerator != null &&
                             contest.advancementDenominator != null && (
@@ -1293,7 +1335,7 @@ export default function VenueDetailPage() {
                             post={result}
                             currentUser={user}
                             contestScoringMethod={contest.scoringMethod}
-                            initialComments={prefetchedComments[result.post_id] || []}
+                            initialComments={prefetchedComments[result.id] || []}
                           />
                         </Fragment>
                       );
@@ -1310,20 +1352,20 @@ export default function VenueDetailPage() {
                         審査員賞
                       </h2>
                       <div className="space-y-12">
-                        {judgeAwardsResults.map((award: any, idx: number) => {
+                        {judgeAwardsResults.map((award, idx) => {
                           const fullPost = results.find(
-                            (r: any) => r.post_id === award.post.post_id,
+                            (result) => result.id === award.post.id,
                           );
                           return (
                             <div key={idx} className="px-2">
                               {/* Header */}
                               <div className="flex items-center gap-3 mb-4">
                                 <Link
-                                  href={`/profile/${encodeURIComponent(award.judge.screen_name)}`}
+                                  href={`/profile/${encodeURIComponent(award.judge.screenName)}`}
                                 >
                                   <img
                                     src={
-                                      award.judge.profile_image_url ||
+                                      award.judge.profileImageUrl ||
                                       "https://via.placeholder.com/40"
                                     }
                                     alt={award.judge.name}
@@ -1331,7 +1373,7 @@ export default function VenueDetailPage() {
                                   />
                                 </Link>
                                 <Link
-                                  href={`/profile/${encodeURIComponent(award.judge.screen_name)}`}
+                                  href={`/profile/${encodeURIComponent(award.judge.screenName)}`}
                                   className="text-xl font-bold text-black dark:text-white hover:underline"
                                 >
                                   {award.judge.name}
@@ -1349,7 +1391,7 @@ export default function VenueDetailPage() {
                                     currentUser={user}
                                     contestScoringMethod={contest.scoringMethod}
                                     hideVotersAndComments={true}
-                                    initialComments={prefetchedComments[fullPost.post_id] || []}
+                                    initialComments={prefetchedComments[fullPost.id] || []}
                                   />
                                 </div>
                               ) : (
@@ -1386,7 +1428,7 @@ export default function VenueDetailPage() {
       {showVoteUI && (
         <div className="sticky bottom-0 w-full z-50 bg-white dark:bg-black/90 backdrop-blur-md border-t border-gray-200 dark:border-gray-800 px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] flex flex-col items-center mt-auto">
           {isJudgeMode && (() => {
-            const votablePosts = posts.filter((p) => !user || String(p.user_id) !== String(user.id));
+            const votablePosts = posts.filter((post) => !user || String(post.userId) !== String(user.id));
             const totalVotable = votablePosts.length;
             const votedCount = votablePosts.filter((p) => votes[p.id] !== undefined).length;
             const commentedCount = votablePosts.filter((p) => p.hasCommented || sessionCommentedPosts[p.id]).length;

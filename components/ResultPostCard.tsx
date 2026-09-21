@@ -10,47 +10,19 @@ import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/ja';
 import { useToast } from "@/components/ui/use-toast";
+import type { Comment, ResultPost, User } from '@/types/domain';
 
 dayjs.extend(relativeTime);
 dayjs.locale('ja');
 
 // --- 型定義 ---
 export interface ResultPostProps {
-  post: {
-    post_id: number;
-    content: string;
-    images?: string[];
-    created_at: string;
-    score: number;
-    rank: number | null;
-    commentCount?: number;
-    comment_count?: number; // DBのカラム名と一致させる
-    hasCommented?: boolean;
-    user: {
-      screen_name: string;
-      name: string;
-      profile_image_url: string | null;
-    };
-    voters?: {
-      screen_name: string;
-      name: string;
-      count: number;
-      is_judge: boolean;
-    }[];
-    bookmarkCount: number;
-    isBookmarked: boolean;
-    awards?: string[]; // 審査員賞など
-    contest?: {
-        name: string;
-        id: number;
-    };
-    myVotes?: number;
-  };
-  currentUser: { id: number; name: string; screen_name: string; profile_image_url: string | null } | null;
-  onToggleBookmark?: (post: any) => void;
+  post: ResultPost;
+  currentUser: User | null;
+  onToggleBookmark?: (post: ResultPost) => void;
   contestScoringMethod?: string;
   hideVotersAndComments?: boolean;
-  initialComments?: any[];
+  initialComments?: Comment[];
 }
 
 export default function ResultPostCard({ post, currentUser, onToggleBookmark, contestScoringMethod, hideVotersAndComments = false, initialComments }: ResultPostProps) {
@@ -60,17 +32,17 @@ export default function ResultPostCard({ post, currentUser, onToggleBookmark, co
 
   const initialIsLiked = useMemo(
     () => Boolean(
-      (post.myVotes !== undefined && post.myVotes > 0) ||
-      (currentUser && post.voters?.some(v => v.screen_name === currentUser.screen_name && !v.is_judge)),
+      (post.myVotes !== null && post.myVotes > 0) ||
+      (currentUser && post.voters.some(v => v.screenName === currentUser.screenName && !v.isJudge)),
     ),
     [currentUser, post.myVotes, post.voters],
   );
     
-  const isJudgeForThisPost = currentUser && post.voters?.some(v => v.screen_name === currentUser.screen_name && v.is_judge);
+  const isJudgeForThisPost = currentUser && post.voters.some(v => v.screenName === currentUser.screenName && v.isJudge);
 
   const initialLikeCount = useMemo(
     () => contestScoringMethod === 'judge'
-      ? (post.voters?.filter(v => !v.is_judge).reduce((sum, v) => sum + v.count, 0) || 0)
+      ? (post.voters.filter(v => !v.isJudge).reduce((sum, v) => sum + v.count, 0) || 0)
       : post.score,
     [contestScoringMethod, post.score, post.voters],
   );
@@ -79,7 +51,7 @@ export default function ResultPostCard({ post, currentUser, onToggleBookmark, co
   const [likeCount, setLikeCount] = useState(initialLikeCount);
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [isVotersExpanded, setIsVotersExpanded] = useState(false);
-  const [commentCount, setCommentCount] = useState(post.commentCount ?? post.comment_count ?? 0);
+  const [commentCount, setCommentCount] = useState(post.commentCount);
   const [hasCommented, setHasCommented] = useState(post.hasCommented || false);
   const bookmarkTargetRef = useRef(post.isBookmarked);
   const bookmarkConfirmedRef = useRef(post.isBookmarked);
@@ -104,9 +76,9 @@ export default function ResultPostCard({ post, currentUser, onToggleBookmark, co
     setBookmarkCount(post.bookmarkCount);
     setIsLiked(initialIsLiked);
     setLikeCount(initialLikeCount);
-    setCommentCount(post.commentCount ?? post.comment_count ?? 0);
+    setCommentCount(post.commentCount);
     setHasCommented(post.hasCommented || false);
-  }, [post.isBookmarked, post.bookmarkCount, post.commentCount, post.comment_count, post.hasCommented, initialIsLiked, initialLikeCount]);
+  }, [post.isBookmarked, post.bookmarkCount, post.commentCount, post.hasCommented, initialIsLiked, initialLikeCount]);
 
   // ブックマーク処理
   const processBookmarkQueue = async () => {
@@ -116,7 +88,7 @@ export default function ResultPostCard({ post, currentUser, onToggleBookmark, co
     try {
       while (true) {
         const requestedState = bookmarkTargetRef.current;
-        const res = await fetch(`/api/posts/${post.post_id}/bookmark`, {
+        const res = await fetch(`/api/posts/${post.id}/bookmark`, {
           method: requestedState ? 'PUT' : 'DELETE',
           credentials: 'include',
         });
@@ -167,7 +139,7 @@ export default function ResultPostCard({ post, currentUser, onToggleBookmark, co
     try {
       while (true) {
         const requestedState = likeTargetRef.current;
-        const res = await fetch(`/api/posts/${post.post_id}/like`, {
+        const res = await fetch(`/api/posts/${post.id}/like`, {
           method: requestedState ? 'PUT' : 'DELETE',
         });
 
@@ -240,10 +212,10 @@ return (
         
         {/* アバター (上揃え) */}
         <div className="flex-none">
-            <a href={`/profile/${encodeURIComponent(post.user.screen_name)}`} className="hover:opacity-80 transition-opacity block">
+            <a href={`/profile/${encodeURIComponent(post.user.screenName)}`} className="hover:opacity-80 transition-opacity block">
                 <img 
-                  src={post.user.profile_image_url || 'https://via.placeholder.com/40'} 
-                  alt={post.user.screen_name} 
+                  src={post.user.profileImageUrl || 'https://via.placeholder.com/40'}
+                  alt={post.user.screenName}
                   className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-800 object-cover bg-white dark:bg-black"
                   onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/40')}
                 />
@@ -256,12 +228,12 @@ return (
             {/* ユーザー情報 (上揃え: items-start) */}
             <div className="flex items-start justify-between mb-1">
                 <div className="flex items-center gap-1 min-w-0 flex-nowrap whitespace-nowrap">
-                    <a href={`/profile/${encodeURIComponent(post.user.screen_name)}`} className="font-bold text-black dark:text-white hover:underline truncate text-base leading-tight">
+                    <a href={`/profile/${encodeURIComponent(post.user.screenName)}`} className="font-bold text-black dark:text-white hover:underline truncate text-base leading-tight">
                       {post.user.name}
                     </a>
-                    <span className="text-sm text-black/50 dark:text-white/50 truncate" style={{ flexShrink: 1000 }}>@{post.user.screen_name}</span>
+                    <span className="text-sm text-black/50 dark:text-white/50 truncate" style={{ flexShrink: 1000 }}>@{post.user.screenName}</span>
                     <span className="text-sm text-black/30 dark:text-white/30 flex-shrink-0">·</span>
-                    <span className="text-sm text-black/50 dark:text-white/50"><TimeAgo timestamp={post.created_at} /></span>
+                    <span className="text-sm text-black/50 dark:text-white/50"><TimeAgo timestamp={post.createdAt} /></span>
                 </div>
             </div>
 
@@ -333,7 +305,7 @@ return (
             {/* 投票者リスト */}
             {!hideVotersAndComments && (() => {
                 const displayVoters = contestScoringMethod === 'judge' 
-                    ? (post.voters || []).filter(v => v.is_judge) 
+                    ? post.voters.filter(v => v.isJudge)
                     : (post.voters || []);
                 
                 if (displayVoters.length === 0) return null;
@@ -348,15 +320,15 @@ return (
                           <span className="mr-2 font-semibold inline">投票:</span>
                           {displayVoters.map((voter, vIndex) => (
                           <span key={vIndex} className="inline">
-                            {voter.is_judge ? (
+                            {voter.isJudge ? (
                             <span className="inline mr-1">
-                                <a href={`/profile/${encodeURIComponent(voter.screen_name)}`} className="hover:underline text-black/60 dark:text-white/60 hover:text-black/80 inline" onClick={(e) => e.stopPropagation()}>
+                                <a href={`/profile/${encodeURIComponent(voter.screenName)}`} className="hover:underline text-black/60 dark:text-white/60 hover:text-black/80 inline" onClick={(e) => e.stopPropagation()}>
                                 {voter.name}
                                 </a>
                                 <span className="ml-1 text-black/60 dark:text-white/60 inline">({voter.count})</span>
                             </span>
                             ) : (
-                            <a href={`/profile/${encodeURIComponent(voter.screen_name)}`} className="hover:underline text-black/60 dark:text-white/60 hover:text-black/80 inline" onClick={(e) => e.stopPropagation()}>
+                            <a href={`/profile/${encodeURIComponent(voter.screenName)}`} className="hover:underline text-black/60 dark:text-white/60 hover:text-black/80 inline" onClick={(e) => e.stopPropagation()}>
                                 {voter.name}
                             </a>
                             )}
@@ -378,7 +350,7 @@ return (
             {/* コメント機能 */}
             {!hideVotersAndComments && (
                 <CommentList
-                    postId={post.post_id}
+                    postId={post.id}
                     currentUser={currentUser}
                     contestStatus="closed"
                     isOpenProp={isCommentsOpen}

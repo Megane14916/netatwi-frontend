@@ -1,7 +1,7 @@
 export type ContestType = "grandprix" | "daily";
 export type ContestStatus = "upcoming" | "ongoing" | "voting" | "closed";
-export type ScoringMethod = "general" | "judge" | "both";
-export type ImageRule = "required" | "optional" | "forbidden";
+export type ScoringMethod = "user" | "general" | "judge" | "both";
+export type ImageRule = "required" | "optional" | "none";
 
 export interface ContestSummary {
   id: number;
@@ -20,6 +20,9 @@ export interface ContestSummary {
 }
 
 export interface Contest extends ContestSummary {
+  startTime: string;
+  endTime: string;
+  votingEndTime: string;
   scoringMethod: ScoringMethod;
   imageRule: ImageRule;
   isVotingVisible: boolean;

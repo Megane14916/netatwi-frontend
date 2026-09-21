@@ -174,7 +174,7 @@ export default function Header() {
                 className="flex items-center text-sm font-medium text-black dark:text-white hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none transition-colors"
               >
                 <img
-                    src={user.profile_image_url || `https://via.placeholder.com/24`}
+                    src={user.profileImageUrl || `https://via.placeholder.com/24`}
                     alt={user.name}
                     className="h-6 w-6 rounded-full mr-2 border border-gray-300"
                     onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/24')}
@@ -185,7 +185,7 @@ export default function Header() {
               {isDropdownOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-gray-100 dark:bg-gray-800 rounded-md shadow-lg py-1 border border-gray-200 dark:border-gray-700 z-50">
                   <Link
-                    href={`/profile/${encodeURIComponent(user.screen_name)}`}
+                    href={`/profile/${encodeURIComponent(user.screenName)}`}
                     className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-black dark:hover:text-white w-full text-left transition-colors"
                   >
                     マイページ
@@ -213,7 +213,7 @@ export default function Header() {
             <div className="md:hidden relative flex items-center h-full" ref={mobileDropdownRef}>
               <button className="flex items-center" onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
                    <img
-                       src={user.profile_image_url || `https://via.placeholder.com/32`}
+                       src={user.profileImageUrl || `https://via.placeholder.com/32`}
                        alt="メニュー"
                        className="h-6 w-6 md:h-8 md:w-8 rounded-full border border-gray-300"
                        onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/32')}
@@ -226,7 +226,7 @@ export default function Header() {
                   <Link href="/users" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-black dark:hover:text-white transition-colors">ユーザー</Link>
                   <Link href="/rules" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-black dark:hover:text-white transition-colors">ルール</Link>
                   <Link href="/#news" onClick={handleNewsClick} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-black dark:hover:text-white transition-colors">ニュース</Link>
-                  <Link href={`/profile/${encodeURIComponent(user.screen_name)}`} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-black dark:hover:text-white transition-colors">マイページ</Link>
+                  <Link href={`/profile/${encodeURIComponent(user.screenName)}`} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-black dark:hover:text-white transition-colors">マイページ</Link>
                   <button
                     onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                     className="flex items-center justify-between px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-black dark:hover:text-white w-full text-left transition-colors"

@@ -11,6 +11,12 @@ export interface UserDto extends UserSummaryDto {
   isAdmin?: boolean;
 }
 
+export interface CurrentUserResponseDto {
+  logged_in: boolean;
+  user?: UserDto;
+  judge_contests?: number[];
+}
+
 export interface ContestDto {
   id: number;
   name: string;
@@ -90,6 +96,32 @@ export interface ResultPostDto {
   is_advanced?: boolean;
 }
 
+export interface JudgeAwardDto {
+  judge: UserSummaryDto;
+  comment: string | null;
+  post: {
+    post_id: number;
+    content: string;
+    images?: string[] | null;
+    created_at: string;
+    user: UserSummaryDto;
+  };
+}
+
+export interface ContestPostsResponseDto {
+  posts: PostDto[];
+  userHasVotedInContest: boolean;
+  totalPosters: number;
+}
+
+export interface ContestResultsResponseDto {
+  results: ResultPostDto[];
+  judgeAwards: JudgeAwardDto[];
+  totalPosters: number;
+  totalVoters: number;
+  totalJudges: number;
+}
+
 export interface CommentDto {
   id: number;
   user_id: number;
@@ -138,3 +170,12 @@ export interface UsersResponseDto {
   has_next: boolean;
   has_prev: boolean;
 }
+
+export interface ProfileResponseDto {
+  user: UserDto;
+  posts: ResultPostDto[];
+  bookmarks: ResultPostDto[];
+  likes: ResultPostDto[];
+}
+
+export type CommentsByPostDto = Record<string, CommentDto[]>;

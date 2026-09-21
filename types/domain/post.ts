@@ -47,3 +47,17 @@ export interface JudgeAward {
   comment: string | null;
   post: Omit<ResultPost, "score" | "rank" | "commentCount" | "hasCommented" | "voters" | "bookmarkCount" | "isBookmarked" | "awards" | "myVotes" | "isAdvanced">;
 }
+
+export interface ContestPosts {
+  posts: Post[];
+  userHasVotedInContest: boolean;
+  totalPosters: number;
+}
+
+export interface ContestResults {
+  results: ResultPost[];
+  judgeAwards: JudgeAward[];
+  totalPosters: number;
+  totalVoters: number;
+  totalJudges: number;
+}

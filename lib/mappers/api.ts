@@ -1,10 +1,13 @@
 import type {
   CommentDto,
+  ContestPostsResponseDto,
+  ContestResultsResponseDto,
   ContestDto,
   ContestsResponseDto,
   NotificationDto,
   PostDto,
   RankedUserDto,
+  ProfileResponseDto,
   ResultPostDto,
   UserDto,
   UserSummaryDto,
@@ -12,6 +15,8 @@ import type {
 import type {
   Comment,
   Contest,
+  ContestPosts,
+  ContestResults,
   ContestsByStatus,
   ContestSummary,
   Notification,
@@ -19,6 +24,7 @@ import type {
   RankedUser,
   ResultPost,
   User,
+  UserProfile,
   UserSummary,
 } from "@/types/domain";
 
@@ -52,6 +58,9 @@ export const mapContestSummary = (dto: ContestDto): ContestSummary => ({
 
 export const mapContest = (dto: ContestDto): Contest => ({
   ...mapContestSummary(dto),
+  startTime: dto.startTime ?? "",
+  endTime: dto.endTime ?? "",
+  votingEndTime: dto.votingEndTime ?? "",
   scoringMethod: dto.scoringMethod ?? "both",
   imageRule: dto.imageRule ?? "optional",
   isVotingVisible: dto.isVotingVisible ?? true,
@@ -163,4 +172,35 @@ export const mapRankedUser = (dto: RankedUserDto): RankedUser => ({
     dailyThird: dto.stats.daily_3rd,
     judgeAwards: dto.stats.judge_awards,
   },
+});
+
+export const mapProfile = (dto: ProfileResponseDto): UserProfile => ({
+  user: mapUser(dto.user),
+  posts: dto.posts.map(mapResultPost),
+  bookmarks: dto.bookmarks.map(mapResultPost),
+  likes: dto.likes.map(mapResultPost),
+});
+
+export const mapContestPosts = (dto: ContestPostsResponseDto): ContestPosts => ({
+  posts: dto.posts.map(mapPost),
+  userHasVotedInContest: dto.userHasVotedInContest,
+  totalPosters: dto.totalPosters,
+});
+
+export const mapContestResults = (dto: ContestResultsResponseDto): ContestResults => ({
+  results: dto.results.map(mapResultPost),
+  judgeAwards: dto.judgeAwards.map((award) => ({
+    judge: mapUserSummary(award.judge),
+    comment: award.comment,
+    post: {
+      id: award.post.post_id,
+      content: award.post.content,
+      images: award.post.images ?? [],
+      createdAt: award.post.created_at,
+      user: mapUserSummary(award.post.user),
+    },
+  })),
+  totalPosters: dto.totalPosters,
+  totalVoters: dto.totalVoters,
+  totalJudges: dto.totalJudges,
 });

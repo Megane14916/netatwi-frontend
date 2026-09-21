@@ -1,18 +1,13 @@
 "use client";
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
+import { mapUser } from '@/lib/mappers/api';
+import type { CurrentUserResponseDto } from '@/types/api';
+import type { User } from '@/types/domain';
 
 // 【修正】API_URLの定義を削除または空文字にします。
 // Next.jsのRewrite機能を使うため、リクエスト先は相対パス ('/api/...') になります。
 // これにより、ブラウザは「同じオリジン」への通信とみなし、Cookieが正常に扱われます。
 const API_PREFIX = ''; 
-
-interface User {
-  id: number;
-  screen_name: string;
-  name: string;
-  profile_image_url: string;
-  isAdmin?: boolean;
-}
 
 interface AuthContextType {
   user: User | null;
@@ -41,9 +36,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // 同一オリジン扱いになるため、デフォルトでCookieが送られることが多いです。
       });
       if (res.ok) {
-        const data = await res.json();
-        if (data.logged_in) {
-          setUser(data.user);
+        const data = (await res.json()) as CurrentUserResponseDto;
+        if (data.logged_in && data.user) {
+          setUser(mapUser(data.user));
           setJudgeContests(data.judge_contests || []); // 審査員情報を更新
         } else {
           setUser(null);

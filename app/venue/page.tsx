@@ -6,44 +6,11 @@ import dayjs from 'dayjs';
 import RippleLink from "@/components/RippleLink";
 import React from 'react';
 import useSWR from 'swr';
+import { mapContestsResponse } from '@/lib/mappers/api';
+import type { ContestsResponseDto } from '@/types/api';
+import type { ContestSummary, ContestsByStatus } from '@/types/domain';
 
-interface Contest {
-  id: number;
-  name: string;
-  hasTheme: boolean;
-  theme: string | null;
-  hasQualifier: boolean;
-  parentContestId?: number;
-  type?: string;
-  startTime: string | null;
-  endTime: string | null;
-  votingEndTime: string | null;
-  qualifierStartTime: string | null;
-  qualifierEndTime: string | null;
-  qualifierVotingEndTime: string | null;
-  totalPosters: number;
-  totalVoters: number;
-  totalJudges: number;
-}
-
-interface LatestResult {
-  contest_id: number;
-  contest_name: string;
-  theme: string | null;
-  totalPosters: number;
-  totalVoters: number;
-  totalJudges: number;
-}
-
-interface ContestsResponse {
-  ongoing: Contest[];
-  voting: Contest[];
-  upcoming: Contest[];
-  closed: Contest[];
-  latestResult: LatestResult | null;
-}
-
-const getGPStep = (gpFinals: Contest, gpQualifier: Contest | undefined | null) => {
+const getGPStep = (gpFinals: ContestSummary, gpQualifier: ContestSummary | undefined | null) => {
   const now = dayjs();
   
   if (gpQualifier) {
@@ -78,9 +45,9 @@ const GP_STEPS = [
   "決勝結果"
 ];
 
-const fetcher = (url: string) => fetch(url).then(res => {
+const fetcher = (url: string): Promise<ContestsByStatus> => fetch(url).then(async res => {
   if (!res.ok) throw new Error('Failed to fetch');
-  return res.json();
+  return mapContestsResponse((await res.json()) as ContestsResponseDto);
 });
 
 const renderTitle = (name: string) => {
@@ -96,7 +63,7 @@ const renderTitle = (name: string) => {
 };
 
 export default function VenuePage() {
-  const { data, isLoading } = useSWR<ContestsResponse>('/api/contests', fetcher);
+  const { data, isLoading } = useSWR<ContestsByStatus>('/api/contests', fetcher);
 
   if (isLoading) {
     return (
@@ -151,7 +118,7 @@ export default function VenuePage() {
     return true;
   });
   
-  const categorizeDaily = (c: Contest) => {
+  const categorizeDaily = (c: ContestSummary) => {
     const now = dayjs();
     if (c.startTime && now.isBefore(dayjs(c.startTime))) return 'upcoming';
     if (c.endTime && now.isBefore(dayjs(c.endTime))) return 'ongoing';
@@ -172,7 +139,7 @@ export default function VenuePage() {
   ];
   const visibleDailies = categorizedDaily.slice(0, 5);
 
-  const renderCard = (contest: Contest, type: 'upcoming' | 'ongoing' | 'voting' | 'closed') => {
+  const renderCard = (contest: ContestSummary, type: 'upcoming' | 'ongoing' | 'voting' | 'closed') => {
     const typeConfig = {
       upcoming: { label: "準備中", bg: "bg-gray-500" },
       ongoing: { label: "投稿期間", bg: "bg-[#1DA1F2]" },

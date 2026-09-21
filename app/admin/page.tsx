@@ -6,6 +6,8 @@ import { KeyRound, Image as ImageIconLucide, Trophy as TrophyIcon, Trash2, Edit3
 import dayjs from 'dayjs';
 import { useToast } from '@/components/ui/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import type { AdminCreateContestPayload, AdminManagedContest, AdminUpdateContestPayload } from '@/types/api';
+import type { ContestType, ImageRule, ScoringMethod } from '@/types/domain';
 
 // --- API_URLの設定 ---
 // Next.jsのRewrite機能(/api/...)を使用するため、プレフィックスは空にします
@@ -64,28 +66,6 @@ const ConfirmDeleteModal = ({ contestName, onConfirm, onCancel, isDeleting }: Co
     </div>
 );
 
-// --- 管理用大会リストの型 ---
-interface ManagedContest {
-    id: number;
-    name: string;
-    theme: string | null;
-    startTime: string;
-    endTime: string;
-    votingEndTime: string;
-    judgePassword?: string | null;
-    type?: string;
-    scoringMethod?: string;
-    imageRule?: string;
-    generalVoteWeight?: number;
-    judgeMaxScore?: number;
-    isVotingVisible?: boolean;
-    advancementNumerator?: number | null;
-    advancementDenominator?: number | null;
-    judgeAwardAdvancement?: boolean;
-    resultCommentTop?: string | null;
-    resultCommentBottom?: string | null;
-}
-
 interface NewsItem {
     id: number;
     tweet_id: string;
@@ -99,7 +79,7 @@ export default function AdminPage() {
     const [newsToDelete, setNewsToDelete] = useState<number | null>(null);
 
     // Create Tab States
-    const [createForm, setCreateForm] = useState({
+    const [createForm, setCreateForm] = useState<AdminCreateContestPayload>({
         name: '',
         type: 'grandprix',
         hasQualifier: true,
@@ -135,13 +115,13 @@ export default function AdminPage() {
     const [createMessage, setCreateMessage] = useState('');
 
     // Manage Tab States
-    const [managedContests, setManagedContests] = useState<ManagedContest[]>([]);
+    const [managedContests, setManagedContests] = useState<AdminManagedContest[]>([]);
     const [manageLoading, setManageLoading] = useState(true);
     const [manageError, setManageError] = useState<string | null>(null);
     const [showPasswordId, setShowPasswordId] = useState<number | null>(null);
-    const [showDeleteModal, setShowDeleteModal] = useState<ManagedContest | null>(null);
+    const [showDeleteModal, setShowDeleteModal] = useState<AdminManagedContest | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
-    const [editingContest, setEditingContest] = useState<ManagedContest | null>(null);
+    const [editingContest, setEditingContest] = useState<AdminManagedContest | null>(null);
     const [isUpdating, setIsUpdating] = useState(false);
 
     // News Tab States
@@ -198,7 +178,7 @@ export default function AdminPage() {
         e.preventDefault();
         setCreateStatus('loading');
         setCreateMessage('作成中...');
-        const payload: any = { ...createForm };
+        const payload: AdminCreateContestPayload = { ...createForm };
         payload.startTime = new Date(createForm.startTime).toISOString();
         payload.endTime = new Date(createForm.endTime).toISOString();
         payload.votingEndTime = new Date(createForm.votingEndTime).toISOString();
@@ -236,7 +216,7 @@ export default function AdminPage() {
         }
     };
 
-    const handleCreateFormChange = (field: keyof typeof createForm, value: any) => {
+    const handleCreateFormChange = <K extends keyof AdminCreateContestPayload,>(field: K, value: AdminCreateContestPayload[K]) => {
         setCreateForm(prev => {
             const next = { ...prev, [field]: value };
             if (field === 'type') {
@@ -301,10 +281,13 @@ export default function AdminPage() {
         if (!editingContest) return;
         setIsUpdating(true);
         try {
-            const payload: any = { ...editingContest };
-            payload.startTime = new Date(editingContest.startTime).toISOString();
-            payload.endTime = new Date(editingContest.endTime).toISOString();
-            payload.votingEndTime = new Date(editingContest.votingEndTime).toISOString();
+            const { id: _id, ...contestFields } = editingContest;
+            const payload: AdminUpdateContestPayload = {
+                ...contestFields,
+                startTime: new Date(editingContest.startTime).toISOString(),
+                endTime: new Date(editingContest.endTime).toISOString(),
+                votingEndTime: new Date(editingContest.votingEndTime).toISOString(),
+            };
 
             const response = await fetch(`${API_PREFIX}/api/admin/contests/${editingContest.id}`, {
                 method: 'PUT',
@@ -418,8 +401,8 @@ export default function AdminPage() {
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">コンテストタイプ</label>
                                     <div className="flex space-x-4">
-                                        <label className="flex items-center text-sm text-gray-700 cursor-pointer"><input type="radio" name="type" value="grandprix" checked={createForm.type === 'grandprix'} onChange={(e) => handleCreateFormChange('type', e.target.value)} className="mr-2" />グランプリ</label>
-                                        <label className="flex items-center text-sm text-gray-700 cursor-pointer"><input type="radio" name="type" value="daily" checked={createForm.type === 'daily'} onChange={(e) => handleCreateFormChange('type', e.target.value)} className="mr-2" />デイリー</label>
+                                        <label className="flex items-center text-sm text-gray-700 cursor-pointer"><input type="radio" name="type" value="grandprix" checked={createForm.type === 'grandprix'} onChange={(e) => handleCreateFormChange('type', e.target.value as ContestType)} className="mr-2" />グランプリ</label>
+                                        <label className="flex items-center text-sm text-gray-700 cursor-pointer"><input type="radio" name="type" value="daily" checked={createForm.type === 'daily'} onChange={(e) => handleCreateFormChange('type', e.target.value as ContestType)} className="mr-2" />デイリー</label>
                                     </div>
                                 </div>
                             </div>
@@ -447,9 +430,9 @@ export default function AdminPage() {
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-2">採点方法</label>
                                                 <div className="flex space-x-4">
-                                                    <label className="flex items-center text-sm text-gray-700 cursor-pointer"><input type="radio" checked={createForm.qualifierScoringMethod === 'both'} onChange={(e) => handleCreateFormChange('qualifierScoringMethod', e.target.value)} value="both" className="mr-2" />審査+ユーザー</label>
-                                                    <label className="flex items-center text-sm text-gray-700 cursor-pointer"><input type="radio" checked={createForm.qualifierScoringMethod === 'user'} onChange={(e) => handleCreateFormChange('qualifierScoringMethod', e.target.value)} value="user" className="mr-2" />ユーザーのみ</label>
-                                                    <label className="flex items-center text-sm text-gray-700 cursor-pointer"><input type="radio" checked={createForm.qualifierScoringMethod === 'judge'} onChange={(e) => handleCreateFormChange('qualifierScoringMethod', e.target.value)} value="judge" className="mr-2" />審査のみ</label>
+                                                    <label className="flex items-center text-sm text-gray-700 cursor-pointer"><input type="radio" checked={createForm.qualifierScoringMethod === 'both'} onChange={(e) => handleCreateFormChange('qualifierScoringMethod', e.target.value as ScoringMethod)} value="both" className="mr-2" />審査+ユーザー</label>
+                                                    <label className="flex items-center text-sm text-gray-700 cursor-pointer"><input type="radio" checked={createForm.qualifierScoringMethod === 'user'} onChange={(e) => handleCreateFormChange('qualifierScoringMethod', e.target.value as ScoringMethod)} value="user" className="mr-2" />ユーザーのみ</label>
+                                                    <label className="flex items-center text-sm text-gray-700 cursor-pointer"><input type="radio" checked={createForm.qualifierScoringMethod === 'judge'} onChange={(e) => handleCreateFormChange('qualifierScoringMethod', e.target.value as ScoringMethod)} value="judge" className="mr-2" />審査のみ</label>
                                                 </div>
                                             </div>
 
@@ -485,7 +468,7 @@ export default function AdminPage() {
 
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center"><ImageIconLucide className="h-4 w-4 mr-2" />画像投稿設定</label>
-                                                <select value={createForm.qualifierImageRule} onChange={(e) => handleCreateFormChange('qualifierImageRule', e.target.value)} className="w-full bg-white border border-gray-200 rounded-md py-2 px-4 focus:ring-2 focus:ring-[#1DA1F2] focus:outline-none">
+                                                <select value={createForm.qualifierImageRule} onChange={(e) => handleCreateFormChange('qualifierImageRule', e.target.value as ImageRule)} className="w-full bg-white border border-gray-200 rounded-md py-2 px-4 focus:ring-2 focus:ring-[#1DA1F2] focus:outline-none">
                                                     <option value="optional">任意（画像あり/なし両方OK）</option>
                                                     <option value="required">必須（最低1枚の画像が必要）</option>
                                                     <option value="none">不可（画像投稿禁止）</option>
@@ -502,9 +485,9 @@ export default function AdminPage() {
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-2">採点方法</label>
                                                 <div className="flex space-x-4">
-                                                    <label className="flex items-center text-sm text-gray-700 cursor-pointer"><input type="radio" checked={createForm.scoringMethod === 'both'} onChange={(e) => handleCreateFormChange('scoringMethod', e.target.value)} value="both" className="mr-2" />審査+ユーザー</label>
-                                                    <label className="flex items-center text-sm text-gray-700 cursor-pointer"><input type="radio" checked={createForm.scoringMethod === 'user'} onChange={(e) => handleCreateFormChange('scoringMethod', e.target.value)} value="user" className="mr-2" />ユーザーのみ</label>
-                                                    <label className="flex items-center text-sm text-gray-700 cursor-pointer"><input type="radio" checked={createForm.scoringMethod === 'judge'} onChange={(e) => handleCreateFormChange('scoringMethod', e.target.value)} value="judge" className="mr-2" />審査のみ</label>
+                                                    <label className="flex items-center text-sm text-gray-700 cursor-pointer"><input type="radio" checked={createForm.scoringMethod === 'both'} onChange={(e) => handleCreateFormChange('scoringMethod', e.target.value as ScoringMethod)} value="both" className="mr-2" />審査+ユーザー</label>
+                                                    <label className="flex items-center text-sm text-gray-700 cursor-pointer"><input type="radio" checked={createForm.scoringMethod === 'user'} onChange={(e) => handleCreateFormChange('scoringMethod', e.target.value as ScoringMethod)} value="user" className="mr-2" />ユーザーのみ</label>
+                                                    <label className="flex items-center text-sm text-gray-700 cursor-pointer"><input type="radio" checked={createForm.scoringMethod === 'judge'} onChange={(e) => handleCreateFormChange('scoringMethod', e.target.value as ScoringMethod)} value="judge" className="mr-2" />審査のみ</label>
                                                 </div>
                                             </div>
 
@@ -540,7 +523,7 @@ export default function AdminPage() {
 
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center"><ImageIconLucide className="h-4 w-4 mr-2" />画像投稿設定</label>
-                                                <select value={createForm.imageRule} onChange={(e) => handleCreateFormChange('imageRule', e.target.value)} className="w-full bg-white border border-gray-200 rounded-md py-2 px-4 focus:ring-2 focus:ring-[#1DA1F2] focus:outline-none">
+                                                <select value={createForm.imageRule} onChange={(e) => handleCreateFormChange('imageRule', e.target.value as ImageRule)} className="w-full bg-white border border-gray-200 rounded-md py-2 px-4 focus:ring-2 focus:ring-[#1DA1F2] focus:outline-none">
                                                     <option value="optional">任意（画像あり/なし両方OK）</option>
                                                     <option value="required">必須（最低1枚の画像が必要）</option>
                                                     <option value="none">不可（画像投稿禁止）</option>
@@ -558,9 +541,9 @@ export default function AdminPage() {
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-2">採点方法</label>
                                             <div className="flex space-x-4">
-                                                <label className="flex items-center text-sm text-gray-700 cursor-pointer"><input type="radio" checked={createForm.scoringMethod === 'both'} onChange={(e) => handleCreateFormChange('scoringMethod', e.target.value)} value="both" className="mr-2" />審査+ユーザー</label>
-                                                <label className="flex items-center text-sm text-gray-700 cursor-pointer"><input type="radio" checked={createForm.scoringMethod === 'user'} onChange={(e) => handleCreateFormChange('scoringMethod', e.target.value)} value="user" className="mr-2" />ユーザーのみ</label>
-                                                <label className="flex items-center text-sm text-gray-700 cursor-pointer"><input type="radio" checked={createForm.scoringMethod === 'judge'} onChange={(e) => handleCreateFormChange('scoringMethod', e.target.value)} value="judge" className="mr-2" />審査のみ</label>
+                                                <label className="flex items-center text-sm text-gray-700 cursor-pointer"><input type="radio" checked={createForm.scoringMethod === 'both'} onChange={(e) => handleCreateFormChange('scoringMethod', e.target.value as ScoringMethod)} value="both" className="mr-2" />審査+ユーザー</label>
+                                                <label className="flex items-center text-sm text-gray-700 cursor-pointer"><input type="radio" checked={createForm.scoringMethod === 'user'} onChange={(e) => handleCreateFormChange('scoringMethod', e.target.value as ScoringMethod)} value="user" className="mr-2" />ユーザーのみ</label>
+                                                <label className="flex items-center text-sm text-gray-700 cursor-pointer"><input type="radio" checked={createForm.scoringMethod === 'judge'} onChange={(e) => handleCreateFormChange('scoringMethod', e.target.value as ScoringMethod)} value="judge" className="mr-2" />審査のみ</label>
                                             </div>
                                         </div>
 
@@ -596,7 +579,7 @@ export default function AdminPage() {
 
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center"><ImageIconLucide className="h-4 w-4 mr-2" />画像投稿設定</label>
-                                            <select value={createForm.imageRule} onChange={(e) => handleCreateFormChange('imageRule', e.target.value)} className="w-full bg-white border border-gray-200 rounded-md py-2 px-4 focus:ring-2 focus:ring-[#1DA1F2] focus:outline-none">
+                                            <select value={createForm.imageRule} onChange={(e) => handleCreateFormChange('imageRule', e.target.value as ImageRule)} className="w-full bg-white border border-gray-200 rounded-md py-2 px-4 focus:ring-2 focus:ring-[#1DA1F2] focus:outline-none">
                                                 <option value="optional">任意（画像あり/なし両方OK）</option>
                                                 <option value="required">必須（最低1枚の画像が必要）</option>
                                                 <option value="none">不可（画像投稿禁止）</option>
