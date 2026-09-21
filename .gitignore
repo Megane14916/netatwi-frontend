@@ -5,6 +5,12 @@ node_modules/
 .next/
 out/
 
+# TypeScript / tooling output
+*.tsbuildinfo
+.swc/
+.eslintcache
+coverage/
+
 # Environment
 .env.local
 .env.*.local
