@@ -34,38 +34,14 @@ import CommentList from "@/components/CommentList";
 import useSWR from "swr";
 import { useToast } from "@/components/ui/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { mapComment, mapContest, mapContestPosts, mapContestResults } from '@/lib/mappers/api';
-import type { CommentsByPostDto, ContestDto, ContestPostsResponseDto, ContestResultsResponseDto } from '@/types/api';
 import type { Comment, Contest, ContestPosts, ContestResults, ContestStatus, Post } from '@/types/domain';
-
-const fetchDto = async <T,>(url: string): Promise<T> => {
-  const response = await fetch(url, { credentials: "include" });
-  if (!response.ok) throw new Error(`Request failed: ${response.status}`);
-  return (await response.json()) as T;
-};
-
-const fetchContest = (url: string): Promise<Contest> =>
-  fetchDto<ContestDto>(url).then(mapContest);
-const fetchContestPosts = (url: string): Promise<ContestPosts> =>
-  fetchDto<ContestPostsResponseDto>(url).then(mapContestPosts);
-const fetchContestResults = (url: string): Promise<ContestResults> =>
-  fetchDto<ContestResultsResponseDto>(url).then(mapContestResults);
-
-const API_PREFIX = "";
-
-interface JudgeAwardSelection {
-  postId: number | null;
-  comment: string;
-}
+import { getCommentsByPostIds } from '@/lib/api/endpoints/comments';
+import { contestKeys, getContest, getContestPosts, getContestResults, submitContestVotes, type JudgeAwardSelection, type VotePayload } from '@/lib/api/endpoints/contests';
+import { ApiError, getApiErrorMessage } from '@/lib/api/core';
 
 interface VoteBackup {
   votes: Record<number, number>;
   judgeAwardSelection: JudgeAwardSelection | null;
-}
-
-interface VotePayload {
-  votes: Record<number, number>;
-  judgeAward?: JudgeAwardSelection;
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -265,8 +241,8 @@ export default function VenueDetailPage() {
 
   // 1. SWRによるデータ取得を一番上に移動
   const { data: contestData, error: contestError, mutate: mutateContest } = useSWR<Contest>(
-    contestId ? `${API_PREFIX}/api/contests/${contestId}` : null,
-    fetchContest
+    contestId ? contestKeys.detail(contestId) : null,
+    () => getContest(contestId),
   );
 
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -361,15 +337,15 @@ export default function VenueDetailPage() {
   // postsData の取得（ongoing, votingのときのみ）
   const { data: postsData, error: postsError, mutate: mutatePosts } = useSWR<ContestPosts>(
     (contestStatus === "ongoing" || contestStatus === "voting") 
-      ? `${API_PREFIX}/api/contests/${contestId}/posts` 
+      ? contestKeys.posts(contestId)
       : null,
-    fetchContestPosts
+    () => getContestPosts(contestId),
   );
 
   // resultsData の取得（closedのときのみ）
   const { data: resultsDataRaw, error: resultsError } = useSWR<ContestResults>(
-    contestStatus === "closed" ? `${API_PREFIX}/api/contests/${contestId}/results` : null,
-    fetchContestResults,
+    contestStatus === "closed" ? contestKeys.results(contestId) : null,
+    () => getContestResults(contestId),
     {
       refreshInterval: (data?: ContestResults) => {
         if (!data || !data.results) return 0;
@@ -561,16 +537,9 @@ export default function VenueDetailPage() {
     if (postIdsToFetch.length > 0) {
       postIdsToFetch.forEach((id) => fetchingPostIdsRef.current.add(id));
 
-      fetch(
-        `${API_PREFIX}/api/comments?postIds=${postIdsToFetch.join(",")}`,
-        { credentials: "include" },
-      )
-        .then((res) => res.json())
-        .then((data: CommentsByPostDto) => {
-          const mapped = Object.fromEntries(
-            Object.entries(data).map(([postId, comments]) => [postId, comments.map(mapComment)]),
-          );
-          setPrefetchedComments((prev) => ({ ...prev, ...mapped }));
+      getCommentsByPostIds(postIdsToFetch)
+        .then((comments) => {
+          setPrefetchedComments((prev) => ({ ...prev, ...comments }));
         })
         .catch((err) => {
           console.error(err);
@@ -718,31 +687,14 @@ export default function VenueDetailPage() {
     if (isJudgeMode && judgeAwardSelection.postId)
       payload.judgeAward = judgeAwardSelection;
     try {
-      const response = await fetch(
-        `${API_PREFIX}/api/contests/${contestId}/vote`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-          credentials: "include",
-        },
-      );
-      const data = await response.json();
-      if (response.ok) {
-        mutatePosts(); // 投票状態を再取得
-        setShowSuccessBanner(true);
-        setTimeout(() => setShowSuccessBanner(false), 5000);
-      } else {
-        toast({
-          title: "エラー",
-          description: data.error || "投票に失敗しました。",
-          variant: "destructive",
-        });
-      }
-    } catch {
+      await submitContestVotes(contestId, payload);
+      mutatePosts();
+      setShowSuccessBanner(true);
+      setTimeout(() => setShowSuccessBanner(false), 5000);
+    } catch (requestError) {
       toast({
         title: "エラー",
-        description: "通信エラーが発生しました。",
+        description: getApiErrorMessage(requestError, "通信エラーが発生しました。"),
         variant: "destructive",
       });
     } finally {
@@ -769,7 +721,7 @@ export default function VenueDetailPage() {
         <Loader2 className="w-8 h-8 animate-spin text-[#1DA1F2]" />
       </div>
     );
-  if (contestError instanceof Error && contestError.message.endsWith(": 404")) {
+  if (contestError instanceof ApiError && contestError.status === 404) {
     return notFound();
   }
   if (error)

@@ -3,9 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { UserListRow } from '@/components/UserListRow';
 import { Search, ChevronLeft, ChevronRight, Users } from 'lucide-react';
-import { mapRankedUser } from '@/lib/mappers/api';
-import type { UsersResponseDto } from '@/types/api';
 import type { RankedUser } from '@/types/domain';
+import { getUsers } from '@/lib/api/endpoints/users';
 
 interface UsersPageCacheEntry {
   users: RankedUser[];
@@ -33,21 +32,16 @@ export default function UsersPage() {
 
     setIsLoading(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
-      const res = await fetch(`${apiUrl}/api/users?q=${encodeURIComponent(q)}&page=${p}`);
-      if (res.ok) {
-        const data = (await res.json()) as UsersResponseDto;
-        const mappedUsers = data.users.map(mapRankedUser);
-        setUsers(mappedUsers);
-        setTotalPages(data.total_pages);
-        setPage(data.page);
-        
-        cache.current[cacheKey] = {
-          users: mappedUsers,
-          totalPages: data.total_pages,
-          page: data.page
-        };
-      }
+      const data = await getUsers(q, p);
+      setUsers(data.users);
+      setTotalPages(data.totalPages);
+      setPage(data.page);
+
+      cache.current[cacheKey] = {
+        users: data.users,
+        totalPages: data.totalPages,
+        page: data.page
+      };
     } catch (error) {
       console.error('Failed to fetch users', error);
     } finally {

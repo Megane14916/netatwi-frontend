@@ -17,11 +17,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { mapComment, mapProfile } from '@/lib/mappers/api';
-import type { CommentsByPostDto, ProfileResponseDto } from '@/types/api';
 import type { Comment, ResultPost, UserProfile } from '@/types/domain';
-
-const API_PREFIX = '';
+import { getCommentsByPostIds } from '@/lib/api/endpoints/comments';
+import { getProfile, withdrawCurrentUser } from '@/lib/api/endpoints/profile';
+import { setPostBookmark } from '@/lib/api/endpoints/posts';
+import { ApiError } from '@/lib/api/core';
 
 export default function UserProfilePage({ params }: { params: { screen_name: string } }) {
   const { toast } = useToast();
@@ -54,16 +54,9 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
 
   const handleWithdraw = async () => {
     try {
-      const res = await fetch(`${API_PREFIX}/api/users/me`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-      if (res.ok) {
-        toast({ title: "退会処理が完了しました" });
-        window.location.href = "/";
-      } else {
-        toast({ title: "退会処理に失敗しました", variant: "destructive" });
-      }
+      await withdrawCurrentUser();
+      toast({ title: "退会処理が完了しました" });
+      window.location.href = "/";
     } catch {
       toast({ title: "エラーが発生しました", variant: "destructive" });
     }
@@ -81,26 +74,10 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
     const fetchProfileData = async () => {
       try {
         setLoading(true);
-        const decodedScreenName = decodeURIComponent(screenName);
-        const res = await fetch(`${API_PREFIX}/api/profile/${decodedScreenName}`, {
-          cache: 'no-store',
-          credentials: 'include',
-        });
-
-        if (!res.ok) {
-          if (res.status === 404) {
-            setError("404");
-            setLoading(false);
-            return;
-          }
-          throw new Error('Failed to fetch profile');
-        }
-
-        const data = (await res.json()) as ProfileResponseDto;
-        setProfileData(mapProfile(data));
+        setProfileData(await getProfile(decodeURIComponent(screenName)));
       } catch (err) {
         console.error(err);
-        setError('プロフィールの取得に失敗しました。');
+        setError(err instanceof ApiError && err.status === 404 ? '404' : 'プロフィールの取得に失敗しました。');
       } finally {
         setLoading(false);
       }
@@ -156,13 +133,7 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
       try {
           while (true) {
               const requestedState = bookmarkTargetsRef.current.get(postId) ?? false;
-              const res = await fetch(`${API_PREFIX}/api/posts/${postId}/bookmark`, {
-                  method: requestedState ? 'PUT' : 'DELETE',
-                  credentials: 'include',
-              });
-              if (!res.ok) throw new Error('Failed');
-
-              const data = await res.json();
+              const data = await setPostBookmark(postId, requestedState);
               bookmarkConfirmedRef.current.set(postId, data.isBookmarked);
               bookmarkConfirmedCountRef.current.set(postId, Math.max(0, data.bookmarkCount));
               applyBookmarkState(postId, data.isBookmarked, Math.max(0, data.bookmarkCount));
@@ -220,15 +191,9 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
     if (postIdsToFetch.length > 0) {
       postIdsToFetch.forEach((id) => fetchingPostIdsRef.current.add(id));
 
-      fetch(`${API_PREFIX}/api/comments?postIds=${postIdsToFetch.join(",")}`, {
-        credentials: "include",
-      })
-        .then((res) => res.json())
-        .then((data: CommentsByPostDto) => {
-          const mapped = Object.fromEntries(
-            Object.entries(data).map(([postId, comments]) => [postId, comments.map(mapComment)]),
-          );
-          setPrefetchedComments((prev) => ({ ...prev, ...mapped }));
+      getCommentsByPostIds(postIdsToFetch)
+        .then((comments) => {
+          setPrefetchedComments((prev) => ({ ...prev, ...comments }));
         })
         .catch((err) => {
           console.error(err);

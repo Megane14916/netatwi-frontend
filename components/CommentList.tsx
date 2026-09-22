@@ -6,9 +6,9 @@ import TimeAgo from './TimeAgo';
 import useSWR from 'swr';
 import { useToast } from "@/components/ui/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { mapComment } from '@/lib/mappers/api';
-import type { CommentDto } from '@/types/api';
 import type { Comment, User } from '@/types/domain';
+import { commentKeys, createComment, deleteComment, getPostComments, updateComment } from '@/lib/api/endpoints/comments';
+import { getApiErrorMessage } from '@/lib/api/core';
 
 interface CommentListProps {
   postId: number;
@@ -36,19 +36,13 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
   const [localComments, setLocalComments] = useState<Comment[]>([]);
   const [deletedCommentIds, setDeletedCommentIds] = useState<Set<number>>(new Set());
 
-  const fetcher = async (url: string): Promise<Comment[]> => {
-    const response = await fetch(url);
-    const data = (await response.json()) as CommentDto[];
-    return data.map(mapComment);
-  };
-  
   // 投票期間中は他人のコメントは見えず、自分のコメントは initialComments (一括取得) で賄えるため、
   // コメント欄を開いたときの個別APIフェッチをスキップする
   const shouldFetch = (isAlwaysOpen || isOpen || isOpenProp) && contestStatus !== 'voting';
   
   const { data: swrComments = initialComments || [], mutate } = useSWR<Comment[]>(
-    shouldFetch ? `/api/posts/${postId}/comments` : null,
-    fetcher,
+    shouldFetch ? commentKeys.forPost(postId) : null,
+    () => getPostComments(postId),
     { fallbackData: initialComments || [] }
   );
 
@@ -150,31 +144,17 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
     }
 
     try {
-      const res = await fetch(`/api/posts/${postId}/comments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: newComment })
-      });
-      if (res.ok) {
-        const createdComment = await res.json();
-        setNewComment('');
-        if (shouldFetch) {
-          mutate();
-        } else {
-          // APIは {'message': '...', 'id': ...} しか返さないので、optimisticComment に id だけ反映して保持する
-          const newCommentData = { ...optimisticComment, id: createdComment.id || optimisticComment.id };
-          setLocalComments(prev => prev.map(c => c.id === optimisticComment.id ? newCommentData : c));
-        }
-        onCommentAdded?.();
+      const createdCommentId = await createComment(postId, newComment);
+      setNewComment('');
+      if (shouldFetch) {
+        mutate();
       } else {
-        const data = await res.json();
-        setError(data.error || 'エラーが発生しました');
-        if (!shouldFetch) {
-          setLocalComments(prev => prev.filter(c => c.id !== optimisticComment.id));
-        }
+        const newCommentData = { ...optimisticComment, id: createdCommentId };
+        setLocalComments(prev => prev.map(c => c.id === optimisticComment.id ? newCommentData : c));
       }
-    } catch {
-      setError('通信エラーが発生しました');
+      onCommentAdded?.();
+    } catch (requestError) {
+      setError(getApiErrorMessage(requestError, '通信エラーが発生しました'));
       if (!shouldFetch) {
         setLocalComments(prev => prev.filter(c => c.id !== optimisticComment.id));
       }
@@ -202,18 +182,9 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
     }
     
     try {
-      const res = await fetch(`/api/comments/${commentId}`, { method: 'DELETE' });
-      if (res.ok) {
-        if (shouldFetch) mutate();
-        onCommentDeleted?.();
-      } else {
-        setDeletedCommentIds(prev => {
-          const next = new Set(prev);
-          next.delete(commentId);
-          return next;
-        });
-        toast({ title: "エラー", description: "コメントの削除に失敗しました", variant: "destructive" });
-      }
+      await deleteComment(commentId);
+      if (shouldFetch) mutate();
+      onCommentDeleted?.();
     } catch (e) {
       console.error(e);
       setDeletedCommentIds(prev => {
@@ -247,15 +218,9 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
     }
 
     try {
-      const res = await fetch(`/api/comments/${commentId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: editContent })
-      });
-      if (res.ok) {
-        setEditingCommentId(null);
-        if (shouldFetch) mutate();
-      }
+      await updateComment(commentId, editContent);
+      setEditingCommentId(null);
+      if (shouldFetch) mutate();
     } catch (e) {
       console.error(e);
     }

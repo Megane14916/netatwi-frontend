@@ -11,9 +11,8 @@ import dynamic from "next/dynamic";
 import CountdownTimer from "@/components/CountdownTimer";
 import HeroSection from "@/components/home/HeroSection";
 import NewsSection from "@/components/home/NewsSection";
-import { mapContestsResponse } from '@/lib/mappers/api';
-import type { ContestsResponseDto } from '@/types/api';
 import type { ContestSummary, ContestsByStatus } from '@/types/domain';
+import { contestKeys, getContests } from '@/lib/api/endpoints/contests';
 
 const PostForm = dynamic(() => import("@/components/venue/PostForm"));
 
@@ -65,15 +64,10 @@ const formatDateTime = (dt: string | null) => {
 
 
 export default function HomePage() {
-  const fetcher = (url: string): Promise<ContestsByStatus> => fetch(url).then(async (res) => {
-    if (!res.ok) throw new Error("Failed to fetch");
-    return mapContestsResponse((await res.json()) as ContestsResponseDto);
-  });
-
   const {
     data: contestsData = null,
     isLoading: contestsLoading,
-  } = useSWR<ContestsByStatus>("/api/contests", fetcher);
+  } = useSWR<ContestsByStatus>(contestKeys.all, getContests);
 
   return (
     <div className="relative bg-white dark:bg-black text-black dark:text-white">

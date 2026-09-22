@@ -8,10 +8,8 @@ import { useToast } from '@/components/ui/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import type { AdminCreateContestPayload, AdminManagedContest, AdminUpdateContestPayload } from '@/types/api';
 import type { ContestType, ImageRule, ScoringMethod } from '@/types/domain';
-
-// --- API_URLの設定 ---
-// Next.jsのRewrite機能(/api/...)を使用するため、プレフィックスは空にします
-const API_PREFIX = '';
+import type { NewsItem } from '@/types/domain';
+import { addNews, createContest, deleteContest, deleteNews, getAdminNews, getManagedContests, updateContest } from '@/lib/api/endpoints/admin';
 
 // --- トグルスイッチコンポーネント ---
 interface ToggleSwitchProps {
@@ -65,12 +63,6 @@ const ConfirmDeleteModal = ({ contestName, onConfirm, onCancel, isDeleting }: Co
         </div>
     </div>
 );
-
-interface NewsItem {
-    id: number;
-    tweet_id: string;
-    created_at: string;
-}
 
 export default function AdminPage() {
     const { user } = useAuth();
@@ -137,14 +129,7 @@ export default function AdminPage() {
                 setManageLoading(true);
                 setManageError(null);
                 try {
-                    // 相対パスを使用
-                    const response = await fetch(`${API_PREFIX}/api/admin/contests/management`, { credentials: 'include' });
-                    if (!response.ok) {
-                        const data = await response.json();
-                        throw new Error(data.error || '大会リストの取得に失敗しました。');
-                    }
-                    const data = await response.json();
-                    setManagedContests(data);
+                    setManagedContests(await getManagedContests());
                 } catch (error) {
                     setManageError(error instanceof Error ? error.message : '不明なエラーが発生しました。');
                 } finally {
@@ -157,13 +142,7 @@ export default function AdminPage() {
                 setNewsLoading(true);
                 setNewsError(null);
                 try {
-                    const response = await fetch(`${API_PREFIX}/api/admin/news`, { credentials: 'include' });
-                    if (!response.ok) {
-                        const data = await response.json();
-                        throw new Error(data.error || 'ニュースの取得に失敗しました。');
-                    }
-                    const data = await response.json();
-                    setNewsList(data);
+                    setNewsList(await getAdminNews());
                 } catch (error) {
                     setNewsError(error instanceof Error ? error.message : '不明なエラーが発生しました。');
                 } finally {
@@ -189,25 +168,16 @@ export default function AdminPage() {
         }
 
         try {
-            // 相対パスを使用
-            const response = await fetch(`${API_PREFIX}/api/admin/contests`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-                credentials: 'include',
-            });
-            const data = await response.json();
-            if (response.ok) {
-                setCreateStatus('success');
-                setCreateMessage(`大会「${createForm.name}」が作成されました！ (ID: ${data.id})`);
-                setCreateForm(prev => ({
-                    ...prev,
-                    name: '',
-                    theme: '',
-                    startTime: '', endTime: '', votingEndTime: '', judgePassword: '',
-                    qualifierTheme: '', qualifierStartTime: '', qualifierEndTime: '', qualifierVotingEndTime: '', qualifierJudgePassword: ''
-                }));
-            } else { throw new Error(data.error || '不明なエラーが発生しました。'); }
+            const contestId = await createContest(payload);
+            setCreateStatus('success');
+            setCreateMessage(`大会「${createForm.name}」が作成されました！ (ID: ${contestId})`);
+            setCreateForm(prev => ({
+                ...prev,
+                name: '',
+                theme: '',
+                startTime: '', endTime: '', votingEndTime: '', judgePassword: '',
+                qualifierTheme: '', qualifierStartTime: '', qualifierEndTime: '', qualifierVotingEndTime: '', qualifierJudgePassword: ''
+            }));
         } catch (error) {
             setCreateStatus('error');
             setCreateMessage(error instanceof Error ? error.message : '大会の作成に失敗しました。');
@@ -258,15 +228,7 @@ export default function AdminPage() {
         if (!showDeleteModal) return;
         setIsDeleting(true);
         try {
-            // 相対パスを使用
-            const response = await fetch(`${API_PREFIX}/api/admin/contests/${showDeleteModal.id}`, {
-                method: 'DELETE',
-                credentials: 'include',
-            });
-            const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data.error || '削除に失敗しました。');
-            }
+            await deleteContest(showDeleteModal.id);
             setManagedContests(prev => prev.filter(c => c.id !== showDeleteModal.id));
             setShowDeleteModal(null);
         } catch (error) {
@@ -289,16 +251,7 @@ export default function AdminPage() {
                 votingEndTime: new Date(editingContest.votingEndTime).toISOString(),
             };
 
-            const response = await fetch(`${API_PREFIX}/api/admin/contests/${editingContest.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-                credentials: 'include',
-            });
-            const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data.error || '更新に失敗しました。');
-            }
+            await updateContest(editingContest.id, payload);
             setManagedContests(prev => prev.map(c => c.id === editingContest.id ? { ...c, ...editingContest } : c));
             setEditingContest(null);
         } catch (error) {
@@ -312,20 +265,9 @@ export default function AdminPage() {
         e.preventDefault();
         setIsAddingNews(true);
         try {
-            const response = await fetch(`${API_PREFIX}/api/admin/news`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tweet_id: newNewsUrl }),
-                credentials: 'include',
-            });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error || '追加に失敗しました。');
+            await addNews(newNewsUrl);
             setNewNewsUrl('');
-            const res = await fetch(`${API_PREFIX}/api/admin/news`, { credentials: 'include' });
-            if (res.ok) {
-                const newData = await res.json();
-                setNewsList(newData);
-            }
+            setNewsList(await getAdminNews());
         } catch (error) {
             toast({ title: "エラー", description: `追加エラー: ${error instanceof Error ? error.message : error}`, variant: "destructive" });
         } finally {
@@ -342,14 +284,7 @@ export default function AdminPage() {
         const id = newsToDelete;
         setNewsToDelete(null);
         try {
-            const response = await fetch(`${API_PREFIX}/api/admin/news/${id}`, {
-                method: 'DELETE',
-                credentials: 'include',
-            });
-            if (!response.ok) {
-                const data = await response.json();
-                throw new Error(data.error || '削除に失敗しました。');
-            }
+            await deleteNews(id);
             setNewsList(prev => prev.filter(n => n.id !== id));
         } catch (error) {
             toast({ title: "エラー", description: `削除エラー: ${error instanceof Error ? error.message : error}`, variant: "destructive" });
@@ -647,8 +582,8 @@ export default function AdminPage() {
                                     {newsList.map((news) => (
                                         <div key={news.id} className="bg-white shadow-sm p-4 rounded-lg border border-gray-200 flex justify-between items-center">
                                             <div>
-                                                <p className="text-black font-medium">ID: {news.tweet_id}</p>
-                                                <p className="text-sm text-gray-500">追加日時: {dayjs(news.created_at).format('YYYY/MM/DD HH:mm')}</p>
+                                                <p className="text-black font-medium">ID: {news.tweetId}</p>
+                                                <p className="text-sm text-gray-500">追加日時: {dayjs(news.createdAt).format('YYYY/MM/DD HH:mm')}</p>
                                             </div>
                                             <button onClick={() => handleDeleteNews(news.id)} className="text-xs px-3 py-2 rounded bg-red-600 hover:bg-red-700 text-white flex items-center">
                                                 <Trash2 className="h-4 w-4 mr-1" /> 削除

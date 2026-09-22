@@ -6,9 +6,8 @@ import dayjs from 'dayjs';
 import RippleLink from "@/components/RippleLink";
 import React from 'react';
 import useSWR from 'swr';
-import { mapContestsResponse } from '@/lib/mappers/api';
-import type { ContestsResponseDto } from '@/types/api';
 import type { ContestSummary, ContestsByStatus } from '@/types/domain';
+import { contestKeys, getContests } from '@/lib/api/endpoints/contests';
 
 const getGPStep = (gpFinals: ContestSummary, gpQualifier: ContestSummary | undefined | null) => {
   const now = dayjs();
@@ -45,11 +44,6 @@ const GP_STEPS = [
   "決勝結果"
 ];
 
-const fetcher = (url: string): Promise<ContestsByStatus> => fetch(url).then(async res => {
-  if (!res.ok) throw new Error('Failed to fetch');
-  return mapContestsResponse((await res.json()) as ContestsResponseDto);
-});
-
 const renderTitle = (name: string) => {
   if (!name.includes('ネタツイグランプリ')) return name;
   const parts = name.split('ネタツイグランプリ');
@@ -63,7 +57,7 @@ const renderTitle = (name: string) => {
 };
 
 export default function VenuePage() {
-  const { data, isLoading } = useSWR<ContestsByStatus>('/api/contests', fetcher);
+  const { data, isLoading } = useSWR<ContestsByStatus>(contestKeys.all, getContests);
 
   if (isLoading) {
     return (

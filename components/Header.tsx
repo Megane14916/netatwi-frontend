@@ -7,6 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useTheme } from 'next-themes';
 import Link from 'next/link';
 import logoImg from '../assets/logo.png';
+import { getUnreadNotificationCount } from '@/lib/api/endpoints/notifications';
 
 export default function Header() {
   const { user, loading, login, logout } = useAuth();
@@ -51,11 +52,7 @@ export default function Header() {
       const fetchUnreadCount = async () => {
         if (document.hidden) return; // タブが隠れている場合はリクエストしない
         try {
-          const res = await fetch('/api/notifications/unread-count');
-          if (res.ok) {
-            const data = await res.json();
-            setUnreadCount(data.unread_count);
-          }
+          setUnreadCount(await getUnreadNotificationCount());
         } catch (e) {
           console.error(e);
         }

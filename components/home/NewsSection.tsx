@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import { ExternalLink } from "lucide-react";
 import useSWR from "swr";
 import dynamic from "next/dynamic";
+import { getNews } from "@/lib/api/endpoints/news";
+import type { NewsItem } from "@/types/domain";
 
 const DynamicTweet = dynamic(() => import("@/components/DynamicTweet"), {
   loading: () => (
@@ -11,12 +13,7 @@ const DynamicTweet = dynamic(() => import("@/components/DynamicTweet"), {
   ),
 });
 
-const fetcher = (url: string) => fetch(url).then((res) => {
-  if (!res.ok) throw new Error("Failed to fetch");
-  return res.json();
-});
-
-function TweetItem({ news }: { news: { id: number; tweet_id: string } }) {
+function TweetItem({ news }: { news: NewsItem }) {
   const [isVisible, setIsVisible] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -43,7 +40,7 @@ function TweetItem({ news }: { news: { id: number; tweet_id: string } }) {
     >
       <div className="w-full max-w-full pointer-events-none select-none">
         {isVisible ? (
-          <DynamicTweet id={news.tweet_id} />
+          <DynamicTweet id={news.tweetId} />
         ) : (
           <div className="w-full h-[400px] rounded-xl bg-gray-200 dark:bg-gray-800 animate-pulse"></div>
         )}
@@ -62,7 +59,7 @@ export default function NewsSection() {
     data: newsList = [],
     error: newsError,
     isLoading: newsLoading,
-  } = useSWR<{ id: number; tweet_id: string }[]>("/api/news", fetcher);
+  } = useSWR<NewsItem[]>("/api/news", getNews);
 
   // ツイート埋め込み等によるスクロール位置のバグを防ぐため初期状態では左端に戻す
   useEffect(() => {

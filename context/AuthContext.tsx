@@ -1,13 +1,7 @@
 "use client";
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { mapUser } from '@/lib/mappers/api';
-import type { CurrentUserResponseDto } from '@/types/api';
 import type { User } from '@/types/domain';
-
-// 【修正】API_URLの定義を削除または空文字にします。
-// Next.jsのRewrite機能を使うため、リクエスト先は相対パス ('/api/...') になります。
-// これにより、ブラウザは「同じオリジン」への通信とみなし、Cookieが正常に扱われます。
-const API_PREFIX = ''; 
+import { getAuthSession, getLoginAuthorizationUrl, logout as logoutRequest } from '@/lib/api/endpoints/auth';
 
 interface AuthContextType {
   user: User | null;
@@ -29,22 +23,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const refetchUser = async () => {
     setLoading(true); // 再取得中はローディング表示
     try {
-      // 【修正】相対パスを使用 ('/api/me')
-      const res = await fetch(`${API_PREFIX}/api/me`, {
-        // credentials: 'include' は不要になる場合もありますが、
-        // Rewrite経由でもCookieを確実に送るため念のため残すか、ブラウザの挙動に任せます。
-        // 同一オリジン扱いになるため、デフォルトでCookieが送られることが多いです。
-      });
-      if (res.ok) {
-        const data = (await res.json()) as CurrentUserResponseDto;
-        if (data.logged_in && data.user) {
-          setUser(mapUser(data.user));
-          setJudgeContests(data.judge_contests || []); // 審査員情報を更新
-        } else {
-          setUser(null);
-          setJudgeContests([]);
-        }
-      }
+      const session = await getAuthSession();
+      setUser(session.user);
+      setJudgeContests(session.judgeContests);
     } catch (error) {
       console.error("ユーザー情報の取得に失敗:", error);
       setUser(null);
@@ -61,28 +42,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async () => {
     try {
-      // 【修正】相対パスを使用 ('/api/login/twitter')
-      // Next.jsがこれをバックエンドへ転送します
-      const res = await fetch(`${API_PREFIX}/api/login/twitter`, {
-        // Rewrite経由の場合は通常不要ですが、明示しても問題ありません
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.authorization_url) {
-          // Xの認証ページにリダイレクト
-          // ※これは外部URLなのでそのまま
-          window.location.href = data.authorization_url;
-        }
-      }
+      window.location.href = await getLoginAuthorizationUrl();
     } catch (error) {
       console.error("ログインプロセスを開始できませんでした:", error);
     }
   };
 
   const logout = async () => {
-    // 【修正】相対パスを使用 ('/api/logout')
-    await fetch(`${API_PREFIX}/api/logout`, {
-    });
+    await logoutRequest();
     setUser(null);
     setJudgeContests([]);
     // ログアウト後にトップページに遷移

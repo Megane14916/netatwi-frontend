@@ -27,6 +27,7 @@ export type ResponseValidator<T> = (value: unknown) => T;
 export interface ApiRequestOptions<T> extends Omit<RequestInit, "body"> {
   body?: BodyInit | null;
   json?: unknown;
+  next?: { revalidate?: number; tags?: string[] };
   validate?: ResponseValidator<T>;
 }
 
