@@ -1,5 +1,8 @@
 import HistoryTabs from './HistoryTabs';
 import dayjs from 'dayjs';
+import { mapContestsResponse } from '@/lib/mappers/api';
+import type { ContestsResponseDto } from '@/types/api';
+import type { ContestSummary } from '@/types/domain';
 
 // Fetch contest history at request time so production builds do not depend on
 // the backend being reachable. The fetch-level revalidation below still keeps
@@ -11,28 +14,8 @@ export const dynamic = 'force-dynamic';
 // (クライアント用の NEXT_PUBLIC_API_URL は使用しない)
 const API_URL = process.env.BACKEND_URL || 'http://127.0.0.1:5001';
 
-// 型定義
-interface Contest {
-  id: number;
-  name: string;
-  theme: string | null;
-  startTime: string;
-  endTime: string;
-  votingEndTime: string;
-  totalPosters?: number;
-  type?: string;
-}
-
-interface ContestsApiResponse {
-  ongoing: Contest[];
-  voting: Contest[];
-  upcoming: Contest[];
-  closed: Contest[];
-  latestResult: any;
-}
-
 // データを取得する非同期関数
-async function getPastContests(): Promise<Contest[]> {
+async function getPastContests(): Promise<ContestSummary[]> {
   try {
     // next: { revalidate: 60 } で60秒間キャッシュする
     const res = await fetch(`${API_URL}/api/contests`, {
@@ -43,7 +26,7 @@ async function getPastContests(): Promise<Contest[]> {
       throw new Error('Failed to fetch contests');
     }
 
-    const data: ContestsApiResponse = await res.json();
+    const data = mapContestsResponse((await res.json()) as ContestsResponseDto);
     // 終了した大会(closed)のみを返す
     return data.closed || [];
   } catch (error) {

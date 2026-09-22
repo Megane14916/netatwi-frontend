@@ -3,7 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 
-export default function RippleLink({ href, children, className, rippleColor = "bg-gray-400 dark:bg-gray-600", ...props }: any) {
+type RippleLinkProps = React.ComponentPropsWithoutRef<typeof Link> & {
+  rippleColor?: string;
+};
+
+export default function RippleLink({ href, children, className, rippleColor = "bg-gray-400 dark:bg-gray-600", ...props }: RippleLinkProps) {
   const [ripples, setRipples] = useState<{ x: number; y: number; id: number; size: number; active: boolean }[]>([]);
 
   const handlePointerDown = (e: React.PointerEvent<HTMLAnchorElement>) => {

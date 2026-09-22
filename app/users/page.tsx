@@ -3,20 +3,29 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { UserListRow } from '@/components/UserListRow';
 import { Search, ChevronLeft, ChevronRight, Users } from 'lucide-react';
+import { mapRankedUser } from '@/lib/mappers/api';
+import type { UsersResponseDto } from '@/types/api';
+import type { RankedUser } from '@/types/domain';
+
+interface UsersPageCacheEntry {
+  users: RankedUser[];
+  totalPages: number;
+  page: number;
+}
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<RankedUser[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
-  const cache = useRef<Record<string, { users: any[], total_pages: number, page: number }>>({});
+  const cache = useRef<Record<string, UsersPageCacheEntry>>({});
 
   const fetchUsers = useCallback(async (q: string, p: number) => {
     const cacheKey = `${q}_${p}`;
     if (cache.current[cacheKey]) {
       setUsers(cache.current[cacheKey].users);
-      setTotalPages(cache.current[cacheKey].total_pages);
+      setTotalPages(cache.current[cacheKey].totalPages);
       setPage(cache.current[cacheKey].page);
       setIsLoading(false);
       return;
@@ -27,14 +36,15 @@ export default function UsersPage() {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
       const res = await fetch(`${apiUrl}/api/users?q=${encodeURIComponent(q)}&page=${p}`);
       if (res.ok) {
-        const data = await res.json();
-        setUsers(data.users);
+        const data = (await res.json()) as UsersResponseDto;
+        const mappedUsers = data.users.map(mapRankedUser);
+        setUsers(mappedUsers);
         setTotalPages(data.total_pages);
         setPage(data.page);
         
         cache.current[cacheKey] = {
-          users: data.users,
-          total_pages: data.total_pages,
+          users: mappedUsers,
+          totalPages: data.total_pages,
           page: data.page
         };
       }
@@ -141,7 +151,7 @@ export default function UsersPage() {
               ユーザーが見つかりませんでした。
             </div>
           ) : (
-            users.map((user: any, index: number) => (
+            users.map((user, index) => (
               <UserListRow key={user.id} user={user} index={index} />
             ))
           )}

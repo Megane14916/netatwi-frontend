@@ -6,25 +6,13 @@ import TimeAgo from './TimeAgo';
 import useSWR from 'swr';
 import { useToast } from "@/components/ui/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-
-interface Comment {
-  id: number;
-  user_id: number;
-  post_id: number;
-  content: string;
-  is_judge: boolean;
-  created_at: string;
-  updated_at: string;
-  user: {
-    name: string;
-    screen_name: string;
-    profile_image_url: string;
-  };
-}
+import { mapComment } from '@/lib/mappers/api';
+import type { CommentDto } from '@/types/api';
+import type { Comment, User } from '@/types/domain';
 
 interface CommentListProps {
   postId: number;
-  currentUser: any;
+  currentUser: User | null;
   contestStatus: string;
   isAlwaysOpen?: boolean;
   isOpenProp?: boolean;
@@ -48,7 +36,11 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
   const [localComments, setLocalComments] = useState<Comment[]>([]);
   const [deletedCommentIds, setDeletedCommentIds] = useState<Set<number>>(new Set());
 
-  const fetcher = (url: string) => fetch(url).then(res => res.json());
+  const fetcher = async (url: string): Promise<Comment[]> => {
+    const response = await fetch(url);
+    const data = (await response.json()) as CommentDto[];
+    return data.map(mapComment);
+  };
   
   // 投票期間中は他人のコメントは見えず、自分のコメントは initialComments (一括取得) で賄えるため、
   // コメント欄を開いたときの個別APIフェッチをスキップする
@@ -87,7 +79,7 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
         unique.push(c);
       }
     }
-    return unique.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    return unique.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   }, [swrComments, localComments, deletedCommentIds]);
 
   const newTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -120,7 +112,7 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
     return () => observer.disconnect();
   }, [newComment]);
 
-  const hasCommented = comments.some(c => c.user_id === currentUser?.id);
+  const hasCommented = comments.some(c => c.userId === currentUser?.id);
 
   useEffect(() => {
     if ((isOpenProp || isOpen) && contestStatus === 'voting' && currentUser && !hasCommented) {
@@ -134,22 +126,22 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newComment.trim() || (!isJudgeMode && newComment.length > 140) || isSubmitting) return;
+    if (!currentUser || !newComment.trim() || (!isJudgeMode && newComment.length > 140) || isSubmitting) return;
 
     setIsSubmitting(true);
     setError('');
     
     // 楽観的更新
-    const optimisticComment = {
+    const optimisticComment: Comment = {
       id: Date.now(),
-      user_id: currentUser?.id,
-      post_id: postId,
+      userId: currentUser.id,
+      postId,
       content: newComment,
-      is_judge: false,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      user: currentUser
-    } as Comment;
+      isJudge: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      user: currentUser,
+    };
 
     if (shouldFetch) {
       mutate([...swrComments, optimisticComment], false);
@@ -272,7 +264,7 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
   // 投票期間中は自分のコメントのみ表示。結果発表後は全て表示。
   const visibleComments = contestStatus === 'closed' 
     ? comments 
-    : comments.filter(c => c.user_id === currentUser?.id);
+    : comments.filter(c => c.userId === currentUser?.id);
 
   const showTopClose = !(currentUser && !hasCommented);
 
@@ -294,7 +286,7 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
         <form onSubmit={handleSubmit} className="mb-4 mt-4">
           {error && <p className="text-red-500 text-xs mb-2">{error}</p>}
           <div className="flex items-start gap-2">
-            <img src={currentUser.profile_image_url || 'https://via.placeholder.com/40'} alt="" className="w-8 h-8 rounded-full border border-gray-200 dark:border-gray-800 flex-shrink-0" />
+            <img src={currentUser.profileImageUrl || 'https://via.placeholder.com/40'} alt="" className="w-8 h-8 rounded-full border border-gray-200 dark:border-gray-800 flex-shrink-0" />
             <div className="flex-grow flex flex-col space-y-2 relative">
               <textarea
                 ref={newTextareaRef}
@@ -340,17 +332,17 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
             <div className="flex justify-between items-start">
               <div className="flex items-center space-x-2">
 
-                <img src={comment.user.profile_image_url || 'https://via.placeholder.com/40'} alt="" className="w-6 h-6 rounded-full border border-gray-200 dark:border-gray-800" />
+                <img src={comment.user.profileImageUrl || 'https://via.placeholder.com/40'} alt="" className="w-6 h-6 rounded-full border border-gray-200 dark:border-gray-800" />
                 <span className="font-bold text-sm text-black dark:text-white">{comment.user.name}</span>
-                {comment.is_judge && (
+                {comment.isJudge && (
                   <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded border border-indigo-200 font-bold">
                     審査員
                   </span>
                 )}
-                <span className="text-xs text-black/50 dark:text-white/50"><TimeAgo timestamp={comment.created_at} /></span>
+                <span className="text-xs text-black/50 dark:text-white/50"><TimeAgo timestamp={comment.createdAt} /></span>
               </div>
               
-              {currentUser?.id === comment.user_id && (
+              {currentUser?.id === comment.userId && (
                 <div className="flex items-center space-x-2">
                   <button onClick={() => {
                     setEditingCommentId(comment.id);

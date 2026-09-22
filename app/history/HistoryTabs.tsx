@@ -4,25 +4,15 @@ import { useState } from 'react';
 import dayjs from 'dayjs';
 import { History } from 'lucide-react';
 import RippleLink from "@/components/RippleLink";
+import type { ContestSummary } from '@/types/domain';
 
-interface Contest {
-  id: number;
-  name: string;
-  theme: string | null;
-  startTime: string;
-  endTime: string;
-  votingEndTime: string;
-  totalPosters?: number;
-  type?: string;
-}
-
-export default function HistoryTabs({ contests }: { contests: Contest[] }) {
+export default function HistoryTabs({ contests }: { contests: ContestSummary[] }) {
   const [activeTab, setActiveTab] = useState<'grandprix' | 'daily'>('grandprix');
 
   const grandprixContests = contests.filter((c) => c.type === 'grandprix' || (!c.type && !c.name.includes('デイリー')));
   const dailyContests = contests.filter((c) => c.type === 'daily' || (!c.type && c.name.includes('デイリー')));
 
-  const renderContestCard = (contest: Contest) => (
+  const renderContestCard = (contest: ContestSummary) => (
     <RippleLink
       key={contest.id}
       href={`/venue/${contest.id}`}

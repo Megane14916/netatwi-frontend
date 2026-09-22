@@ -11,37 +11,15 @@ import dynamic from "next/dynamic";
 import CountdownTimer from "@/components/CountdownTimer";
 import HeroSection from "@/components/home/HeroSection";
 import NewsSection from "@/components/home/NewsSection";
+import { mapContestsResponse } from '@/lib/mappers/api';
+import type { ContestsResponseDto } from '@/types/api';
+import type { ContestSummary, ContestsByStatus } from '@/types/domain';
 
 const PostForm = dynamic(() => import("@/components/venue/PostForm"));
 
-interface Contest {
-  id: number;
-  name: string;
-  hasTheme: boolean;
-  theme: string | null;
-  hasQualifier: boolean;
-  parentContestId?: number;
-  type?: string;
-  startTime: string | null;
-  endTime: string | null;
-  votingEndTime: string | null;
-  totalPosters: number;
-  totalVoters: number;
-  totalJudges: number;
-}
-
-interface ContestsResponse {
-  ongoing: Contest[];
-  voting: Contest[];
-  upcoming: Contest[];
-  closed: Contest[];
-}
-
-
-
 const getGPStep = (
-  gpFinals: Contest,
-  gpQualifier: Contest | undefined | null,
+  gpFinals: ContestSummary,
+  gpQualifier: ContestSummary | undefined | null,
 ): number => {
   const now = dayjs();
   if (gpQualifier) {
@@ -65,7 +43,7 @@ const renderGPTitle = (name: string) => {
   );
 };
 
-const categorizeDaily = (c: Contest) => {
+const categorizeDaily = (c: ContestSummary) => {
   const now = dayjs();
   if (c.startTime && now.isBefore(dayjs(c.startTime))) return "upcoming";
   if (c.endTime && now.isBefore(dayjs(c.endTime))) return "ongoing";
@@ -87,15 +65,15 @@ const formatDateTime = (dt: string | null) => {
 
 
 export default function HomePage() {
-  const fetcher = (url: string) => fetch(url).then((res) => {
+  const fetcher = (url: string): Promise<ContestsByStatus> => fetch(url).then(async (res) => {
     if (!res.ok) throw new Error("Failed to fetch");
-    return res.json();
+    return mapContestsResponse((await res.json()) as ContestsResponseDto);
   });
 
   const {
     data: contestsData = null,
     isLoading: contestsLoading,
-  } = useSWR<ContestsResponse>("/api/contests", fetcher);
+  } = useSWR<ContestsByStatus>("/api/contests", fetcher);
 
   return (
     <div className="relative bg-white dark:bg-black text-black dark:text-white">
@@ -337,7 +315,7 @@ export default function HomePage() {
           if (visibleDailies.length === 0) return null;
 
           const renderDailyCard = (
-            contest: Contest,
+            contest: ContestSummary,
             type: "upcoming" | "ongoing" | "voting" | "closed",
           ) => {
             const typeConfig = {

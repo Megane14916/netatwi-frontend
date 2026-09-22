@@ -6,30 +6,10 @@ import { useRouter } from 'next/navigation';
 import { Heart, MessageSquare, Trophy, Bell } from 'lucide-react';
 import TimeAgo from '@/components/TimeAgo';
 import Link from 'next/link';
-
-interface Notification {
-  id: number;
-  type: string;
-  is_read: boolean;
-  post_id: number | null;
-  contest_id: number | null;
-  created_at: string;
-  sender: {
-    name: string;
-    screen_name: string;
-    profile_image_url: string;
-  } | null;
-  post: {
-    content: string;
-  } | null;
-  comment?: {
-    content: string;
-  } | null;
-  contest: {
-    name: string;
-    type: string;
-  } | null;
-}
+import type { ElementType } from 'react';
+import { mapNotification } from '@/lib/mappers/api';
+import type { NotificationDto } from '@/types/api';
+import type { Notification } from '@/types/domain';
 
 export default function NotificationsPage() {
   const { user, loading } = useAuth();
@@ -49,10 +29,11 @@ export default function NotificationsPage() {
       try {
         const res = await fetch('/api/notifications');
         if (res.ok) {
-          const data = await res.json();
-          setNotifications(data);
+          const data = (await res.json()) as NotificationDto[];
+          const mappedNotifications = data.map(mapNotification);
+          setNotifications(mappedNotifications);
           
-          if (data.some((n: Notification) => !n.is_read)) {
+          if (mappedNotifications.some((notification) => !notification.isRead)) {
             await fetch('/api/notifications/read', { method: 'POST' });
           }
         }
@@ -84,15 +65,15 @@ export default function NotificationsPage() {
             </div>
           ) : (
             notifications.map(notification => {
-              const Wrapper: any = notification.contest_id ? Link : 'div';
-              const wrapperProps = notification.contest_id 
-                ? { href: `/venue/${notification.contest_id}`, prefetch: false } 
+              const Wrapper: ElementType = notification.contestId ? Link : 'div';
+              const wrapperProps = notification.contestId
+                ? { href: `/venue/${notification.contestId}`, prefetch: false }
                 : {};
 
               return (
               <Wrapper 
                 key={notification.id} 
-                className={`block p-4 border-b border-gray-200 dark:border-gray-800 transition-colors cursor-pointer ${notification.is_read ? 'bg-white dark:bg-black hover:bg-gray-50 dark:hover:bg-gray-900' : 'bg-[#E1F5FE] dark:bg-blue-900/40 hover:bg-[#B3E5FC] dark:hover:bg-blue-900/60'}`}
+                className={`block p-4 border-b border-gray-200 dark:border-gray-800 transition-colors cursor-pointer ${notification.isRead ? 'bg-white dark:bg-black hover:bg-gray-50 dark:hover:bg-gray-900' : 'bg-[#E1F5FE] dark:bg-blue-900/40 hover:bg-[#B3E5FC] dark:hover:bg-blue-900/60'}`}
                 {...wrapperProps}
               >
                 <div className="flex items-start gap-4">
@@ -108,7 +89,7 @@ export default function NotificationsPage() {
                     <div className="flex items-center gap-2 mb-1">
                       {notification.sender && (
                         <img 
-                          src={notification.sender.profile_image_url} 
+                          src={notification.sender.profileImageUrl || 'https://via.placeholder.com/24'}
                           alt="" 
                           className="w-6 h-6 rounded-full border border-gray-200 dark:border-gray-800" 
                           onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/24')}
@@ -122,7 +103,7 @@ export default function NotificationsPage() {
                             : 'システム'
                         }
                       </span>
-                      <span className="text-sm text-gray-500 dark:text-gray-400"><TimeAgo timestamp={notification.created_at} /></span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400"><TimeAgo timestamp={notification.createdAt} /></span>
                     </div>
                     
                     <p className="text-gray-700 dark:text-gray-300 text-sm mb-2 font-medium">

@@ -17,27 +17,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { mapComment, mapProfile } from '@/lib/mappers/api';
+import type { CommentsByPostDto, ProfileResponseDto } from '@/types/api';
+import type { Comment, ResultPost, UserProfile } from '@/types/domain';
 
 const API_PREFIX = '';
-
-interface ProfileData {
-  user: {
-    id: number;
-    screen_name: string;
-    name: string;
-    profile_image_url: string | null;
-  };
-  posts: any[];
-  bookmarks: any[];
-  likes: any[]; // 追加
-}
 
 export default function UserProfilePage({ params }: { params: { screen_name: string } }) {
   const { toast } = useToast();
   const screenName = params?.screen_name as string;
   const { user: currentUser } = useAuth();
 
-  const [profileData, setProfileData] = useState<ProfileData | null>(null);
+  const [profileData, setProfileData] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'posts' | 'bookmarks' | 'likes'>('posts');
@@ -79,7 +70,7 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
   };
 
   // コメント一括取得用の状態
-  const [prefetchedComments, setPrefetchedComments] = useState<Record<number, any[]>>({});
+  const [prefetchedComments, setPrefetchedComments] = useState<Record<number, Comment[]>>({});
   const fetchingPostIdsRef = useRef<Set<number>>(new Set());
 
   useEffect(() => {
@@ -105,8 +96,8 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
           throw new Error('Failed to fetch profile');
         }
 
-        const data = await res.json();
-        setProfileData(data);
+        const data = (await res.json()) as ProfileResponseDto;
+        setProfileData(mapProfile(data));
       } catch (err) {
         console.error(err);
         setError('プロフィールの取得に失敗しました。');
@@ -122,8 +113,8 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
       setProfileData(prev => {
           if (!prev) return null;
 
-          const updateList = (list: any[]) => list.map(item => {
-              if (item.post_id !== postId) return item;
+          const updateList = (list: ResultPost[]) => list.map(item => {
+              if (item.id !== postId) return item;
               const nextCount = serverCount ?? (
                   item.isBookmarked === isBookmarked
                       ? item.bookmarkCount
@@ -133,8 +124,8 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
           });
 
           let newBookmarks = updateList(prev.bookmarks);
-          if (isBookmarked && !newBookmarks.some(item => item.post_id === postId)) {
-              const source = [...prev.posts, ...prev.likes].find(item => item.post_id === postId);
+          if (isBookmarked && !newBookmarks.some(item => item.id === postId)) {
+              const source = [...prev.posts, ...prev.likes].find(item => item.id === postId);
               if (source) {
                   newBookmarks = [{
                       ...source,
@@ -145,7 +136,7 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
           } else if (!isBookmarked) {
               const isMyProfile = currentUser && String(currentUser.id) === String(prev.user.id);
               if (isMyProfile) {
-                  newBookmarks = newBookmarks.filter(item => item.post_id !== postId);
+                  newBookmarks = newBookmarks.filter(item => item.id !== postId);
               }
           }
 
@@ -189,18 +180,18 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
       }
   };
 
-  const handleToggleBookmark = (post: any) => {
-      const current = bookmarkTargetsRef.current.get(post.post_id) ?? post.isBookmarked;
+  const handleToggleBookmark = (post: ResultPost) => {
+      const current = bookmarkTargetsRef.current.get(post.id) ?? post.isBookmarked;
       const next = !current;
-      bookmarkTargetsRef.current.set(post.post_id, next);
-      if (!bookmarkConfirmedRef.current.has(post.post_id)) {
-          bookmarkConfirmedRef.current.set(post.post_id, post.isBookmarked);
-          bookmarkConfirmedCountRef.current.set(post.post_id, post.bookmarkCount);
+      bookmarkTargetsRef.current.set(post.id, next);
+      if (!bookmarkConfirmedRef.current.has(post.id)) {
+          bookmarkConfirmedRef.current.set(post.id, post.isBookmarked);
+          bookmarkConfirmedCountRef.current.set(post.id, post.bookmarkCount);
       }
 
       // API完了を待たずに表示だけ更新する
-      applyBookmarkState(post.post_id, next);
-      void processBookmarkQueue(post.post_id);
+      applyBookmarkState(post.id, next);
+      void processBookmarkQueue(post.id);
   };
 
   // 表示する投稿リストの切り替え
@@ -216,9 +207,9 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
     if (!displayPosts || displayPosts.length === 0) return;
 
     const allPostIds = new Set<number>();
-    displayPosts.forEach((p: any) => {
-      if (p.commentCount > 0 || p.comment_count > 0) {
-        allPostIds.add(p.post_id);
+    displayPosts.forEach((post) => {
+      if (post.commentCount > 0) {
+        allPostIds.add(post.id);
       }
     });
 
@@ -233,10 +224,11 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
         credentials: "include",
       })
         .then((res) => res.json())
-        .then((data) => {
-          if (!data.error) {
-            setPrefetchedComments((prev) => ({ ...prev, ...data }));
-          }
+        .then((data: CommentsByPostDto) => {
+          const mapped = Object.fromEntries(
+            Object.entries(data).map(([postId, comments]) => [postId, comments.map(mapComment)]),
+          );
+          setPrefetchedComments((prev) => ({ ...prev, ...mapped }));
         })
         .catch((err) => {
           console.error(err);
@@ -289,8 +281,8 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
           <div className="flex justify-between items-start">
             <div className="-mt-12 md:-mt-[66px] relative">
               <img
-                src={profileData.user.profile_image_url || 'https://via.placeholder.com/133'}
-                alt={profileData.user.screen_name}
+                src={profileData.user.profileImageUrl || 'https://via.placeholder.com/133'}
+                alt={profileData.user.screenName}
                 className="w-24 h-24 md:w-[133px] md:h-[133px] rounded-full border-4 border-white dark:border-black shadow-sm object-cover bg-white dark:bg-black"
                 onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/133')}
               />
@@ -298,7 +290,7 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
             {/* Xプロフィールへのリンクボタンと三点リーダー (境界線上の右のすぐ下側) */}
             <div className="pt-3 flex items-center gap-2 relative">
               <a 
-                href={`https://x.com/${profileData.user.screen_name}`}
+                href={`https://x.com/${profileData.user.screenName}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center px-4 py-1.5 bg-white dark:bg-black text-black dark:text-white text-xs font-bold rounded-full border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -336,7 +328,7 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
           {/* ユーザー情報 */}
           <div className="mt-2">
             <h1 className="text-xl font-bold text-black dark:text-white">{profileData.user.name}</h1>
-            <p className="text-gray-500 dark:text-gray-400 text-sm">@{profileData.user.screen_name}</p>
+            <p className="text-gray-500 dark:text-gray-400 text-sm">@{profileData.user.screenName}</p>
             <p className="mt-3 text-sm text-gray-700 dark:text-gray-300">
               <span className="font-bold text-black dark:text-white">{profileData.posts.length}</span> ポスト{" "}
               <span className="font-bold text-black dark:text-white ml-3">{profileData.likes.length}</span> いいね{" "}
@@ -386,7 +378,7 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
             </div>
           ) : (
             displayPosts.map((post) => (
-              <div key={post.post_id} className="border-b border-gray-200 dark:border-gray-800">
+              <div key={post.id} className="border-b border-gray-200 dark:border-gray-800">
                 {/* 大会リンク (カードの外に表示) */}
                 {post.contest && (
                     <div className="px-4 pt-3 pb-1 text-xs text-gray-500 dark:text-gray-400 hover:text-[#1DA1F2] transition-colors flex items-center">
@@ -403,7 +395,7 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
                     currentUser={currentUser} 
                     onToggleBookmark={handleToggleBookmark}
                     contestScoringMethod={post.contest?.scoringMethod}
-                    initialComments={prefetchedComments[post.post_id]}
+                    initialComments={prefetchedComments[post.id]}
                 />
               </div>
             ))

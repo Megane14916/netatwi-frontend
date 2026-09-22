@@ -29,6 +29,10 @@ import { countText, TextCountResult } from "@/lib/twitterText";
 import { compressImage } from "@/lib/imageCompression";
 import { useToast } from "@/components/ui/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import type { User } from "@/types/domain";
+import type { Contest, Post } from "@/types/domain";
+import type { ContestDto, ContestPostsResponseDto, PostDto } from "@/types/api";
+import { mapContest, mapContestPosts, mapPost } from "@/lib/mappers/api";
 
 const MAX_IMAGE_TOTAL_BYTES = 16 * 1024 * 1024;
 const IMAGE_SIZE_ERROR = "画像の合計サイズが上限を超えています（最大16 MiB）";
@@ -46,34 +50,20 @@ interface PostFormProps {
   onPostSuccess?: () => void; // 投稿成功コールバック
 }
 
-interface PostData {
-  id: number;
-  content: string;
-  images?: string[];
-  created_at: string;
-  user_id?: number;
-}
-
-interface ContestInfo {
-  id: number;
-  imageRule: string;
-  endTime: string;
-  isAdvancedToFinal?: boolean | null;
-  parentContestId?: number;
-}
+type ContestInfo = Pick<Contest, "id" | "imageRule" | "endTime" | "isAdvancedToFinal" | "parentContestId">;
 
 // ---------------------------------------------------------------------------
 // MyPostDisplay サブコンポーネント
 // ---------------------------------------------------------------------------
 
 interface MyPostDisplayProps {
-  post: PostData;
+  post: Post;
   isEditing: boolean;
   onStartEdit: () => void;
   onDelete: () => void;
   isDeadlinePassed: boolean;
   isDeleting: boolean;
-  user: { screen_name: string; name: string; profile_image_url: string } | null;
+  user: User | null;
 }
 
 const MyPostDisplay = ({
@@ -91,8 +81,8 @@ const MyPostDisplay = ({
     <div className="flex items-start gap-3">
       <div className="flex-none">
         <img
-          src={user?.profile_image_url || "https://via.placeholder.com/40"}
-          alt={user?.screen_name}
+          src={user?.profileImageUrl || "https://via.placeholder.com/40"}
+          alt={user?.screenName}
           className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-800 object-cover bg-white dark:bg-black"
           onError={(e) =>
             (e.currentTarget.src = "https://via.placeholder.com/40")
@@ -103,11 +93,11 @@ const MyPostDisplay = ({
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center">
             <span className="font-bold text-black dark:text-white mr-1">
-              {user?.name || user?.screen_name}
+              {user?.name || user?.screenName}
             </span>
-            <span className="text-gray-500 dark:text-gray-400 text-sm">@{user?.screen_name}</span>
+            <span className="text-gray-500 dark:text-gray-400 text-sm">@{user?.screenName}</span>
           </div>
-          <TimeAgo timestamp={post.created_at} />
+          <TimeAgo timestamp={post.createdAt} />
         </div>
         <div className="mt-1 text-[15px] text-black/90 dark:text-white/90 leading-relaxed whitespace-pre-wrap break-words [line-break:anywhere]">
           <Twemoji text={post.content} />
@@ -179,7 +169,7 @@ export default function PostForm({
 
   // --- コンテスト情報 ---
   const [contestInfo, setContestInfo] = useState<ContestInfo | null>(null);
-  const [myPost, setMyPost] = useState<PostData | null>(null);
+  const [myPost, setMyPost] = useState<Post | null>(null);
   const [isLoadingInfo, setIsLoadingInfo] = useState(true);
 
   // --- 投稿フォーム状態 ---
@@ -227,7 +217,7 @@ export default function PostForm({
           credentials: "include",
         });
         if (contestRes.ok) {
-          const contestData = await contestRes.json();
+          const contestData = mapContest((await contestRes.json()) as ContestDto);
           setContestInfo({
             id: contestData.id,
             imageRule: contestData.imageRule,
@@ -244,9 +234,8 @@ export default function PostForm({
             cache: "no-store",
           });
           if (postsRes.ok) {
-            const postsData = await postsRes.json();
-            const allPosts: PostData[] = postsData.posts ?? [];
-            const mine = allPosts.find((p) => p.user_id === user.id) ?? null;
+            const postsData = mapContestPosts((await postsRes.json()) as ContestPostsResponseDto);
+            const mine = postsData.posts.find((post) => post.userId === user.id) ?? null;
             setMyPost(mine);
             if (mine) {
               setNewPostContent(mine.content);
@@ -416,8 +405,9 @@ export default function PostForm({
       setIsEditing(false);
       setPostError(null);
       onPostSuccess?.();
-    } catch (err: any) {
-      toast({ title: "エラー", description: err.message, variant: "destructive" });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "削除に失敗しました";
+      toast({ title: "エラー", description: message, variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
@@ -508,8 +498,8 @@ export default function PostForm({
         throw new Error(message);
       }
 
-      const data: PostData = await res.json();
-      const updatedPost: PostData = { ...data, user_id: user.id };
+      const data = (await res.json()) as Omit<PostDto, "user_id"> & { user_id?: number };
+      const updatedPost = mapPost({ ...data, user_id: data.user_id ?? user.id });
 
       setMyPost(updatedPost);
       setNewPostContent("");
@@ -519,8 +509,8 @@ export default function PostForm({
       setPostError(null);
 
       onPostSuccess?.();
-    } catch (err: any) {
-      setPostError(err.message);
+    } catch (error: unknown) {
+      setPostError(error instanceof Error ? error.message : "投稿に失敗しました");
     } finally {
       setIsSubmitting(false);
     }
@@ -581,8 +571,8 @@ export default function PostForm({
           <div className="mb-4 flex items-start gap-3">
             <div className="mt-0.5 flex-none w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-800 overflow-hidden border border-gray-200 dark:border-gray-800">
               <img
-                src={user.profile_image_url || "https://via.placeholder.com/40"}
-                alt={user.screen_name}
+                src={user.profileImageUrl || "https://via.placeholder.com/40"}
+                alt={user.screenName}
                 className="w-full h-full object-cover"
                 onError={(e) =>
                   (e.currentTarget.src = "https://via.placeholder.com/40")
