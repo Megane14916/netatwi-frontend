@@ -7,3 +7,4 @@ export * from "./notifications";
 export * from "./posts";
 export * from "./profile";
 export * from "./users";
+export * from "./votes";

@@ -39,22 +39,6 @@ export const getContestResults = async (contestId: number): Promise<ContestResul
     }),
   );
 
-export interface JudgeAwardSelection {
-  postId: number | null;
-  comment: string;
-}
-
-export interface VotePayload {
-  votes: Record<number, number>;
-  judgeAward?: JudgeAwardSelection;
-}
-
-export const submitContestVotes = (contestId: number, payload: VotePayload): Promise<void> =>
-  browserRequest<void>(`/api/contests/${contestId}/vote`, {
-    method: "POST",
-    json: payload,
-  });
-
 export const loginAsJudge = async (contestId: number, password: string): Promise<void> => {
   const response = await browserRequest<unknown>(`/api/contests/${contestId}/judge/login`, {
     method: "POST",

@@ -49,6 +49,17 @@ const isAbortError = (error: unknown): boolean =>
       "name" in error &&
       error.name === "AbortError";
 
+const toTransportError = (error: unknown): ApiError =>
+  isAbortError(error)
+    ? new ApiError("Request was aborted", {
+        kind: "aborted",
+        cause: error,
+      })
+    : new ApiError("Network request failed", {
+        kind: "network",
+        cause: error,
+      });
+
 export async function request<T>(
   input: string | URL,
   options: ApiRequestOptions<T> = {},
@@ -71,19 +82,15 @@ export async function request<T>(
   try {
     response = await fetch(input, { ...requestInit, headers, body });
   } catch (error) {
-    if (isAbortError(error)) {
-      throw new ApiError("Request was aborted", {
-        kind: "aborted",
-        cause: error,
-      });
-    }
-    throw new ApiError("Network request failed", {
-      kind: "network",
-      cause: error,
-    });
+    throw toTransportError(error);
   }
 
-  const responseText = response.status === 204 ? "" : await response.text();
+  let responseText = "";
+  try {
+    responseText = response.status === 204 ? "" : await response.text();
+  } catch (error) {
+    throw toTransportError(error);
+  }
   const contentType = response.headers.get("content-type") ?? "";
   let data: unknown;
 

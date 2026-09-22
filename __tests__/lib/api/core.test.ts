@@ -107,6 +107,32 @@ describe("request", () => {
     });
   });
 
+  it("passes an AbortSignal to fetch", async () => {
+    fetchMock.mockResolvedValue(response(null, { status: 204 }));
+    const controller = new AbortController();
+
+    await request<void>("/api/example", { signal: controller.signal });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/example",
+      expect.objectContaining({ signal: controller.signal }),
+    );
+  });
+
+  it("classifies aborts while reading a response body", async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: "",
+      headers: { get: () => "application/json" },
+      text: jest.fn().mockRejectedValue(new DOMException("aborted", "AbortError")),
+    } as unknown as Response);
+
+    await expect(request("/api/example")).rejects.toMatchObject({
+      kind: "aborted",
+    });
+  });
+
   it("classifies malformed successful JSON", async () => {
     fetchMock.mockResolvedValue(response("{", { contentType: "application/json" }));
 

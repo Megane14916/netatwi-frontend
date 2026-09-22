@@ -35,7 +35,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import type { Comment, ContestStatus, Post } from '@/types/domain';
 import { getCommentsByPostIds } from '@/lib/api/endpoints/comments';
-import { submitContestVotes, type JudgeAwardSelection, type VotePayload } from '@/lib/api/endpoints/contests';
+import { submitContestVotes, type JudgeAwardSelection, type VotePayload } from '@/lib/api/endpoints/votes';
 import { ApiError, getApiErrorMessage } from '@/lib/api/core';
 import { useContest, useContestPosts, useContestResults } from '@/hooks/api/useContests';
 
