@@ -3,7 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { ApiError } from "@/lib/api/core";
 import { useContest, useContestPosts, useContestResults } from "@/hooks/api/useContests";
+import type { Post } from "@/types/domain";
 import { getContestTiming } from "../model/contestStatus";
+
+const EMPTY_POSTS: Post[] = [];
 
 export type ContestPageState = "loading" | "not-found" | "error" | "ready";
 export type ContestResultsState = "idle" | "loading" | "empty" | "aggregating" | "ready";
@@ -52,7 +55,7 @@ export const useContestDetail = (contestId: number | null) => {
     resultsState,
     contest: contestQuery.data ?? null,
     timing,
-    posts: postsQuery.data?.posts ?? [],
+    posts: postsQuery.data?.posts ?? EMPTY_POSTS,
     postsData: postsQuery.data,
     resultsData: resultsQuery.data,
     mutateContest: contestQuery.mutate,
