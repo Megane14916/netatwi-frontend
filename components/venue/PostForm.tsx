@@ -31,8 +31,9 @@ import { useToast } from "@/components/ui/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import type { User } from "@/types/domain";
 import type { Contest, Post } from "@/types/domain";
-import type { ContestDto, ContestPostsResponseDto, PostDto } from "@/types/api";
-import { mapContest, mapContestPosts, mapPost } from "@/lib/mappers/api";
+import { getContest, getContestPosts } from "@/lib/api/endpoints/contests";
+import { createPost, deletePost, updatePost } from "@/lib/api/endpoints/posts";
+import { ApiError, getApiErrorMessage } from "@/lib/api/core";
 
 const MAX_IMAGE_TOTAL_BYTES = 16 * 1024 * 1024;
 const IMAGE_SIZE_ERROR = "画像の合計サイズが上限を超えています（最大16 MiB）";
@@ -212,35 +213,23 @@ export default function PostForm({
     const fetchData = async () => {
       setIsLoadingInfo(true);
       try {
-        // コンテスト情報取得
-        const contestRes = await fetch(`/api/contests/${contestId}`, {
-          credentials: "include",
+        const contestData = await getContest(contestId);
+        setContestInfo({
+          id: contestData.id,
+          imageRule: contestData.imageRule,
+          endTime: contestData.endTime,
+          isAdvancedToFinal: contestData.isAdvancedToFinal,
+          parentContestId: contestData.parentContestId,
         });
-        if (contestRes.ok) {
-          const contestData = mapContest((await contestRes.json()) as ContestDto);
-          setContestInfo({
-            id: contestData.id,
-            imageRule: contestData.imageRule,
-            endTime: contestData.endTime,
-            isAdvancedToFinal: contestData.isAdvancedToFinal,
-            parentContestId: contestData.parentContestId,
-          });
-        }
 
         // 自分の既存投稿取得 (user がいる場合のみ意味がある)
         if (user) {
-          const postsRes = await fetch(`/api/contests/${contestId}/posts`, {
-            credentials: "include",
-            cache: "no-store",
-          });
-          if (postsRes.ok) {
-            const postsData = mapContestPosts((await postsRes.json()) as ContestPostsResponseDto);
-            const mine = postsData.posts.find((post) => post.userId === user.id) ?? null;
-            setMyPost(mine);
-            if (mine) {
-              setNewPostContent(mine.content);
-              setPreviewUrls(mine.images || []);
-            }
+          const postsData = await getContestPosts(contestId);
+          const mine = postsData.posts.find((post) => post.userId === user.id) ?? null;
+          setMyPost(mine);
+          if (mine) {
+            setNewPostContent(mine.content);
+            setPreviewUrls(mine.images || []);
           }
         }
       } catch (err) {
@@ -390,14 +379,7 @@ export default function PostForm({
     if (!myPost) return;
     setIsSubmitting(true);
     try {
-      const res = await fetch(`/api/contests/${contestId}/posts/${myPost.id}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "削除に失敗しました");
-      }
+      await deletePost(contestId, myPost.id);
       setMyPost(null);
       setNewPostContent("");
       setPreviewUrls([]);
@@ -458,11 +440,6 @@ export default function PostForm({
     setIsSubmitting(true);
     setPostError(null);
 
-    const url = isEditing
-      ? `/api/contests/${contestId}/posts/${myPost?.id}`
-      : `/api/contests/${contestId}/posts`;
-    const method = isEditing ? "PUT" : "POST";
-
     const formData = new FormData();
     formData.append("content", newPostContent);
 
@@ -474,32 +451,9 @@ export default function PostForm({
     selectedImages.forEach((file) => formData.append("images", file));
 
     try {
-      const res = await fetch(url, {
-        method,
-        body: formData,
-        credentials: "include",
-      });
-
-      if (!res.ok) {
-        let message =
-          res.status === 413
-            ? IMAGE_SIZE_ERROR
-            : `投稿に失敗しました（HTTP ${res.status}）`;
-
-        if (res.headers.get("content-type")?.includes("application/json")) {
-          try {
-            const data = await res.json();
-            message = data.error || message;
-          } catch {
-            // 壊れたJSONでも、ステータスに応じたメッセージを表示する。
-          }
-        }
-
-        throw new Error(message);
-      }
-
-      const data = (await res.json()) as Omit<PostDto, "user_id"> & { user_id?: number };
-      const updatedPost = mapPost({ ...data, user_id: data.user_id ?? user.id });
+      const updatedPost = isEditing && myPost
+        ? await updatePost(contestId, myPost.id, formData, user.id)
+        : await createPost(contestId, formData, user.id);
 
       setMyPost(updatedPost);
       setNewPostContent("");
@@ -510,7 +464,11 @@ export default function PostForm({
 
       onPostSuccess?.();
     } catch (error: unknown) {
-      setPostError(error instanceof Error ? error.message : "投稿に失敗しました");
+      setPostError(
+        error instanceof ApiError && error.status === 413
+          ? IMAGE_SIZE_ERROR
+          : getApiErrorMessage(error, "投稿に失敗しました"),
+      );
     } finally {
       setIsSubmitting(false);
     }

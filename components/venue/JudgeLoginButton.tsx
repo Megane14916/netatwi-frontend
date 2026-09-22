@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { Gavel, Lock, X } from 'lucide-react';
+import { loginAsJudge } from '@/lib/api/endpoints/contests';
+import { getApiErrorMessage } from '@/lib/api/core';
 
 // 型定義に onLoginSuccess を追加
 interface JudgeLoginButtonProps {
@@ -21,28 +23,13 @@ export default function JudgeLoginButton({ contestId, onLoginSuccess }: JudgeLog
     setLoading(true);
 
     try {
-      // 相対パスでリクエスト (Next.js Rewrite経由)
-      const res = await fetch(`/api/contests/${contestId}/judge/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // Cookieを送信
-        body: JSON.stringify({ password }),
-      });
-
-      if (res.ok) {
-        setIsOpen(false);
-        setPassword('');
-        // 認証成功時に親コンポーネントのコールバックを実行（データ再取得など）
-        onLoginSuccess();
-      } else {
-        const data = await res.json();
-        setError(data.error || '認証に失敗しました');
-      }
-    } catch (err) {
-      console.error(err);
-      setError('エラーが発生しました');
+      await loginAsJudge(contestId, password);
+      setIsOpen(false);
+      setPassword('');
+      onLoginSuccess();
+    } catch (requestError) {
+      console.error(requestError);
+      setError(getApiErrorMessage(requestError, '認証に失敗しました'));
     } finally {
       setLoading(false);
     }

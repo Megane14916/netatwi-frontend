@@ -11,6 +11,7 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/ja';
 import { useToast } from "@/components/ui/use-toast";
 import type { Comment, ResultPost, User } from '@/types/domain';
+import { setPostBookmark, setPostLike } from '@/lib/api/endpoints/posts';
 
 dayjs.extend(relativeTime);
 dayjs.locale('ja');
@@ -88,14 +89,7 @@ export default function ResultPostCard({ post, currentUser, onToggleBookmark, co
     try {
       while (true) {
         const requestedState = bookmarkTargetRef.current;
-        const res = await fetch(`/api/posts/${post.id}/bookmark`, {
-          method: requestedState ? 'PUT' : 'DELETE',
-          credentials: 'include',
-        });
-
-        if (!res.ok) throw new Error('Failed');
-
-        const data = await res.json();
+        const data = await setPostBookmark(post.id, requestedState);
         bookmarkConfirmedRef.current = data.isBookmarked;
         bookmarkConfirmedCountRef.current = Math.max(0, data.bookmarkCount);
         setIsBookmarked(data.isBookmarked);
@@ -139,20 +133,11 @@ export default function ResultPostCard({ post, currentUser, onToggleBookmark, co
     try {
       while (true) {
         const requestedState = likeTargetRef.current;
-        const res = await fetch(`/api/posts/${post.id}/like`, {
-          method: requestedState ? 'PUT' : 'DELETE',
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          likeConfirmedRef.current = data.isLiked;
-          setIsLiked(data.isLiked);
-          setLikeCount(data.likeCount);
-          if (likeTargetRef.current === requestedState) break;
-        } else {
-          const errData = await res.json();
-          throw new Error(errData.error || 'いいねに失敗しました');
-        }
+        const data = await setPostLike(post.id, requestedState);
+        likeConfirmedRef.current = data.isLiked;
+        setIsLiked(data.isLiked);
+        setLikeCount(data.likeCount);
+        if (likeTargetRef.current === requestedState) break;
       }
     } catch (error) {
       likeTargetRef.current = likeConfirmedRef.current;

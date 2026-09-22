@@ -7,9 +7,8 @@ import { Heart, MessageSquare, Trophy, Bell } from 'lucide-react';
 import TimeAgo from '@/components/TimeAgo';
 import Link from 'next/link';
 import type { ElementType } from 'react';
-import { mapNotification } from '@/lib/mappers/api';
-import type { NotificationDto } from '@/types/api';
 import type { Notification } from '@/types/domain';
+import { getNotifications, markNotificationsRead } from '@/lib/api/endpoints/notifications';
 
 export default function NotificationsPage() {
   const { user, loading } = useAuth();
@@ -27,15 +26,11 @@ export default function NotificationsPage() {
     const fetchNotifications = async () => {
       if (!user) return;
       try {
-        const res = await fetch('/api/notifications');
-        if (res.ok) {
-          const data = (await res.json()) as NotificationDto[];
-          const mappedNotifications = data.map(mapNotification);
-          setNotifications(mappedNotifications);
-          
-          if (mappedNotifications.some((notification) => !notification.isRead)) {
-            await fetch('/api/notifications/read', { method: 'POST' });
-          }
+        const data = await getNotifications();
+        setNotifications(data);
+
+        if (data.some((notification) => !notification.isRead)) {
+          await markNotificationsRead();
         }
       } catch (e) {
         console.error(e);

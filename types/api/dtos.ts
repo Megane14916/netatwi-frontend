@@ -179,3 +179,9 @@ export interface ProfileResponseDto {
 }
 
 export type CommentsByPostDto = Record<string, CommentDto[]>;
+
+export interface NewsItemDto {
+  id: number;
+  tweet_id: string;
+  created_at?: string;
+}
