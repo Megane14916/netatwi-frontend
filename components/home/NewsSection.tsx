@@ -2,10 +2,9 @@
 
 import { useState, useRef, useEffect } from "react";
 import { ExternalLink } from "lucide-react";
-import useSWR from "swr";
 import dynamic from "next/dynamic";
-import { getNews } from "@/lib/api/endpoints/news";
 import type { NewsItem } from "@/types/domain";
+import { useNews } from "@/hooks/api/useNews";
 
 const DynamicTweet = dynamic(() => import("@/components/DynamicTweet"), {
   loading: () => (
@@ -59,7 +58,7 @@ export default function NewsSection() {
     data: newsList = [],
     error: newsError,
     isLoading: newsLoading,
-  } = useSWR<NewsItem[]>("/api/news", getNews);
+  } = useNews();
 
   // ツイート埋め込み等によるスクロール位置のバグを防ぐため初期状態では左端に戻す
   useEffect(() => {

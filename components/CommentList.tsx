@@ -3,12 +3,12 @@
 import React, { useState, useEffect,useRef, useMemo } from 'react';
 import { Send, Edit2, Trash2, X } from 'lucide-react';
 import TimeAgo from './TimeAgo';
-import useSWR from 'swr';
 import { useToast } from "@/components/ui/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import type { Comment, User } from '@/types/domain';
-import { commentKeys, createComment, deleteComment, getPostComments, updateComment } from '@/lib/api/endpoints/comments';
+import { createComment, deleteComment, updateComment } from '@/lib/api/endpoints/comments';
 import { getApiErrorMessage } from '@/lib/api/core';
+import { usePostComments } from '@/hooks/api/useComments';
 
 interface CommentListProps {
   postId: number;
@@ -40,11 +40,11 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
   // コメント欄を開いたときの個別APIフェッチをスキップする
   const shouldFetch = (isAlwaysOpen || isOpen || isOpenProp) && contestStatus !== 'voting';
   
-  const { data: swrComments = initialComments || [], mutate } = useSWR<Comment[]>(
-    shouldFetch ? commentKeys.forPost(postId) : null,
-    () => getPostComments(postId),
-    { fallbackData: initialComments || [] }
-  );
+  const { data: swrComments = [], mutate } = usePostComments({
+    postId,
+    enabled: shouldFetch,
+    initialComments,
+  });
 
   // SWRデータとローカル操作分をマージして一意なリストを作成する
   const comments = useMemo(() => {

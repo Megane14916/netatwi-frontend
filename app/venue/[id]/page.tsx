@@ -31,13 +31,13 @@ import PostForm from "@/components/venue/PostForm";
 import ImageGrid from "@/components/ImageGrid";
 import ResultPostCard from "@/components/ResultPostCard";
 import CommentList from "@/components/CommentList";
-import useSWR from "swr";
 import { useToast } from "@/components/ui/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import type { Comment, Contest, ContestPosts, ContestResults, ContestStatus, Post } from '@/types/domain';
+import type { Comment, ContestStatus, Post } from '@/types/domain';
 import { getCommentsByPostIds } from '@/lib/api/endpoints/comments';
-import { contestKeys, getContest, getContestPosts, getContestResults, submitContestVotes, type JudgeAwardSelection, type VotePayload } from '@/lib/api/endpoints/contests';
+import { submitContestVotes, type JudgeAwardSelection, type VotePayload } from '@/lib/api/endpoints/contests';
 import { ApiError, getApiErrorMessage } from '@/lib/api/core';
+import { useContest, useContestPosts, useContestResults } from '@/hooks/api/useContests';
 
 interface VoteBackup {
   votes: Record<number, number>;
@@ -240,9 +240,8 @@ export default function VenueDetailPage() {
   const { user, judgeContests, refetchUser } = useAuth();
 
   // 1. SWRによるデータ取得を一番上に移動
-  const { data: contestData, error: contestError, mutate: mutateContest } = useSWR<Contest>(
-    contestId ? contestKeys.detail(contestId) : null,
-    () => getContest(contestId),
+  const { data: contestData, error: contestError, mutate: mutateContest } = useContest(
+    contestId || null,
   );
 
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -335,24 +334,15 @@ export default function VenueDetailPage() {
   }, []);
 
   // postsData の取得（ongoing, votingのときのみ）
-  const { data: postsData, error: postsError, mutate: mutatePosts } = useSWR<ContestPosts>(
-    (contestStatus === "ongoing" || contestStatus === "voting") 
-      ? contestKeys.posts(contestId)
-      : null,
-    () => getContestPosts(contestId),
+  const { data: postsData, error: postsError, mutate: mutatePosts } = useContestPosts(
+    contestId,
+    contestStatus === "ongoing" || contestStatus === "voting",
   );
 
   // resultsData の取得（closedのときのみ）
-  const { data: resultsDataRaw, error: resultsError } = useSWR<ContestResults>(
-    contestStatus === "closed" ? contestKeys.results(contestId) : null,
-    () => getContestResults(contestId),
-    {
-      refreshInterval: (data?: ContestResults) => {
-        if (!data || !data.results) return 0;
-        const isAggregating = data.results.some((result) => result.rank === null);
-        return isAggregating ? 10000 : 0;
-      }
-    }
+  const { data: resultsDataRaw, error: resultsError } = useContestResults(
+    contestId,
+    contestStatus === "closed",
   );
 
   // loading と error の導出

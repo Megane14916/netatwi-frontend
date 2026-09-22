@@ -5,9 +5,8 @@ import Link from 'next/link';
 import dayjs from 'dayjs';
 import RippleLink from "@/components/RippleLink";
 import React from 'react';
-import useSWR from 'swr';
-import type { ContestSummary, ContestsByStatus } from '@/types/domain';
-import { contestKeys, getContests } from '@/lib/api/endpoints/contests';
+import type { ContestSummary } from '@/types/domain';
+import { useContests } from '@/hooks/api/useContests';
 
 const getGPStep = (gpFinals: ContestSummary, gpQualifier: ContestSummary | undefined | null) => {
   const now = dayjs();
@@ -57,7 +56,7 @@ const renderTitle = (name: string) => {
 };
 
 export default function VenuePage() {
-  const { data, isLoading } = useSWR<ContestsByStatus>(contestKeys.all, getContests);
+  const { data, isLoading } = useContests();
 
   if (isLoading) {
     return (

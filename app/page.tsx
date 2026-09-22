@@ -5,14 +5,13 @@ import Image from "next/image";
 import logoImage from "@/assets/logo.png";
 import { ExternalLink, Users } from "lucide-react";
 import dayjs from "dayjs";
-import useSWR from "swr";
 import RippleLink from "@/components/RippleLink";
 import dynamic from "next/dynamic";
 import CountdownTimer from "@/components/CountdownTimer";
 import HeroSection from "@/components/home/HeroSection";
 import NewsSection from "@/components/home/NewsSection";
-import type { ContestSummary, ContestsByStatus } from '@/types/domain';
-import { contestKeys, getContests } from '@/lib/api/endpoints/contests';
+import type { ContestSummary } from '@/types/domain';
+import { useContests } from '@/hooks/api/useContests';
 
 const PostForm = dynamic(() => import("@/components/venue/PostForm"));
 
@@ -67,7 +66,7 @@ export default function HomePage() {
   const {
     data: contestsData = null,
     isLoading: contestsLoading,
-  } = useSWR<ContestsByStatus>(contestKeys.all, getContests);
+  } = useContests();
 
   return (
     <div className="relative bg-white dark:bg-black text-black dark:text-white">
