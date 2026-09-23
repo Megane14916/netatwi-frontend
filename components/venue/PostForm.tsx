@@ -7,10 +7,7 @@ import {
   Smile,
   X,
   Image as ImageIcon,
-  Edit2,
-  Clock,
   Loader2,
-  Trash2,
 } from "lucide-react";
 import EmojiPicker, {
   EmojiClickData,
@@ -18,28 +15,24 @@ import EmojiPicker, {
   EmojiStyle,
   SkinTonePickerLocation,
 } from "emoji-picker-react";
-import Twemoji from "@/components/Twemoji";
-import TimeAgo from "@/components/TimeAgo";
-import ImageGrid from "@/components/ImageGrid";
 import RichTextEditor, {
   RichTextEditorHandle,
 } from "@/components/RichTextEditor";
 import ProgressRing from "@/components/ProgressRing";
 import { countText, TextCountResult } from "@/lib/twitterText";
-import { compressImage } from "@/lib/imageCompression";
 import { useToast } from "@/components/ui/use-toast";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import type { User } from "@/types/domain";
 import type { Contest, Post } from "@/types/domain";
-import { getContest, getContestPosts } from "@/lib/api/endpoints/contests";
 import { createPost, deletePost, updatePost } from "@/lib/api/endpoints/posts";
 import { ApiError, getApiErrorMessage } from "@/lib/api/core";
-
-const MAX_IMAGE_TOTAL_BYTES = 16 * 1024 * 1024;
-const IMAGE_SIZE_ERROR = "画像の合計サイズが上限を超えています（最大16 MiB）";
-
-const getTotalImageSize = (files: File[]) =>
-  files.reduce((total, file) => total + file.size, 0);
+import { usePostFormData } from "@/features/posts/hooks/usePostFormData";
+import { usePostImages } from "@/features/posts/hooks/usePostImages";
+import {
+  IMAGE_SIZE_ERROR,
+  buildPostFormData,
+  getPostDraftErrorMessage,
+  validatePostDraft,
+} from "@/features/posts/model/postForm";
+import { MyPostDisplay } from "@/features/posts/components/MyPostDisplay";
 
 // ---------------------------------------------------------------------------
 // 型定義
@@ -49,112 +42,10 @@ interface PostFormProps {
   contestId: number;
   isFinalRound?: boolean; // true のとき「決勝進出者のみ」チェックを行う
   onPostSuccess?: () => void; // 投稿成功コールバック
+  providedContest?: Contest;
+  providedPosts?: Post[];
+  providedDataLoading?: boolean;
 }
-
-type ContestInfo = Pick<Contest, "id" | "imageRule" | "endTime" | "isAdvancedToFinal" | "parentContestId">;
-
-// ---------------------------------------------------------------------------
-// MyPostDisplay サブコンポーネント
-// ---------------------------------------------------------------------------
-
-interface MyPostDisplayProps {
-  post: Post;
-  isEditing: boolean;
-  onStartEdit: () => void;
-  onDelete: () => void;
-  isDeadlinePassed: boolean;
-  isDeleting: boolean;
-  user: User | null;
-}
-
-const MyPostDisplay = ({
-  post,
-  isEditing,
-  onStartEdit,
-  onDelete,
-  isDeadlinePassed,
-  isDeleting,
-  user,
-}: MyPostDisplayProps) => {
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  return (
-  <div className={`mb-4 ${isEditing ? "pb-4 border-b border-gray-200 dark:border-gray-800" : ""}`}>
-    <div className="flex items-start gap-3">
-      <div className="flex-none">
-        <img
-          src={user?.profileImageUrl || "https://via.placeholder.com/40"}
-          alt={user?.screenName}
-          className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-800 object-cover bg-white dark:bg-black"
-          onError={(e) =>
-            (e.currentTarget.src = "https://via.placeholder.com/40")
-          }
-        />
-      </div>
-      <div className="flex-grow min-w-0">
-        <div className="flex items-center justify-between mb-1">
-          <div className="flex items-center">
-            <span className="font-bold text-black dark:text-white mr-1">
-              {user?.name || user?.screenName}
-            </span>
-            <span className="text-gray-500 dark:text-gray-400 text-sm">@{user?.screenName}</span>
-          </div>
-          <TimeAgo timestamp={post.createdAt} />
-        </div>
-        <div className="mt-1 text-[15px] text-black/90 dark:text-white/90 leading-relaxed whitespace-pre-wrap break-words [line-break:anywhere]">
-          <Twemoji text={post.content} />
-        </div>
-        {post.images && (
-          <div className="mt-2">
-            <ImageGrid images={post.images} />
-          </div>
-        )}
-      </div>
-    </div>
-
-    {!isEditing && !isDeadlinePassed && (
-      <div className="flex justify-end gap-2 mt-3 pt-3">
-        <button
-          onClick={() => setShowDeleteConfirm(true)}
-          disabled={isDeleting}
-          className="text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 px-3 py-1.5 rounded-full transition-colors inline-flex items-center justify-center gap-1 font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isDeleting ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Trash2 className="w-4 h-4 fill-current" />
-          )}
-          {isDeleting ? "取消中..." : "取消"}
-        </button>
-        <button
-          onClick={onStartEdit}
-          className="text-sm text-[#1DA1F2] hover:bg-[#1DA1F2]/10 px-3 py-1.5 rounded-full transition-colors inline-flex items-center justify-center gap-1 font-bold"
-        >
-          <Edit2 className="w-4 h-4 fill-current" /> 編集する
-        </button>
-      </div>
-    )}
-
-    {!isEditing && isDeadlinePassed && (
-      <div className="text-right mt-3 pt-3 text-xs text-red-500 flex justify-end items-center font-bold">
-        <Clock className="w-3.5 h-3.5 mr-1" /> 編集受付終了
-      </div>
-    )}
-
-    <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>投稿の削除</AlertDialogTitle>
-          <AlertDialogDescription>本当に投稿を削除しますか？</AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>キャンセル</AlertDialogCancel>
-          <AlertDialogAction onClick={() => { setShowDeleteConfirm(false); onDelete(); }} className="bg-red-600 hover:bg-red-700 text-white">削除する</AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  </div>
-  );
-};
 
 // ---------------------------------------------------------------------------
 // PostForm メインコンポーネント
@@ -164,14 +55,20 @@ export default function PostForm({
   contestId,
   isFinalRound = false,
   onPostSuccess,
+  providedContest,
+  providedPosts,
+  providedDataLoading,
 }: PostFormProps) {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // --- コンテスト情報 ---
-  const [contestInfo, setContestInfo] = useState<ContestInfo | null>(null);
-  const [myPost, setMyPost] = useState<Post | null>(null);
-  const [isLoadingInfo, setIsLoadingInfo] = useState(true);
+  const { contestInfo, myPost, setMyPost, isLoading: isLoadingInfo } = usePostFormData({
+    contestId,
+    userId: user?.id ?? null,
+    providedContest,
+    providedPosts,
+    providedDataLoading,
+  });
 
   // --- 投稿フォーム状態 ---
   const [newPostContent, setNewPostContent] = useState("");
@@ -180,9 +77,14 @@ export default function PostForm({
   const [isEditing, setIsEditing] = useState(false);
 
   // --- 画像アップロード ---
-  const [selectedImages, setSelectedImages] = useState<File[]>([]);
-  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
-  const [isCompressingImages, setIsCompressingImages] = useState(false);
+  const {
+    selectedImages,
+    previewUrls,
+    isCompressingImages,
+    addImages,
+    removeImage,
+    replaceWithExistingImages,
+  } = usePostImages();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // --- 絵文字ピッカー ---
@@ -205,43 +107,13 @@ export default function PostForm({
   });
 
   // ---------------------------------------------------------------------------
-  // データ取得: コンテスト情報 & 自分の投稿
+  // 取得済みの自分の投稿をフォーム状態へ反映
   // ---------------------------------------------------------------------------
   useEffect(() => {
-    if (!contestId) return;
-
-    const fetchData = async () => {
-      setIsLoadingInfo(true);
-      try {
-        const contestData = await getContest(contestId);
-        setContestInfo({
-          id: contestData.id,
-          imageRule: contestData.imageRule,
-          endTime: contestData.endTime,
-          isAdvancedToFinal: contestData.isAdvancedToFinal,
-          parentContestId: contestData.parentContestId,
-        });
-
-        // 自分の既存投稿取得 (user がいる場合のみ意味がある)
-        if (user) {
-          const postsData = await getContestPosts(contestId);
-          const mine = postsData.posts.find((post) => post.userId === user.id) ?? null;
-          setMyPost(mine);
-          if (mine) {
-            setNewPostContent(mine.content);
-            setPreviewUrls(mine.images || []);
-          }
-        }
-      } catch (err) {
-        console.error("PostForm: データ取得エラー", err);
-      } finally {
-        setIsLoadingInfo(false);
-      }
-    };
-
-    fetchData();
-    // user が変わった場合も再取得
-  }, [contestId, user]);
+    if (!myPost) return;
+    setNewPostContent(myPost.content);
+    replaceWithExistingImages(myPost.images || []);
+  }, [myPost, replaceWithExistingImages]);
 
   // ---------------------------------------------------------------------------
   // 1秒ごとに締め切り判定を更新
@@ -297,67 +169,19 @@ export default function PostForm({
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const input = e.currentTarget;
     const files = Array.from(e.target.files || []);
-    const remaining = 4 - previewUrls.length;
-    const toAdd = files.slice(0, remaining);
     input.value = "";
-
-    if (toAdd.length === 0) return;
-
-    setIsCompressingImages(true);
-
-    try {
-      // 大きな画像を同時に展開してブラウザのメモリを圧迫しないよう、順番に圧縮する。
-      const compressedFiles: File[] = [];
-      for (const file of toAdd) {
-        compressedFiles.push(await compressImage(file));
-      }
-
-      if (getTotalImageSize([...selectedImages, ...compressedFiles]) > MAX_IMAGE_TOTAL_BYTES) {
-        setPostError(IMAGE_SIZE_ERROR);
-        toast({
-          title: "画像サイズが大きすぎます",
-          description: IMAGE_SIZE_ERROR,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const newUrls = compressedFiles.map((file) => URL.createObjectURL(file));
-      setSelectedImages((prev) => [...prev, ...compressedFiles]);
-      setPreviewUrls((prev) => [...prev, ...newUrls]);
-      setPostError(null);
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "画像の圧縮に失敗しました";
+    const result = await addImages(files);
+    if (!result.ok) {
+      const message = result.error || "画像を追加できませんでした";
       setPostError(message);
       toast({
-        title: "画像を追加できませんでした",
+        title: message === IMAGE_SIZE_ERROR ? "画像サイズが大きすぎます" : "画像を追加できませんでした",
         description: message,
         variant: "destructive",
       });
-    } finally {
-      setIsCompressingImages(false);
+      return;
     }
-  };
-
-  // ---------------------------------------------------------------------------
-  // ハンドラ: 画像削除
-  // ---------------------------------------------------------------------------
-  const removeImage = (index: number) => {
-    const targetUrl = previewUrls[index];
-    setPreviewUrls((prev) => prev.filter((_, i) => i !== index));
-
-    if (targetUrl.startsWith("blob:")) {
-      const blobIndex = previewUrls
-        .slice(0, index)
-        .filter((u) => u.startsWith("blob:")).length;
-      setSelectedImages((prev) => {
-        const newArr = [...prev];
-        newArr.splice(blobIndex, 1);
-        return newArr;
-      });
-      URL.revokeObjectURL(targetUrl);
-    }
+    setPostError(null);
   };
 
   // ---------------------------------------------------------------------------
@@ -366,8 +190,7 @@ export default function PostForm({
   const handleStartEdit = () => {
     if (myPost) {
       setNewPostContent(myPost.content);
-      setPreviewUrls(myPost.images || []);
-      setSelectedImages([]);
+      replaceWithExistingImages(myPost.images || []);
       setIsEditing(true);
     }
   };
@@ -382,8 +205,7 @@ export default function PostForm({
       await deletePost(contestId, myPost.id);
       setMyPost(null);
       setNewPostContent("");
-      setPreviewUrls([]);
-      setSelectedImages([]);
+      replaceWithExistingImages([]);
       setIsEditing(false);
       setPostError(null);
       onPostSuccess?.();
@@ -407,48 +229,31 @@ export default function PostForm({
   // ---------------------------------------------------------------------------
   const handlePostSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isPostDeadlineExceeded || isCompressingImages) return;
-
-    const check = countText(newPostContent);
-    if (!check.isValid && newPostContent.trim().length > 0) {
-      toast({ title: "エラー", description: "文字数制限（280文字）を超えています", variant: "destructive" });
+    const validationError = validatePostDraft({
+      content: newPostContent,
+      imageRule: contestInfo?.imageRule,
+      previewUrls,
+      selectedImages,
+      isDeadlineExceeded: isPostDeadlineExceeded,
+      isCompressingImages,
+    });
+    if (validationError) {
+      const message = getPostDraftErrorMessage(validationError);
+      if (validationError === "IMAGES_TOO_LARGE") setPostError(message);
+      toast({ title: "エラー", description: message, variant: "destructive" });
       return;
     }
-
-    if (
-      contestInfo?.imageRule === "required" &&
-      previewUrls.length === 0 &&
-      selectedImages.length === 0
-    ) {
-      toast({ title: "エラー", description: "画像を1枚以上添付してください", variant: "destructive" });
-      return;
-    }
-
-    if (!newPostContent.trim() && previewUrls.length === 0) return;
     if (!user) return;
-
-    if (getTotalImageSize(selectedImages) > MAX_IMAGE_TOTAL_BYTES) {
-      setPostError(IMAGE_SIZE_ERROR);
-      toast({
-        title: "画像サイズが大きすぎます",
-        description: IMAGE_SIZE_ERROR,
-        variant: "destructive",
-      });
-      return;
-    }
 
     setIsSubmitting(true);
     setPostError(null);
 
-    const formData = new FormData();
-    formData.append("content", newPostContent);
-
-    if (isEditing) {
-      const keptImages = previewUrls.filter((u) => !u.startsWith("blob:"));
-      formData.append("kept_images", JSON.stringify(keptImages));
-    }
-
-    selectedImages.forEach((file) => formData.append("images", file));
+    const formData = buildPostFormData({
+      content: newPostContent,
+      isEditing,
+      previewUrls,
+      selectedImages,
+    });
 
     try {
       const updatedPost = isEditing && myPost
@@ -457,8 +262,7 @@ export default function PostForm({
 
       setMyPost(updatedPost);
       setNewPostContent("");
-      setSelectedImages([]);
-      setPreviewUrls([]);
+      replaceWithExistingImages([]);
       setIsEditing(false);
       setPostError(null);
 
@@ -641,7 +445,7 @@ export default function PostForm({
                   onClick={() => {
                     setIsEditing(false);
                     setNewPostContent(myPost?.content || "");
-                    setPreviewUrls(myPost?.images || []);
+                    replaceWithExistingImages(myPost?.images || []);
                   }}
                   className="hidden md:inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-900 md:px-5 md:py-2 md:text-sm font-bold text-black dark:text-white transition hover:bg-gray-200 dark:hover:bg-gray-700 shadow-sm"
                 >

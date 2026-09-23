@@ -4,7 +4,7 @@ import PostForm from "@/components/venue/PostForm";
 import type { ContestDetailController } from "../hooks/useContestDetailController";
 
 export function ContestPostingSection({ controller }: { controller: ContestDetailController }) {
-  const { contestStatus, contestId, contest, mutatePosts } = controller;
+  const { contestStatus, contestId, contest, postsData, mutatePosts } = controller;
   if (!contest) return null;
   return (
     <>
@@ -21,6 +21,9 @@ export function ContestPostingSection({ controller }: { controller: ContestDetai
             <PostForm
               contestId={contestId}
               isFinalRound={!!contest.parentContestId}
+              providedContest={contest}
+              providedPosts={postsData?.posts}
+              providedDataLoading={!postsData}
               onPostSuccess={() => mutatePosts()}
             />
           </div>
