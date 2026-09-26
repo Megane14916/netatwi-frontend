@@ -3,29 +3,17 @@
 import Link from "next/link";
 import Image from "next/image";
 import logoImage from "@/assets/logo.png";
-import { ExternalLink, Users } from "lucide-react";
-import dayjs from "dayjs";
-import dynamic from "next/dynamic";
-import CountdownTimer from "@/components/CountdownTimer";
+import { ExternalLink } from "lucide-react";
 import HeroSection from "@/components/home/HeroSection";
 import NewsSection from "@/components/home/NewsSection";
 import { useContests } from '@/hooks/api/useContests';
 import { ContestCard } from '@/features/contests/components/ContestCard';
-import { ContestTitle } from '@/features/contests/components/ContestTitle';
 import {
-  flattenContests,
-  getGrandPrixProgress,
-  getVisibleDailyContests,
   isContestType,
   sortContestsNewestFirst,
 } from '@/features/contests/model/contestPresentation';
-
-const PostForm = dynamic(() => import("@/components/venue/PostForm"));
-
-const formatDateTime = (dt: string | null) => {
-  if (!dt) return "";
-  return dayjs(dt).format("MM/DD HH:mm");
-};
+import { HomeDailySection } from '@/features/home/components/HomeDailySection';
+import { HomeGrandPrixSection } from '@/features/home/components/HomeGrandPrixSection';
 
 
 
@@ -45,228 +33,8 @@ export default function HomePage() {
     <div className="relative bg-white dark:bg-black text-black dark:text-white">
       <HeroSection />
 
-      {/* グランプリセクション */}
-      {(() => {
-        if (contestsLoading) {
-          return (
-            <section className="relative z-20 pt-[186px] pb-24 md:pt-20 md:pb-20 animate-pulse">
-              <div className="mx-auto w-full max-w-7xl px-6 md:px-10">
-                <div className="h-6 w-24 rounded-full bg-gray-200 dark:bg-gray-800"></div>
-                <div className="mt-4 h-12 w-3/4 max-w-md rounded-md bg-gray-200 dark:bg-gray-800 md:h-14"></div>
-                <div className="mt-5 flex gap-4">
-                  <div className="h-4 w-32 rounded-md bg-gray-200 dark:bg-gray-800"></div>
-                  <div className="h-4 w-32 rounded-md bg-gray-200 dark:bg-gray-800"></div>
-                </div>
-                <div className="mt-3 space-y-2">
-                  <div className="h-4 w-64 rounded-md bg-gray-200 dark:bg-gray-800"></div>
-                  <div className="h-4 w-64 rounded-md bg-gray-200 dark:bg-gray-800"></div>
-                </div>
-                <div className="mt-7 flex gap-3">
-                  <div className="h-10 w-32 rounded-full bg-gray-200 dark:bg-gray-800 md:h-12 md:w-40"></div>
-                  <div className="h-10 w-32 rounded-full bg-gray-200 dark:bg-gray-800 md:h-12 md:w-40"></div>
-                </div>
-              </div>
-            </section>
-          );
-        }
-        if (!contestsData) return null;
-
-        const grandPrix = getGrandPrixProgress(flattenContests(contestsData));
-
-        if (!grandPrix) {
-          return (
-            <section className="relative z-20 pt-[186px] pb-24 md:pt-20 md:pb-32">
-              <div className="mx-auto grid w-full max-w-7xl items-center gap-8 px-6 md:px-10">
-                <div>
-                  <span className="inline-flex rounded-full px-4 py-1 text-sm font-bold text-white bg-gray-500">
-                    準備中
-                  </span>
-                  <h2 className="mt-4 text-3xl font-extrabold leading-tight md:text-5xl">
-                    <ContestTitle name="第2回 ネタツイグランプリ 予選" />
-                  </h2>
-                  <p className="mt-5 text-sm font-medium text-black/80 dark:text-white/80 md:text-base">
-                    現在準備中です。開催までしばらくお待ちください。
-                  </p>
-                </div>
-              </div>
-            </section>
-          );
-        }
-
-        const { finals: gpFinals, qualifier: gpQualifier, step, isBeforeStart } = grandPrix;
-
-        // ステータスバッジ
-        const statusConfig: Record<number, { label: string; color: string }> = {
-          0: { label: "投稿受付中", color: "bg-[#1DA1F2]" },
-          1: { label: "審査員投票中", color: "bg-green-500" },
-          2: { label: "予選結果発表 & 決勝投稿開始", color: "bg-[#1DA1F2]" },
-          3: { label: "審査員投票中", color: "bg-green-500" },
-          4: { label: "結果発表！", color: "bg-yellow-400" },
-        };
-        let { label: statusLabel, color: statusColor } = statusConfig[step];
-        if (isBeforeStart) {
-          statusLabel = "準備中";
-          statusColor = "bg-gray-500";
-        }
-
-        // 参加人数
-        const participants =
-          step <= 1 && gpQualifier
-            ? (gpQualifier.totalPosters ?? 0)
-            : (gpFinals.totalPosters ?? 0);
-
-        const deadlineMap: Record<number, string | null> = {
-          0: gpQualifier?.endTime ?? null,
-          1: gpQualifier?.votingEndTime ?? null,
-          2: gpFinals.endTime,
-          3: gpFinals.votingEndTime,
-          4: null,
-        };
-        const activeDeadline = deadlineMap[step];
-
-        // フェーズに応じた表示名・リンク先を決定
-        // step 0/1（予選期間）は予選の情報を、step 2以降は決勝の情報を表示
-        const displayContest = grandPrix.displayContest;
-        const displayName = displayContest.name;
-
-        // 投稿フォームを表示するか
-        const showPostForm = !isBeforeStart && (step === 0 || step === 2);
-        const postFormContestId =
-          step === 0 ? (gpQualifier?.id ?? gpFinals.id) : gpFinals.id;
-        const postFormIsFinalRound = step === 2;
-
-        return (
-          <section className="relative z-20 pt-[186px] pb-24 md:pt-20 md:pb-20">
-            <div
-              className={`mx-auto grid w-full max-w-7xl items-center gap-8 px-6 md:px-10 ${showPostForm ? "lg:grid-cols-[minmax(0,1fr)_600px]" : ""}`}
-            >
-              <div>
-                <span
-                  className={`inline-flex rounded-full px-4 py-1 text-sm font-bold text-white ${statusColor}`}
-                >
-                  {statusLabel}
-                </span>
-                <h2 className="mt-4 text-3xl font-extrabold leading-tight md:text-5xl">
-                  <ContestTitle name={displayName} />
-                </h2>
-                {!isBeforeStart && (
-                  <p className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm font-medium text-black/80 dark:text-white/80 md:text-base">
-                    <span className="inline-flex items-center gap-1.5">
-                      <Users className="h-4 w-4 text-[#1DA1F2]" />
-                      参加人数:{" "}
-                      <span className="font-bold text-[#1DA1F2]">
-                        {participants}人
-                      </span>
-                    </span>
-                    <CountdownTimer deadline={activeDeadline} />
-                  </p>
-                )}
-                <div className="mt-3 space-y-1 text-sm text-black/70 dark:text-white/70 md:text-base">
-                  {gpQualifier && (
-                    <p>
-                      予選投稿締切: {formatDateTime(gpQualifier.endTime)}
-                      　/　予選投票締切:{" "}
-                      {formatDateTime(gpQualifier.votingEndTime)}
-                    </p>
-                  )}
-                  <p>
-                    決勝投稿締切: {formatDateTime(gpFinals.endTime)}
-                    　/　決勝投票締切: {formatDateTime(gpFinals.votingEndTime)}
-                  </p>
-                </div>
-                <div className="mt-7 flex items-center gap-2 md:gap-3">
-                  <Link
-                    href={`/venue/${displayContest.id}`}
-                    prefetch={false}
-                    className="inline-flex shrink-0 items-center rounded-full bg-[#1DA1F2] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#1788cc] md:px-7 md:py-3"
-                  >
-                    詳しく見る
-                    <ExternalLink className="ml-2 h-4 w-4" />
-                  </Link>
-                  {step === 2 && gpQualifier && (
-                    <Link
-                      href={`/venue/${gpQualifier.id}`}
-                      prefetch={false}
-                      className="inline-flex shrink-0 items-center rounded-full bg-gray-200 dark:bg-gray-800 px-5 py-2.5 text-sm font-bold text-gray-700 dark:text-gray-300 transition hover:bg-gray-300 dark:hover:bg-gray-600 md:px-7 md:py-3"
-                    >
-                      予選結果を見る
-                    </Link>
-                  )}
-                </div>
-              </div>
-
-              {showPostForm && (
-                <PostForm
-                  contestId={postFormContestId}
-                  isFinalRound={postFormIsFinalRound}
-                />
-              )}
-            </div>
-          </section>
-        );
-      })()}
-
-      {/* Daily Contest Section */}
-      {(() => {
-        if (contestsLoading) {
-          return (
-            <section className="relative z-20 pt-12 pb-20 animate-pulse">
-              <div className="mx-auto max-w-7xl px-6 md:px-10">
-                <div className="mb-6">
-                  <div className="h-6 w-64 rounded-md bg-gray-200 dark:bg-gray-800 md:h-8"></div>
-                </div>
-                <div className="flex flex-col border-b border-gray-200 dark:border-gray-800 divide-y divide-gray-200 dark:divide-gray-800">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="py-6 px-3 md:p-8 flex flex-row items-center justify-between gap-2 md:gap-4">
-                      <div className="min-w-0">
-                        <div className="h-5 w-20 rounded-full bg-gray-200 dark:bg-gray-800 mb-1 md:h-6 md:w-24 md:mb-2"></div>
-                        <div className="h-5 w-32 rounded-md bg-gray-200 dark:bg-gray-800 md:h-8 md:w-48"></div>
-                        <div className="mt-1 h-3 w-24 rounded-md bg-gray-200 dark:bg-gray-800 md:mt-2 md:h-4 md:w-32"></div>
-                      </div>
-                      <div className="shrink-0 flex flex-col items-end md:items-start">
-                        <div className="h-3 w-8 rounded-md bg-gray-200 dark:bg-gray-800 mb-1 md:w-10"></div>
-                        <div className="h-5 w-10 rounded-md bg-gray-200 dark:bg-gray-800 md:h-6 md:w-12"></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </section>
-          );
-        }
-        if (!contestsData) return null;
-
-          const visibleDailies = getVisibleDailyContests(flattenContests(contestsData), 3);
-
-          if (visibleDailies.length === 0) return null;
-
-          return (
-            <section className="relative z-20 pt-12 pb-20">
-              <div className="mx-auto max-w-7xl px-6 md:px-10">
-                <div className="mb-6 text-left">
-                  <h3 className="text-2xl font-bold text-black dark:text-white md:text-[40px]">
-                    デイリー
-                  </h3>
-                </div>
-                <div className="flex flex-col border-b border-gray-200 dark:border-gray-800 divide-y divide-gray-200 dark:divide-gray-800">
-                  {visibleDailies.map(({ contest, status }) => (
-                    <ContestCard key={contest.id} contest={contest} status={status} />
-                  ))}
-                </div>
-                <div className="mt-8 flex justify-end">
-                  <Link
-                    href="/venue"
-                    className="inline-flex items-center rounded-full bg-[#1DA1F2] px-7 py-3 text-sm font-bold text-white transition hover:bg-[#1788cc]"
-                  >
-                    全ての大会を見る
-                    <ExternalLink className="ml-2 h-4 w-4" />
-                  </Link>
-                </div>
-              </div>
-            </section>
-          );
-        })()}
-
+      <HomeGrandPrixSection contests={contestsData} isLoading={contestsLoading} />
+      <HomeDailySection contests={contestsData} isLoading={contestsLoading} />
       <div
         className="w-full text-[#1DA1F2] relative mt-[130px] md:mt-[150px]"
         aria-hidden="true"
