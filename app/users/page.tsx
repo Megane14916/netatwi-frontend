@@ -1,79 +1,26 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
 import { UserListRow } from '@/components/UserListRow';
 import { Search, ChevronLeft, ChevronRight, Users } from 'lucide-react';
-import type { RankedUser } from '@/types/domain';
-import { getUsers } from '@/lib/api/endpoints/users';
-
-interface UsersPageCacheEntry {
-  users: RankedUser[];
-  totalPages: number;
-  page: number;
-}
+import { useUsersDirectory } from '@/features/users/hooks/useUsersDirectory';
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<RankedUser[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [isLoading, setIsLoading] = useState(true);
-  const cache = useRef<Record<string, UsersPageCacheEntry>>({});
-
-  const fetchUsers = useCallback(async (q: string, p: number) => {
-    const cacheKey = `${q}_${p}`;
-    if (cache.current[cacheKey]) {
-      setUsers(cache.current[cacheKey].users);
-      setTotalPages(cache.current[cacheKey].totalPages);
-      setPage(cache.current[cacheKey].page);
-      setIsLoading(false);
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const data = await getUsers(q, p);
-      setUsers(data.users);
-      setTotalPages(data.totalPages);
-      setPage(data.page);
-
-      cache.current[cacheKey] = {
-        users: data.users,
-        totalPages: data.totalPages,
-        page: data.page
-      };
-    } catch (error) {
-      console.error('Failed to fetch users', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      fetchUsers(searchQuery, page);
-    }, 300);
-
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchQuery, page, fetchUsers]);
+  const { users, searchQuery, page, totalPages, isLoading, changeSearch, changePage } =
+    useUsersDirectory();
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setIsLoading(true);
-    setSearchQuery(e.target.value);
-    setPage(1); // Reset to first page on search
+    changeSearch(e.target.value);
   };
 
   const handlePrevPage = () => {
     if (page > 1) {
-      setIsLoading(true);
-      setPage((p) => p - 1);
+      changePage(page - 1);
     }
   };
 
   const handleNextPage = () => {
     if (page < totalPages) {
-      setIsLoading(true);
-      setPage((p) => p + 1);
+      changePage(page + 1);
     }
   };
 
@@ -84,8 +31,7 @@ export default function UsersPage() {
         <button
           key={i}
           onClick={() => {
-            setIsLoading(true);
-            setPage(i);
+            changePage(i);
           }}
           className={`w-10 h-10 flex items-center justify-center rounded-full text-sm font-bold transition-colors ${
             page === i 
