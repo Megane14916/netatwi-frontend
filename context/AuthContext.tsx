@@ -1,45 +1,14 @@
 "use client";
-import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import type { User } from '@/types/domain';
-import { getAuthSession } from '@/lib/api/endpoints/auth';
+import React, { createContext, useContext, type ReactNode } from 'react';
+import { useAuthSession, type AuthSessionState } from '@/features/auth/hooks/useAuthSession';
 
-interface AuthContextType {
-  user: User | null;
-  loading: boolean;
-  judgeContests: number[]; // 審査員としてログイン中の大会IDリスト
-  refetchUser: () => Promise<void>; // ユーザー情報を再取得する関数
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthSessionState | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [judgeContests, setJudgeContests] = useState<number[]>([]);
-
-  // ユーザー情報を(再)取得する関数
-  const refetchUser = async () => {
-    setLoading(true); // 再取得中はローディング表示
-    try {
-      const session = await getAuthSession();
-      setUser(session.user);
-      setJudgeContests(session.judgeContests);
-    } catch (error) {
-      console.error("ユーザー情報の取得に失敗:", error);
-      setUser(null);
-      setJudgeContests([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    // 初回読み込み時に実行
-    refetchUser();
-  }, []);
+  const session = useAuthSession();
 
   return (
-    <AuthContext.Provider value={{ user, loading, judgeContests, refetchUser }}>
+    <AuthContext.Provider value={session}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,16 +1,17 @@
-import { getContestTitleParts } from "../model/contestPresentation";
-
 export function ContestTitle({ name, spaced = false }: { name: string; spaced?: boolean }) {
+  const keyword = "ネタツイグランプリ";
+
+  if (!name.includes(keyword)) {
+    return <>{name}</>;
+  }
+
+  const [before, after] = name.split(keyword);
+
   return (
     <>
-      {getContestTitleParts(name).map((part, index, parts) => (
-        <span
-          key={`${part}-${index}`}
-          className={`block ${spaced && index > 0 ? "mt-1" : ""} ${spaced && index < parts.length - 1 ? "mb-1" : ""}`}
-        >
-          {part}
-        </span>
-      ))}
+      {before && <span className={`block ${spaced ? "mb-1" : ""}`}>{before}</span>}
+      <span className="block">{keyword}</span>
+      {after && <span className={`block ${spaced ? "mt-1" : ""}`}>{after}</span>}
     </>
   );
 }
