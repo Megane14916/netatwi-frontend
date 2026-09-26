@@ -11,7 +11,7 @@ import { getApiErrorMessage } from '@/lib/api/core';
 import { useContest, useContestPosts, useContestResults } from '@/hooks/api/useContests';
 import { getContestTiming } from '@/features/contest-detail/model/contestStatus';
 import { useJudgePostOrder, useScoreSortedPosts } from '@/features/contest-detail/hooks/useJudgePostOrder';
-import { usePrefetchedComments } from '@/features/contest-detail/hooks/usePrefetchedComments';
+import { usePrefetchedComments } from '@/features/posts/hooks/usePrefetchedComments';
 import { useVoteEditor } from '@/features/contest-detail/hooks/useVoteEditor';
 import { backupVotesToRecord, createVoteBackup, parseVoteBackup, type VoteBackup } from '@/features/contest-detail/model/voteBackup';
 import { buildVotePayload, getVoteValidationMessage } from '@/features/contest-detail/model/voting';

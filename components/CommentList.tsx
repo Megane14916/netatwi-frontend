@@ -1,19 +1,17 @@
 'use client';
 
-import React, { useState, useEffect,useRef, useMemo } from 'react';
+import { useEffect, useRef } from 'react';
 import { Send, Edit2, Trash2, X } from 'lucide-react';
 import TimeAgo from './TimeAgo';
 import { useToast } from "@/components/ui/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import type { Comment, User } from '@/types/domain';
-import { createComment, deleteComment, updateComment } from '@/lib/api/endpoints/comments';
-import { getApiErrorMessage } from '@/lib/api/core';
-import { usePostComments } from '@/hooks/api/useComments';
+import type { Comment, ContestStatus, User } from '@/types/domain';
+import { useCommentsController } from '@/features/posts/hooks/useCommentsController';
 
 interface CommentListProps {
   postId: number;
   currentUser: User | null;
-  contestStatus: string;
+  contestStatus: ContestStatus;
   isAlwaysOpen?: boolean;
   isOpenProp?: boolean;
   onClose?: () => void;
@@ -25,56 +23,37 @@ interface CommentListProps {
 
 export default function CommentList({ postId, currentUser, contestStatus, isAlwaysOpen = false, isOpenProp = false, onClose, onCommentAdded, onCommentDeleted, initialComments, isJudgeMode = false }: CommentListProps) {
   const { toast } = useToast();
-  const [commentToDelete, setCommentToDelete] = useState<number | null>(null);
-  const [newComment, setNewComment] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
-  const [editContent, setEditContent] = useState('');
-  const [isOpen, setIsOpen] = useState(false);
-  const [error, setError] = useState('');
-
-  const [localComments, setLocalComments] = useState<Comment[]>([]);
-  const [deletedCommentIds, setDeletedCommentIds] = useState<Set<number>>(new Set());
-
-  // 投票期間中は他人のコメントは見えず、自分のコメントは initialComments (一括取得) で賄えるため、
-  // コメント欄を開いたときの個別APIフェッチをスキップする
-  const shouldFetch = (isAlwaysOpen || isOpen || isOpenProp) && contestStatus !== 'voting';
-  
-  const { data: swrComments = [], mutate } = usePostComments({
+  const {
+    commentToDelete,
+    setCommentToDelete,
+    newComment,
+    setNewComment,
+    isSubmitting,
+    editingCommentId,
+    setEditingCommentId,
+    editContent,
+    setEditContent,
+    isOpen,
+    setIsOpen,
+    error,
+    visibleComments,
+    hasCommented,
+    submit,
+    remove,
+    update,
+  } = useCommentsController({
     postId,
-    enabled: shouldFetch,
+    currentUser,
+    contestStatus,
+    isAlwaysOpen,
+    isOpenProp,
     initialComments,
+    isJudgeMode,
+    onCommentAdded,
+    onCommentDeleted,
+    onDeleteError: () =>
+      toast({ title: "エラー", description: "コメントの削除に失敗しました", variant: "destructive" }),
   });
-
-  // SWRデータとローカル操作分をマージして一意なリストを作成する
-  const comments = useMemo(() => {
-    const unique: Comment[] = [];
-    const seen = new Set();
-    // 後から追加されたローカル分（または編集分）が優先されるように、
-    // IDが一致する場合は localComments の内容を採用する
-    const localMap = new Map(localComments.map(c => [c.id, c]));
-    
-    // まずSWRデータを追加（ローカルにあればローカル優先、削除されていればスキップ）
-    for (const c of swrComments) {
-      if (deletedCommentIds.has(c.id)) continue;
-      // 削除フラグを持つ特殊なオブジェクト（ここでは単純に filter で対応しますが、ローカルで消されたものは含まないようにします）
-      if (!localMap.has(c.id) || localMap.get(c.id) !== null) {
-        if (!seen.has(c.id)) {
-           seen.add(c.id);
-           unique.push(localMap.has(c.id) ? localMap.get(c.id)! : c);
-        }
-      }
-    }
-    // 次にローカルで新規追加されたものを追加
-    for (const c of localComments) {
-      if (deletedCommentIds.has(c.id)) continue;
-      if (!seen.has(c.id)) {
-        seen.add(c.id);
-        unique.push(c);
-      }
-    }
-    return unique.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-  }, [swrComments, localComments, deletedCommentIds]);
 
   const newTextareaRef = useRef<HTMLTextAreaElement>(null);
   const editTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -106,8 +85,6 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
     return () => observer.disconnect();
   }, [newComment]);
 
-  const hasCommented = comments.some(c => c.userId === currentUser?.id);
-
   useEffect(() => {
     if ((isOpenProp || isOpen) && contestStatus === 'voting' && currentUser && !hasCommented) {
       setTimeout(() => {
@@ -117,119 +94,6 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
       }, 50);
     }
   }, [isOpenProp, isOpen, contestStatus, currentUser, hasCommented]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentUser || !newComment.trim() || (!isJudgeMode && newComment.length > 140) || isSubmitting) return;
-
-    setIsSubmitting(true);
-    setError('');
-    
-    // 楽観的更新
-    const optimisticComment: Comment = {
-      id: Date.now(),
-      userId: currentUser.id,
-      postId,
-      content: newComment,
-      isJudge: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      user: currentUser,
-    };
-
-    if (shouldFetch) {
-      mutate([...swrComments, optimisticComment], false);
-    } else {
-      setLocalComments(prev => [...prev, optimisticComment]);
-    }
-
-    try {
-      const createdCommentId = await createComment(postId, newComment);
-      setNewComment('');
-      if (shouldFetch) {
-        mutate();
-      } else {
-        const newCommentData = { ...optimisticComment, id: createdCommentId };
-        setLocalComments(prev => prev.map(c => c.id === optimisticComment.id ? newCommentData : c));
-      }
-      onCommentAdded?.();
-    } catch (requestError) {
-      setError(getApiErrorMessage(requestError, '通信エラーが発生しました'));
-      if (!shouldFetch) {
-        setLocalComments(prev => prev.filter(c => c.id !== optimisticComment.id));
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const confirmDeleteComment = (commentId: number) => {
-    setCommentToDelete(commentId);
-  };
-
-  const handleDelete = async () => {
-    if (commentToDelete === null) return;
-    const commentId = commentToDelete;
-    setCommentToDelete(null);
-
-    // 楽観的更新
-    setDeletedCommentIds(prev => new Set(prev).add(commentId));
-    
-    if (shouldFetch) {
-      mutate(swrComments.filter(c => c.id !== commentId), false);
-    } else {
-      setLocalComments(prev => prev.filter(c => c.id !== commentId));
-    }
-    
-    try {
-      await deleteComment(commentId);
-      if (shouldFetch) mutate();
-      onCommentDeleted?.();
-    } catch (e) {
-      console.error(e);
-      setDeletedCommentIds(prev => {
-        const next = new Set(prev);
-        next.delete(commentId);
-        return next;
-      });
-      toast({ title: "エラー", description: "コメントの削除に失敗しました", variant: "destructive" });
-    }
-  };
-
-  const handleEditSubmit = async (commentId: number) => {
-    if (!editContent.trim() || (!isJudgeMode && editContent.length > 140)) return;
-    
-    if (shouldFetch) {
-      mutate(swrComments.map(c => c.id === commentId ? { ...c, content: editContent } : c), false);
-    } else {
-      setLocalComments(prev => {
-        const exists = prev.some(c => c.id === commentId);
-        if (exists) {
-          return prev.map(c => c.id === commentId ? { ...c, content: editContent } : c);
-        } else {
-          // initialComments の中にあったものを編集する場合、localComments にコピーして上書き
-          const target = initialComments?.find(c => c.id === commentId);
-          if (target) {
-            return [...prev, { ...target, content: editContent }];
-          }
-          return prev;
-        }
-      });
-    }
-
-    try {
-      await updateComment(commentId, editContent);
-      setEditingCommentId(null);
-      if (shouldFetch) mutate();
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  // 投票期間中は自分のコメントのみ表示。結果発表後は全て表示。
-  const visibleComments = contestStatus === 'closed' 
-    ? comments 
-    : comments.filter(c => c.userId === currentUser?.id);
 
   const showTopClose = !(currentUser && !hasCommented);
 
@@ -248,7 +112,7 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
         </button>
       )}
       {currentUser && !hasCommented && (
-        <form onSubmit={handleSubmit} className="mb-4 mt-4">
+        <form onSubmit={(event) => { event.preventDefault(); void submit(); }} className="mb-4 mt-4">
           {error && <p className="text-red-500 text-xs mb-2">{error}</p>}
           <div className="flex items-start gap-2">
             <img src={currentUser.profileImageUrl || 'https://via.placeholder.com/40'} alt="" className="w-8 h-8 rounded-full border border-gray-200 dark:border-gray-800 flex-shrink-0" />
@@ -315,7 +179,7 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
                   }} className="text-gray-400 dark:text-gray-600 hover:text-[#1DA1F2]">
                     <Edit2 className="w-3.5 h-3.5" />
                   </button>
-                  <button onClick={() => confirmDeleteComment(comment.id)} className="text-gray-400 dark:text-gray-600 hover:text-red-500">
+                  <button onClick={() => setCommentToDelete(comment.id)} className="text-gray-400 dark:text-gray-600 hover:text-red-500">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
@@ -334,7 +198,7 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
                 />
                 <div className="flex justify-end space-x-2 mt-2">
                   <button onClick={() => setEditingCommentId(null)} className="text-xs text-black/60 dark:text-white/60 px-4 py-1.5 rounded-full bg-gray-100 dark:bg-gray-900 hover:bg-gray-200 dark:hover:bg-gray-700 font-bold transition-colors">キャンセル</button>
-                  <button onClick={() => handleEditSubmit(comment.id)} className="text-xs bg-[#1DA1F2] hover:bg-[#1788cc] text-white px-5 py-1.5 rounded-full font-bold transition-colors shadow-sm">更新</button>
+                  <button onClick={() => void update(comment.id)} className="text-xs bg-[#1DA1F2] hover:bg-[#1788cc] text-white px-5 py-1.5 rounded-full font-bold transition-colors shadow-sm">更新</button>
                 </div>
               </div>
             ) : (
@@ -357,7 +221,7 @@ export default function CommentList({ postId, currentUser, contestStatus, isAlwa
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setCommentToDelete(null)}>キャンセル</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700 text-white">削除する</AlertDialogAction>
+            <AlertDialogAction onClick={() => void remove()} className="bg-red-600 hover:bg-red-700 text-white">削除する</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
