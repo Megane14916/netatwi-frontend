@@ -1,7 +1,7 @@
 import HistoryTabs from './HistoryTabs';
-import dayjs from 'dayjs';
 import type { ContestSummary } from '@/types/domain';
 import { getServerContests } from '@/lib/api/endpoints/server';
+import { sortContestsNewestFirst } from '@/features/contests/model/contestPresentation';
 
 // Fetch contest history at request time so production builds do not depend on
 // the backend being reachable. The fetch-level revalidation below still keeps
@@ -24,9 +24,7 @@ export default async function PastLogsPage() {
   const pastContests = await getPastContests();
 
   // 念のため開催日時で降順ソート (API側でもされているが確実にするため)
-  const sortedContests = [...pastContests].sort(
-    (a, b) => dayjs(b.startTime).unix() - dayjs(a.startTime).unix()
-  );
+  const sortedContests = sortContestsNewestFirst(pastContests);
 
   return <HistoryTabs contests={sortedContests} />;
 }

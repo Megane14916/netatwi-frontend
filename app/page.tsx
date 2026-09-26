@@ -5,49 +5,22 @@ import Image from "next/image";
 import logoImage from "@/assets/logo.png";
 import { ExternalLink, Users } from "lucide-react";
 import dayjs from "dayjs";
-import RippleLink from "@/components/RippleLink";
 import dynamic from "next/dynamic";
 import CountdownTimer from "@/components/CountdownTimer";
 import HeroSection from "@/components/home/HeroSection";
 import NewsSection from "@/components/home/NewsSection";
-import type { ContestSummary } from '@/types/domain';
 import { useContests } from '@/hooks/api/useContests';
+import { ContestCard } from '@/features/contests/components/ContestCard';
+import { ContestTitle } from '@/features/contests/components/ContestTitle';
+import {
+  flattenContests,
+  getGrandPrixProgress,
+  getVisibleDailyContests,
+  isContestType,
+  sortContestsNewestFirst,
+} from '@/features/contests/model/contestPresentation';
 
 const PostForm = dynamic(() => import("@/components/venue/PostForm"));
-
-const getGPStep = (
-  gpFinals: ContestSummary,
-  gpQualifier: ContestSummary | undefined | null,
-): number => {
-  const now = dayjs();
-  if (gpQualifier) {
-    if (now.isBefore(dayjs(gpQualifier.endTime))) return 0;
-    if (now.isBefore(dayjs(gpQualifier.votingEndTime))) return 1;
-  }
-  if (now.isBefore(dayjs(gpFinals.endTime))) return 2;
-  if (now.isBefore(dayjs(gpFinals.votingEndTime))) return 3;
-  return 4;
-};
-
-const renderGPTitle = (name: string) => {
-  if (!name.includes("ネタツイグランプリ")) return <>{name}</>;
-  const parts = name.split("ネタツイグランプリ");
-  return (
-    <>
-      {parts[0] && <span className="block">{parts[0]}</span>}
-      <span className="block">ネタツイグランプリ</span>
-      {parts[1] && <span className="block">{parts[1]}</span>}
-    </>
-  );
-};
-
-const categorizeDaily = (c: ContestSummary) => {
-  const now = dayjs();
-  if (c.startTime && now.isBefore(dayjs(c.startTime))) return "upcoming";
-  if (c.endTime && now.isBefore(dayjs(c.endTime))) return "ongoing";
-  if (c.votingEndTime && now.isBefore(dayjs(c.votingEndTime))) return "voting";
-  return "closed";
-};
 
 const formatDateTime = (dt: string | null) => {
   if (!dt) return "";
@@ -98,19 +71,9 @@ export default function HomePage() {
         }
         if (!contestsData) return null;
 
-        const allContests = [
-          ...contestsData.ongoing,
-          ...contestsData.voting,
-          ...contestsData.upcoming,
-          ...contestsData.closed,
-        ];
+        const grandPrix = getGrandPrixProgress(flattenContests(contestsData));
 
-        const gpFinals =
-          allContests.find(
-            (c) => c.type === "grandprix" && c.parentContestId != null,
-          ) || allContests.find((c) => c.hasQualifier === true);
-
-        if (!gpFinals) {
+        if (!grandPrix) {
           return (
             <section className="relative z-20 pt-[186px] pb-24 md:pt-20 md:pb-32">
               <div className="mx-auto grid w-full max-w-7xl items-center gap-8 px-6 md:px-10">
@@ -119,7 +82,7 @@ export default function HomePage() {
                     準備中
                   </span>
                   <h2 className="mt-4 text-3xl font-extrabold leading-tight md:text-5xl">
-                    {renderGPTitle("第2回 ネタツイグランプリ 予選")}
+                    <ContestTitle name="第2回 ネタツイグランプリ 予選" />
                   </h2>
                   <p className="mt-5 text-sm font-medium text-black/80 dark:text-white/80 md:text-base">
                     現在準備中です。開催までしばらくお待ちください。
@@ -130,16 +93,7 @@ export default function HomePage() {
           );
         }
 
-        const gpQualifier = gpFinals.parentContestId
-          ? allContests.find((c) => c.id === gpFinals.parentContestId)
-          : undefined;
-
-        const step = getGPStep(gpFinals, gpQualifier);
-
-        const nowTime = new Date().getTime();
-        const isBeforeStart = gpQualifier
-          ? gpQualifier.startTime && nowTime < new Date(gpQualifier.startTime).getTime()
-          : gpFinals.startTime && nowTime < new Date(gpFinals.startTime).getTime();
+        const { finals: gpFinals, qualifier: gpQualifier, step, isBeforeStart } = grandPrix;
 
         // ステータスバッジ
         const statusConfig: Record<number, { label: string; color: string }> = {
@@ -172,8 +126,7 @@ export default function HomePage() {
 
         // フェーズに応じた表示名・リンク先を決定
         // step 0/1（予選期間）は予選の情報を、step 2以降は決勝の情報を表示
-        const displayContest =
-          step <= 1 && gpQualifier ? gpQualifier : gpFinals;
+        const displayContest = grandPrix.displayContest;
         const displayName = displayContest.name;
 
         // 投稿フォームを表示するか
@@ -194,7 +147,7 @@ export default function HomePage() {
                   {statusLabel}
                 </span>
                 <h2 className="mt-4 text-3xl font-extrabold leading-tight md:text-5xl">
-                  {renderGPTitle(displayName)}
+                  <ContestTitle name={displayName} />
                 </h2>
                 {!isBeforeStart && (
                   <p className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm font-medium text-black/80 dark:text-white/80 md:text-base">
@@ -283,89 +236,9 @@ export default function HomePage() {
         }
         if (!contestsData) return null;
 
-        const allContests = [
-            ...contestsData.ongoing,
-            ...contestsData.voting,
-            ...contestsData.upcoming,
-            ...contestsData.closed,
-          ];
-          const dailyContests = allContests.filter((c) => {
-            if (c.type !== "daily") return false;
-            const now = dayjs();
-            if (c.startTime && now.isBefore(dayjs(c.startTime))) {
-              return dayjs(c.startTime).diff(now, "hour", true) <= 1;
-            }
-            return true;
-          });
-
-          // startTime降順でソートして最新3件のみ表示
-          const visibleDailies = dailyContests
-            .sort(
-              (a, b) => dayjs(b.startTime).unix() - dayjs(a.startTime).unix(),
-            )
-            .slice(0, 3);
+          const visibleDailies = getVisibleDailyContests(flattenContests(contestsData), 3);
 
           if (visibleDailies.length === 0) return null;
-
-          const renderDailyCard = (
-            contest: ContestSummary,
-            type: "upcoming" | "ongoing" | "voting" | "closed",
-          ) => {
-            const typeConfig = {
-              upcoming: { label: "準備中", bg: "bg-gray-500" },
-              ongoing: { label: "投稿期間", bg: "bg-[#1DA1F2]" },
-              voting: { label: "投票期間", bg: "bg-green-500" },
-              closed: { label: "結果発表", bg: "bg-yellow-400" },
-            };
-            const config = typeConfig[type];
-
-            let timeText = "";
-            if (type === "upcoming")
-              timeText = `投稿開始: ${dayjs(contest.startTime).format("YYYY年MM月DD日 HH:mm")}`;
-            else if (type === "ongoing")
-              timeText = `投稿締切: ${dayjs(contest.endTime).format("YYYY年MM月DD日 HH:mm")}`;
-            else if (type === "voting")
-              timeText = `投票締切: ${dayjs(contest.votingEndTime).format("YYYY年MM月DD日 HH:mm")}`;
-            else
-              timeText = `開催日時：${dayjs(contest.startTime).format("YYYY年MM月DD日 HH:mm")}`;
-
-            return (
-              <RippleLink
-                key={contest.id}
-                href={`/venue/${contest.id}`}
-                prefetch={false}
-                className="group relative overflow-hidden bg-white dark:bg-black py-6 px-3 md:p-8 transition-colors duration-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-              >
-                <div className="relative z-10 flex flex-row items-center justify-between gap-2 md:gap-4">
-                  <div className="min-w-0 flex-1">
-                    <div className="mb-1 md:mb-2">
-                      <span
-                        className={`inline-block rounded-full px-2 py-0.5 text-[10px] md:px-3 md:py-1 md:text-xs font-bold text-white ${config.bg}`}
-                      >
-                        {config.label}
-                      </span>
-                    </div>
-                    <h4 className="truncate text-base font-bold text-black dark:text-white md:text-2xl">
-                      {contest.name}
-                    </h4>
-                    <p className="mt-0.5 md:mt-1 truncate text-[10px] md:text-sm text-gray-500 dark:text-gray-400">
-                      {timeText}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-8">
-                    <div className="flex flex-col items-end md:items-start">
-                      <span className="text-[10px] md:text-xs font-medium text-black/60 dark:text-white/60">
-                        投稿数
-                      </span>
-                      <span className="text-base md:text-xl font-bold text-black dark:text-white">
-                        {contest.totalPosters ?? 0}件
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </RippleLink>
-            );
-          };
 
           return (
             <section className="relative z-20 pt-12 pb-20">
@@ -376,9 +249,9 @@ export default function HomePage() {
                   </h3>
                 </div>
                 <div className="flex flex-col border-b border-gray-200 dark:border-gray-800 divide-y divide-gray-200 dark:divide-gray-800">
-                  {visibleDailies.map((c) =>
-                    renderDailyCard(c, categorizeDaily(c)),
-                  )}
+                  {visibleDailies.map(({ contest, status }) => (
+                    <ContestCard key={contest.id} contest={contest} status={status} />
+                  ))}
                 </div>
                 <div className="mt-8 flex justify-end">
                   <Link
@@ -485,46 +358,15 @@ export default function HomePage() {
               ) : (
                 <>
                   {/* DBから取得した終了済みグランプリ (新しい順) */}
-                  {contestsData?.closed
-                .filter(
-                  (c) =>
-                    c.type === "grandprix" &&
-                    (c.hasQualifier === true || c.parentContestId == null),
-                )
-                .sort(
-                  (a, b) =>
-                    dayjs(b.startTime || 0).unix() -
-                    dayjs(a.startTime || 0).unix(),
-                )
-                .map((c) => (
-                  <RippleLink
-                    key={c.id}
-                    href={`/venue/${c.id}`}
-                    prefetch={false}
-                    className="group relative overflow-hidden bg-gray-100 dark:bg-gray-900 py-6 px-3 md:p-8 transition-colors duration-300 hover:bg-gray-200 dark:hover:bg-gray-700"
-                  >
-                    <div className="relative z-10 flex flex-row items-center justify-between gap-2 md:gap-4">
-                      <div className="min-w-0 flex-1">
-                        <h3 className="truncate text-base font-bold text-black dark:text-white md:text-2xl">
-                          {c.name}
-                        </h3>
-                        <p className="mt-0.5 md:mt-1 truncate text-[10px] md:text-sm text-gray-500 dark:text-gray-400">
-                          開催日時：{dayjs(c.startTime).format("YYYY年MM月DD日 HH:mm")}
-                        </p>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-8">
-                        <div className="flex flex-col items-end md:items-start">
-                          <span className="text-[10px] md:text-xs font-medium text-black/60 dark:text-white/60">
-                            投稿数
-                          </span>
-                          <span className="text-base md:text-xl font-bold text-black dark:text-white">
-                            {c.totalPosters ?? 0}件
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </RippleLink>
-                ))}
+                  {sortContestsNewestFirst(
+                    contestsData?.closed.filter(
+                      (contest) =>
+                        isContestType(contest, "grandprix") &&
+                        (contest.hasQualifier || contest.parentContestId === null),
+                    ) ?? [],
+                  ).map((contest) => (
+                    <ContestCard key={contest.id} contest={contest} muted />
+                  ))}
 
               {/* 第1回は固定リンク (DBに存在しないnote.com外部データ) — 最下部に固定 */}
               <a
@@ -580,13 +422,9 @@ export default function HomePage() {
               }
               if (!contestsData) return null;
 
-              const closedDailies = contestsData.closed
-                  .filter((c) => c.type === "daily")
-                  .sort(
-                    (a, b) =>
-                      dayjs(b.startTime).unix() - dayjs(a.startTime).unix(),
-                  )
-                  .slice(0, 3);
+              const closedDailies = sortContestsNewestFirst(
+                contestsData.closed.filter((contest) => isContestType(contest, "daily")),
+              ).slice(0, 3);
 
                 if (closedDailies.length === 0) return null;
 
@@ -596,34 +434,8 @@ export default function HomePage() {
                       デイリーの結果
                     </h3>
                     <div className="flex flex-col border-b border-gray-300 dark:border-gray-700 divide-y divide-gray-300 dark:divide-gray-700">
-                      {closedDailies.map((c) => (
-                        <RippleLink
-                          key={c.id}
-                          href={`/venue/${c.id}`}
-                          prefetch={false}
-                          className="group relative overflow-hidden bg-gray-100 dark:bg-gray-900 py-6 px-3 md:p-8 transition-colors duration-300 hover:bg-gray-200 dark:hover:bg-gray-700"
-                        >
-                          <div className="relative z-10 flex flex-row items-center justify-between gap-2 md:gap-4">
-                            <div className="min-w-0 flex-1">
-                              <h4 className="truncate text-base font-bold text-black dark:text-white md:text-xl">
-                                {c.name}
-                              </h4>
-                              <p className="mt-0.5 md:mt-1 truncate text-[10px] md:text-sm text-gray-500 dark:text-gray-400">
-                                開催日時：{dayjs(c.startTime).format("YYYY年MM月DD日 HH:mm")}
-                              </p>
-                            </div>
-                            <div className="flex shrink-0 items-center gap-8">
-                              <div className="flex flex-col items-end md:items-start">
-                                <span className="text-[10px] md:text-xs font-medium text-black/60 dark:text-white/60">
-                                  投稿数
-                                </span>
-                                <span className="text-base md:text-lg font-bold text-black dark:text-white">
-                                  {c.totalPosters ?? 0}件
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </RippleLink>
+                      {closedDailies.map((contest) => (
+                        <ContestCard key={contest.id} contest={contest} muted compactTitle />
                       ))}
                     </div>
                     <div className="mt-8 flex justify-end">
