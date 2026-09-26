@@ -1,111 +1,36 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { Twitter, ChevronDown, Bell, Loader2, Moon, Sun } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { useTheme } from 'next-themes';
 import Link from 'next/link';
 import logoImg from '../assets/logo.png';
-import { getUnreadNotificationCount } from '@/lib/api/endpoints/notifications';
+import { useUnreadNotificationCount } from '@/features/notifications/hooks/useUnreadNotificationCount';
+import { useAuthActions } from '@/features/auth/hooks/useAuthActions';
+import { useHeaderMenu } from '@/features/shell/hooks/useHeaderMenu';
+import { useThemeToggle } from '@/features/shell/hooks/useThemeToggle';
+import { HEADER_NAVIGATION } from '@/features/shell/model/navigation';
 
 export default function Header() {
-  const { user, loading, login, logout } = useAuth();
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const mobileDropdownRef = useRef<HTMLDivElement>(null);
+  const { user, loading } = useAuth();
+  const { login, logout } = useAuthActions();
   const pathname = usePathname();
-  const [unreadCount, setUnreadCount] = useState(0);
+  const {
+    isOpen: isDropdownOpen,
+    setIsOpen: setIsDropdownOpen,
+    desktopRef: dropdownRef,
+    mobileRef: mobileDropdownRef,
+    handleNewsClick,
+  } = useHeaderMenu(pathname);
+  const { isDark, toggleTheme } = useThemeToggle();
+  const unreadCount = useUnreadNotificationCount(Boolean(user));
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const handleLogin = async () => {
     setIsLoggingIn(true);
     await login();
   };
-
-  const handleNewsClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    setIsDropdownOpen(false);
-    if (pathname === '/') {
-      e.preventDefault();
-      const newsSection = document.getElementById('news');
-      if (newsSection) {
-        const headerOffset = 64; 
-        const elementPosition = newsSection.getBoundingClientRect().top;
-        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-        window.scrollTo({
-             top: offsetPosition,
-             behavior: 'smooth'
-        });
-      }
-      window.history.pushState(null, '', '/#news');
-    }
-  };
-
-  useEffect(() => {
-    if (user) {
-      const fetchUnreadCount = async () => {
-        if (document.hidden) return; // タブが隠れている場合はリクエストしない
-        try {
-          setUnreadCount(await getUnreadNotificationCount());
-        } catch (e) {
-          console.error(e);
-        }
-      };
-      
-      fetchUnreadCount();
-      
-      // 10分ごとのポーリング
-      const interval = setInterval(fetchUnreadCount, 600000); 
-
-      return () => clearInterval(interval);
-    }
-  }, [user]);
-
-  // 追加: ページ遷移が発生したらメニューを確実に閉じる
-  useEffect(() => {
-    setIsDropdownOpen(false);
-  }, [pathname]);
-
-  // ドロップダウンの外側をクリックしたら閉じる処理
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      const target = event.target as Node;
-
-      // ボタン自体がクリックされた場合は何もしない（トグル処理に任せる）
-      const pcButton = dropdownRef.current?.previousElementSibling;
-      const mobileButton = mobileDropdownRef.current?.previousElementSibling;
-
-      const isClickOnButton = 
-        (pcButton && pcButton.contains(target)) || 
-        (mobileButton && mobileButton.contains(target));
-
-      if (isClickOnButton) {
-        return;
-      }
-      
-      // PCメニューまたはモバイルメニューの内側をクリックしたかどうかの判定
-      const isClickInsidePC = dropdownRef.current?.contains(target);
-      const isClickInsideMobile = mobileDropdownRef.current?.contains(target);
-
-      // どちらか一方でも内側なら閉じない（ここが修正ポイント）
-      if (isClickInsidePC || isClickInsideMobile) {
-        return;
-      }
-
-      // どちらの外側でもある場合のみ閉じる
-      setIsDropdownOpen(false);
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [dropdownRef, mobileDropdownRef]);
 
 
   return (
@@ -137,10 +62,11 @@ export default function Header() {
       <div className={`flex items-center justify-end md:basis-auto gap-4 sm:gap-6 ${user ? 'basis-1/3' : ''}`}>
         {/* ナビゲーションリンク (中画面以上) */}
         <nav className="hidden md:flex gap-4 sm:gap-6 items-center">
-          <Link href="/venue" className={`text-sm font-medium hover:text-gray-700 dark:hover:text-gray-300 transition-colors ${pathname === '/venue' ? 'text-black dark:text-white underline underline-offset-4' : 'text-black dark:text-white'}`}>会場</Link>
-          <Link href="/history" className={`text-sm font-medium hover:text-gray-700 dark:hover:text-gray-300 transition-colors ${pathname === '/history' ? 'text-black dark:text-white underline underline-offset-4' : 'text-black dark:text-white'}`}>過去ログ</Link>
-          <Link href="/users" className={`text-sm font-medium hover:text-gray-700 dark:hover:text-gray-300 transition-colors ${pathname === '/users' ? 'text-black dark:text-white underline underline-offset-4' : 'text-black dark:text-white'}`}>ユーザー</Link>
-          <Link href="/rules" className={`text-sm font-medium hover:text-gray-700 dark:hover:text-gray-300 transition-colors ${pathname === '/rules' ? 'text-black dark:text-white underline underline-offset-4' : 'text-black dark:text-white'}`}>ルール</Link>
+          {HEADER_NAVIGATION.map((item) => (
+            <Link key={item.href} href={item.href} className={`text-sm font-medium hover:text-gray-700 dark:hover:text-gray-300 transition-colors ${pathname === item.href ? 'text-black dark:text-white underline underline-offset-4' : 'text-black dark:text-white'}`}>
+              {item.label}
+            </Link>
+          ))}
           <Link href="/#news" onClick={handleNewsClick} className="text-sm font-medium hover:text-gray-700 dark:hover:text-gray-300 transition-colors text-black dark:text-white">ニュース</Link>
         </nav>
 
@@ -188,11 +114,11 @@ export default function Header() {
                     マイページ
                   </Link>
                   <button
-                    onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                    onClick={toggleTheme}
                     className="flex items-center justify-between px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-black dark:hover:text-white w-full text-left transition-colors"
                   >
-                    <span>{mounted && theme === 'dark' ? 'ライトモード' : 'ダークモード'}</span>
-                    {mounted && theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                    <span>{isDark ? 'ライトモード' : 'ダークモード'}</span>
+                    {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                   </button>
                   <button
                     onClick={async () => {
@@ -218,18 +144,17 @@ export default function Header() {
               </button>
                {isDropdownOpen && (
                 <div className="absolute top-full right-0 mt-2 w-48 bg-gray-100 dark:bg-gray-800 rounded-md shadow-lg py-1 border border-gray-200 dark:border-gray-700 z-50">
-                  <Link href="/venue" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-black dark:hover:text-white transition-colors">会場</Link>
-                  <Link href="/history" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-black dark:hover:text-white transition-colors">過去ログ</Link>
-                  <Link href="/users" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-black dark:hover:text-white transition-colors">ユーザー</Link>
-                  <Link href="/rules" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-black dark:hover:text-white transition-colors">ルール</Link>
+                  {HEADER_NAVIGATION.map((item) => (
+                    <Link key={item.href} href={item.href} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-black dark:hover:text-white transition-colors">{item.label}</Link>
+                  ))}
                   <Link href="/#news" onClick={handleNewsClick} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-black dark:hover:text-white transition-colors">ニュース</Link>
                   <Link href={`/profile/${encodeURIComponent(user.screenName)}`} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-black dark:hover:text-white transition-colors">マイページ</Link>
                   <button
-                    onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                    onClick={toggleTheme}
                     className="flex items-center justify-between px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-black dark:hover:text-white w-full text-left transition-colors"
                   >
-                    <span>{mounted && theme === 'dark' ? 'ライトモード' : 'ダークモード'}</span>
-                    {mounted && theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                    <span>{isDark ? 'ライトモード' : 'ダークモード'}</span>
+                    {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                   </button>
                   <button onClick={async () => { setIsDropdownOpen(false); await logout(); }} className="block px-4 py-2 text-sm text-red-500 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-red-600 dark:hover:text-red-400 w-full text-left transition-colors">ログアウト</button>
                 </div>

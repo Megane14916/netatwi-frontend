@@ -1,45 +1,25 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Heart, MessageSquare, Trophy, Bell } from 'lucide-react';
 import TimeAgo from '@/components/TimeAgo';
 import Link from 'next/link';
 import type { ElementType } from 'react';
-import type { Notification } from '@/types/domain';
-import { getNotifications, markNotificationsRead } from '@/lib/api/endpoints/notifications';
+import { useNotifications } from '@/features/notifications/hooks/useNotifications';
+import { presentNotification } from '@/features/notifications/model/notificationPresentation';
 
 export default function NotificationsPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { notifications, isLoading } = useNotifications(Boolean(user));
 
   useEffect(() => {
     if (!loading && !user) {
       router.push('/');
     }
   }, [user, loading, router]);
-
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      if (!user) return;
-      try {
-        const data = await getNotifications();
-        setNotifications(data);
-
-        if (data.some((notification) => !notification.isRead)) {
-          await markNotificationsRead();
-        }
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchNotifications();
-  }, [user]);
 
   if (loading || isLoading) {
     return <div className="flex justify-center py-20 min-h-screen bg-white dark:bg-black"><div className="animate-pulse w-8 h-8 bg-gray-300 dark:bg-gray-700 rounded-full"></div></div>;
@@ -60,9 +40,10 @@ export default function NotificationsPage() {
             </div>
           ) : (
             notifications.map(notification => {
-              const Wrapper: ElementType = notification.contestId ? Link : 'div';
-              const wrapperProps = notification.contestId
-                ? { href: `/venue/${notification.contestId}`, prefetch: false }
+              const presentation = presentNotification(notification);
+              const Wrapper: ElementType = presentation.href ? Link : 'div';
+              const wrapperProps = presentation.href
+                ? { href: presentation.href, prefetch: false }
                 : {};
 
               return (
@@ -73,9 +54,9 @@ export default function NotificationsPage() {
               >
                 <div className="flex items-start gap-4">
                   <div className="flex-none pt-1">
-                    {notification.type === 'like' && <Heart className="w-8 h-8 text-pink-500 fill-current" />}
-                    {notification.type === 'comment' && <MessageSquare className="w-8 h-8 text-[#1DA1F2] fill-current" />}
-                    {notification.type.startsWith('contest_') && (
+                    {presentation.icon === 'like' && <Heart className="w-8 h-8 text-pink-500 fill-current" />}
+                    {presentation.icon === 'comment' && <MessageSquare className="w-8 h-8 text-[#1DA1F2] fill-current" />}
+                    {presentation.icon === 'contest' && (
                       <Trophy className={`w-8 h-8 ${notification.contest?.type === 'daily' ? 'text-[#1DA1F2]' : 'text-yellow-500'}`} />
                     )}
                   </div>
@@ -91,23 +72,13 @@ export default function NotificationsPage() {
                         />
                       )}
                       <span className="font-bold text-black dark:text-white">
-                        {notification.sender 
-                          ? notification.sender.name 
-                          : notification.type.startsWith('contest_')
-                            ? (notification.contest?.type === 'daily' ? 'デイリー' : 'グランプリ')
-                            : 'システム'
-                        }
+                        {presentation.actorName}
                       </span>
                       <span className="text-sm text-gray-500 dark:text-gray-400"><TimeAgo timestamp={notification.createdAt} /></span>
                     </div>
                     
                     <p className="text-gray-700 dark:text-gray-300 text-sm mb-2 font-medium">
-                      {notification.type === 'like' && 'あなたの投稿にいいねしました。'}
-                      {notification.type === 'comment' && 'あなたの投稿にコメントしました。'}
-                      {notification.type === 'contest_start' && `${notification.contest?.name}が始まりました！`}
-                      {notification.type === 'contest_post_start' && `${notification.contest?.name}の投稿受付が開始されました！`}
-                      {notification.type === 'contest_voting_start' && `${notification.contest?.name}の投票が開始されました！`}
-                      {notification.type === 'contest_result_announce' && `${notification.contest?.name}の結果が発表されました！`}
+                      {presentation.message}
                     </p>
                     
                     {notification.type === 'comment' && notification.comment?.content && (

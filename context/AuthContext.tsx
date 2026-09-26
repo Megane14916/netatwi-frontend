@@ -1,14 +1,12 @@
 "use client";
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import type { User } from '@/types/domain';
-import { getAuthSession, getLoginAuthorizationUrl, logout as logoutRequest } from '@/lib/api/endpoints/auth';
+import { getAuthSession } from '@/lib/api/endpoints/auth';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   judgeContests: number[]; // 審査員としてログイン中の大会IDリスト
-  login: () => void;
-  logout: () => Promise<void>;
   refetchUser: () => Promise<void>; // ユーザー情報を再取得する関数
 }
 
@@ -40,24 +38,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     refetchUser();
   }, []);
 
-  const login = async () => {
-    try {
-      window.location.href = await getLoginAuthorizationUrl();
-    } catch (error) {
-      console.error("ログインプロセスを開始できませんでした:", error);
-    }
-  };
-
-  const logout = async () => {
-    await logoutRequest();
-    setUser(null);
-    setJudgeContests([]);
-    // ログアウト後にトップページに遷移
-    window.location.href = "/";
-  };
-
   return (
-    <AuthContext.Provider value={{ user, loading, judgeContests, login, logout, refetchUser }}>
+    <AuthContext.Provider value={{ user, loading, judgeContests, refetchUser }}>
       {children}
     </AuthContext.Provider>
   );
