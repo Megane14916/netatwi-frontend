@@ -21,6 +21,7 @@ import type { ResultPost, UserProfile } from '@/types/domain';
 import { getProfile, withdrawCurrentUser } from '@/lib/api/endpoints/profile';
 import { ApiError } from '@/lib/api/core';
 import { usePrefetchedComments } from '@/features/posts/hooks/usePrefetchedComments';
+import { setPostBookmark } from '@/lib/api/endpoints/posts';
 
 export default function UserProfilePage({ params }: { params: { screen_name: string } }) {
   const { toast } = useToast();
@@ -32,6 +33,10 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'posts' | 'bookmarks' | 'likes'>('posts');
   const fetchRef = useRef<string | null>(null);
+  const bookmarkTargetsRef = useRef<Map<number, boolean>>(new Map());
+  const bookmarkConfirmedRef = useRef<Map<number, boolean>>(new Map());
+  const bookmarkConfirmedCountRef = useRef<Map<number, number>>(new Map());
+  const bookmarkProcessingRef = useRef<Set<number>>(new Set());
 
   const [showMenu, setShowMenu] = useState(false);
   const [showWithdrawDialog, setShowWithdrawDialog] = useState(false);
@@ -115,6 +120,45 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
               bookmarks: newBookmarks,
           };
       });
+  };
+
+  const processBookmarkQueue = async (postId: number) => {
+      if (bookmarkProcessingRef.current.has(postId)) return;
+      bookmarkProcessingRef.current.add(postId);
+
+      try {
+          while (true) {
+              const requestedState = bookmarkTargetsRef.current.get(postId) ?? false;
+              const data = await setPostBookmark(postId, requestedState);
+              bookmarkConfirmedRef.current.set(postId, data.isBookmarked);
+              bookmarkConfirmedCountRef.current.set(postId, Math.max(0, data.bookmarkCount));
+              applyBookmarkState(postId, data.isBookmarked, Math.max(0, data.bookmarkCount));
+
+              if ((bookmarkTargetsRef.current.get(postId) ?? false) === requestedState) break;
+          }
+      } catch (error) {
+          console.error(error);
+          const confirmed = bookmarkConfirmedRef.current.get(postId) ?? false;
+          bookmarkTargetsRef.current.set(postId, confirmed);
+          applyBookmarkState(postId, confirmed, bookmarkConfirmedCountRef.current.get(postId));
+          toast({ title: "エラー", description: "ブックマークの更新に失敗しました", variant: "destructive" });
+      } finally {
+          bookmarkProcessingRef.current.delete(postId);
+      }
+  };
+
+  const handleToggleBookmark = (post: ResultPost) => {
+      const current = bookmarkTargetsRef.current.get(post.id) ?? post.isBookmarked;
+      const next = !current;
+      bookmarkTargetsRef.current.set(post.id, next);
+      if (!bookmarkConfirmedRef.current.has(post.id)) {
+          bookmarkConfirmedRef.current.set(post.id, post.isBookmarked);
+          bookmarkConfirmedCountRef.current.set(post.id, post.bookmarkCount);
+      }
+
+      // API完了を待たずに表示だけ更新する
+      applyBookmarkState(post.id, next);
+      void processBookmarkQueue(post.id);
   };
 
   // 表示する投稿リストの切り替え
@@ -282,7 +326,7 @@ export default function UserProfilePage({ params }: { params: { screen_name: str
                 <ResultPostCard 
                     post={post} 
                     currentUser={currentUser} 
-                    onBookmarkChange={applyBookmarkState}
+                    onToggleBookmark={handleToggleBookmark}
                     contestScoringMethod={post.contest?.scoringMethod}
                     initialComments={prefetchedComments[post.id]}
                 />
