@@ -5,7 +5,7 @@ import {
   createVoteBackup,
   parseVoteBackup,
 } from "@/features/contest-detail/model/voteBackup";
-import { buildVotePayload, createInitialVoteState } from "@/features/contest-detail/model/voting";
+import { buildVotePayload, createInitialVoteState, voteEditorReducer } from "@/features/contest-detail/model/voting";
 import type { Post } from "@/types/domain";
 
 const post = (id: number, userId = id): Post => ({
@@ -91,7 +91,43 @@ describe("contest detail model", () => {
     expect(result).toEqual({ ok: true, payload: { votes: { 2: 1 } } });
   });
 
-  it("rejects incomplete judge scoring and judge award data", () => {
+  it.each([0, 5, 10])("allows saving a partial judge score of %s without an award", (score) => {
+    expect(buildVotePayload({
+      posts: [post(1), post(2)],
+      state: { votes: { 1: score }, judgeAward: { postId: null, comment: "" } },
+      userId: 99,
+      isJudgeMode: true,
+      judgeMaxScore: 10,
+    })).toEqual({ ok: true, payload: { votes: { 1: score } } });
+  });
+
+  it.each(["", "  選評  "])("sends the selected award with its unchanged comment %j even without scores", (comment) => {
+    expect(buildVotePayload({
+      posts: [post(1), post(2)],
+      state: { votes: {}, judgeAward: { postId: 2, comment } },
+      userId: 99,
+      isJudgeMode: true,
+      judgeMaxScore: 10,
+    })).toEqual({ ok: true, payload: { votes: {}, judgeAward: { postId: 2, comment } } });
+  });
+
+  it("allows saving after clearing all scores and deselecting the saved award", () => {
+    let state = createInitialVoteState([
+      { ...post(1), myVotes: 5, myJudgeAward: true, myJudgeComment: "選評" },
+      post(2),
+    ]);
+    state = voteEditorReducer(state, { type: "set-vote", postId: 1, score: null });
+    state = voteEditorReducer(state, { type: "toggle-judge-award", postId: 1 });
+    expect(buildVotePayload({
+      posts: [post(1), post(2)],
+      state,
+      userId: 99,
+      isJudgeMode: true,
+      judgeMaxScore: 10,
+    })).toEqual({ ok: true, payload: { votes: {} } });
+  });
+
+  it("rejects out-of-range judge scores", () => {
     const result = buildVotePayload({
       posts: [post(1), post(2)],
       state: { votes: { 1: 11 }, judgeAward: { postId: null, comment: "" } },
@@ -101,13 +137,7 @@ describe("contest detail model", () => {
     });
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.errors.map(({ code }) => code)).toEqual(
-        expect.arrayContaining([
-          "INVALID_JUDGE_SCORE",
-          "MISSING_JUDGE_SCORE",
-          "MISSING_JUDGE_AWARD",
-        ]),
-      );
+      expect(result.errors).toEqual([{ code: "INVALID_JUDGE_SCORE", postId: 1 }]);
     }
   });
 

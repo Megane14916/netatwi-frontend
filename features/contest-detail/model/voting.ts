@@ -69,11 +69,8 @@ export const voteEditorReducer = (
 export type VoteValidationCode =
   | "SELF_VOTE"
   | "INVALID_GENERAL_VOTE"
-  | "MISSING_JUDGE_SCORE"
   | "INVALID_JUDGE_SCORE"
-  | "MISSING_JUDGE_AWARD"
-  | "INVALID_JUDGE_AWARD"
-  | "MISSING_JUDGE_COMMENT";
+  | "INVALID_JUDGE_AWARD";
 
 export interface VoteValidationError {
   code: VoteValidationCode;
@@ -101,7 +98,6 @@ export const buildVotePayload = ({
 }: BuildVotePayloadInput): VotePayloadResult => {
   const errors: VoteValidationError[] = [];
   const postsById = new Map(posts.map((post) => [post.id, post]));
-  const votablePosts = posts.filter((post) => post.userId !== userId);
 
   for (const [postIdText, score] of Object.entries(state.votes)) {
     const postId = Number(postIdText);
@@ -120,35 +116,19 @@ export const buildVotePayload = ({
     }
   }
 
-  if (isJudgeMode) {
-    for (const post of votablePosts) {
-      if (state.votes[post.id] === undefined) {
-        errors.push({ code: "MISSING_JUDGE_SCORE", postId: post.id });
-      }
-    }
-
-    if (state.judgeAward.postId === null) {
-      errors.push({ code: "MISSING_JUDGE_AWARD" });
-    } else {
-      const awardPost = postsById.get(state.judgeAward.postId);
-      if (!awardPost || awardPost.userId === userId) {
-        errors.push({ code: "INVALID_JUDGE_AWARD", postId: state.judgeAward.postId });
-      }
-      if (!state.judgeAward.comment.trim()) {
-        errors.push({ code: "MISSING_JUDGE_COMMENT", postId: state.judgeAward.postId });
-      }
+  if (isJudgeMode && state.judgeAward.postId) {
+    const awardPost = postsById.get(state.judgeAward.postId);
+    if (!awardPost || awardPost.userId === userId) {
+      errors.push({ code: "INVALID_JUDGE_AWARD", postId: state.judgeAward.postId });
     }
   }
 
   if (errors.length > 0) return { ok: false, errors };
 
-  const payload: VotePayload = { votes: state.votes };
-  if (isJudgeMode) {
-    payload.judgeAward = {
-      postId: state.judgeAward.postId,
-      comment: state.judgeAward.comment.trim(),
-    };
-  }
+  const { votes, judgeAward: judgeAwardSelection } = state;
+  const payload: VotePayload = { votes };
+  if (isJudgeMode && judgeAwardSelection.postId)
+    payload.judgeAward = judgeAwardSelection;
   return { ok: true, payload };
 };
 
@@ -158,16 +138,10 @@ export const getVoteValidationMessage = (error: VoteValidationError): string => 
       return "自分の投稿には投票できません。";
     case "INVALID_GENERAL_VOTE":
       return "一般投票の値が不正です。";
-    case "MISSING_JUDGE_SCORE":
-      return "すべての投稿に点数を入力してください。";
     case "INVALID_JUDGE_SCORE":
       return "審査員の点数が範囲外です。";
-    case "MISSING_JUDGE_AWARD":
-      return "審査員賞を選択してください。";
     case "INVALID_JUDGE_AWARD":
       return "審査員賞の対象が不正です。";
-    case "MISSING_JUDGE_COMMENT":
-      return "審査員賞の選評コメントを入力してください。";
   }
 };
 
