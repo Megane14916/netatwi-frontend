@@ -73,15 +73,6 @@ export default function PostForm({
   const [isPostDeadlineExceeded, setIsPostDeadlineExceeded] = useState(false);
 
   // ---------------------------------------------------------------------------
-  // 取得済みの自分の投稿をフォーム状態へ反映
-  // ---------------------------------------------------------------------------
-  useEffect(() => {
-    if (!myPost) return;
-    setNewPostContent(myPost.content);
-    replaceWithExistingImages(myPost.images || []);
-  }, [myPost, replaceWithExistingImages]);
-
-  // ---------------------------------------------------------------------------
   // 1秒ごとに締め切り判定を更新
   // ---------------------------------------------------------------------------
   useEffect(() => {
