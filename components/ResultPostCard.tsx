@@ -15,13 +15,14 @@ import { ResultVoters } from '@/features/posts/components/result/ResultVoters';
 export interface ResultPostProps {
   post: ResultPost;
   currentUser: User | null;
+  onToggleBookmark?: (post: ResultPost) => void;
   onBookmarkChange?: (postId: number, isBookmarked: boolean, bookmarkCount: number) => void;
   contestScoringMethod?: string;
   hideVotersAndComments?: boolean;
   initialComments?: Comment[];
 }
 
-export default function ResultPostCard({ post, currentUser, onBookmarkChange, contestScoringMethod, hideVotersAndComments = false, initialComments }: ResultPostProps) {
+export default function ResultPostCard({ post, currentUser, onToggleBookmark, onBookmarkChange, contestScoringMethod, hideVotersAndComments = false, initialComments }: ResultPostProps) {
   const { toast } = useToast();
 
   const initialIsLiked = useMemo(
@@ -45,8 +46,8 @@ export default function ResultPostCard({ post, currentUser, onBookmarkChange, co
   const [commentCount, setCommentCount] = useState(post.commentCount);
   const [hasCommented, setHasCommented] = useState(post.hasCommented || false);
   const {
-    enabled: isBookmarked,
-    count: bookmarkCount,
+    enabled: localIsBookmarked,
+    count: localBookmarkCount,
     toggle: toggleBookmark,
   } = useQueuedToggle({
     initialEnabled: post.isBookmarked,
@@ -61,6 +62,8 @@ export default function ResultPostCard({ post, currentUser, onBookmarkChange, co
       toast({ title: "エラー", description: "ブックマークの更新に失敗しました", variant: "destructive" });
     },
   });
+  const isBookmarked = onToggleBookmark ? post.isBookmarked : localIsBookmarked;
+  const bookmarkCount = onToggleBookmark ? post.bookmarkCount : localBookmarkCount;
   const {
     enabled: isLiked,
     count: likeCount,
@@ -86,6 +89,11 @@ export default function ResultPostCard({ post, currentUser, onBookmarkChange, co
   const handleBookmark = () => {
     if (!currentUser) {
       toast({ title: "エラー", description: "ブックマークするにはログインが必要です。", variant: "destructive" });
+      return;
+    }
+
+    if (onToggleBookmark) {
+      onToggleBookmark(post);
       return;
     }
 

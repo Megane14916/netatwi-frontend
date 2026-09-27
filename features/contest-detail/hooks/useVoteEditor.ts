@@ -21,6 +21,5 @@ export const useVoteEditor = (posts: Post[]) => {
   return {
     state,
     dispatch,
-    resetFromServer: () => setEditedState(null),
   };
 };

@@ -39,20 +39,28 @@ export const usePostFormData = ({
     }
 
     let active = true;
-    setIsLoading(true);
-    Promise.all([
-      getContest(contestId),
-      userId === null ? Promise.resolve(null) : getContestPosts(contestId),
-    ])
-      .then(([contest, postsData]) => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const contest = await getContest(contestId);
         if (!active) return;
         setContestInfo(contest);
-        setMyPost(postsData?.posts.find((post) => post.userId === userId) ?? null);
-      })
-      .catch((error) => console.error("PostForm: データ取得エラー", error))
-      .finally(() => {
+
+        if (userId !== null) {
+          const postsData = await getContestPosts(contestId);
+          if (!active) return;
+          setMyPost(postsData.posts.find((post) => post.userId === userId) ?? null);
+        } else {
+          setMyPost(null);
+        }
+      } catch (error) {
+        console.error("PostForm: データ取得エラー", error);
+      } finally {
         if (active) setIsLoading(false);
-      });
+      }
+    };
+
+    void fetchData();
     return () => {
       active = false;
     };
