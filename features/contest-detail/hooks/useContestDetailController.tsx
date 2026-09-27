@@ -160,7 +160,7 @@ export function useContestDetailController() {
     contestId,
     isJudgeMode && contestStatus === "voting",
   );
-  const { state: voteEditorState, dispatch: dispatchVote, resetFromServer } = useVoteEditor(posts);
+  const { state: voteEditorState, dispatch: dispatchVote } = useVoteEditor(posts);
   const votes = voteEditorState.votes;
   const judgeAwardSelection = voteEditorState.judgeAward;
   const scoreSortedPosts = useScoreSortedPosts(posts, votes, judgeSortOrder);
@@ -301,7 +301,6 @@ export function useContestDetailController() {
     try {
       await submitContestVotes(contestId, result.payload);
       await mutatePosts();
-      resetFromServer();
       setShowSuccessBanner(true);
       setTimeout(() => setShowSuccessBanner(false), 5000);
     } catch (requestError) {
