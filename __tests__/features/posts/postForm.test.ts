@@ -1,6 +1,7 @@
 import {
   IMAGE_SIZE_ERROR,
   buildPostFormData,
+  getPostDraftErrorMessage,
   validatePostDraft,
 } from "@/features/posts/model/postForm";
 
@@ -8,6 +9,41 @@ const file = (name: string, size: number) =>
   new File([new Uint8Array(size)], name, { type: "image/png" });
 
 describe("post form model", () => {
+  const draft = {
+    content: "本文",
+    imageRule: "optional" as const,
+    previewUrls: [] as string[],
+    selectedImages: [] as File[],
+    isDeadlineExceeded: false,
+    isCompressingImages: false,
+  };
+
+  it("accepts a valid post and rejects deadline, compression, length and empty content", () => {
+    expect(validatePostDraft(draft)).toBeNull();
+    expect(validatePostDraft({ ...draft, isDeadlineExceeded: true })).toBe("DEADLINE_EXCEEDED");
+    expect(validatePostDraft({ ...draft, isCompressingImages: true })).toBe("IMAGE_COMPRESSION_PENDING");
+    expect(validatePostDraft({ ...draft, content: "a".repeat(281) })).toBe("TEXT_TOO_LONG");
+    expect(validatePostDraft({ ...draft, content: " " })).toBe("EMPTY_POST");
+  });
+
+  it.each([
+    ["DEADLINE_EXCEEDED", "投稿受付は終了しました"],
+    ["IMAGE_COMPRESSION_PENDING", "画像の処理が完了するまでお待ちください"],
+    ["TEXT_TOO_LONG", "文字数制限（280文字）を超えています"],
+    ["IMAGE_REQUIRED", "画像を1枚以上添付してください"],
+    ["EMPTY_POST", "投稿内容を入力してください"],
+    ["IMAGES_TOO_LARGE", IMAGE_SIZE_ERROR],
+  ] as const)("maps %s to a visible validation message", (code, message) => {
+    expect(getPostDraftErrorMessage(code)).toBe(message);
+  });
+
+  it("creates FormData without edit-only retained image metadata", () => {
+    const image = file("new.png", 2);
+    const data = buildPostFormData({ content: "new", isEditing: false, previewUrls: [], selectedImages: [image] });
+    expect(data.get("content")).toBe("new");
+    expect(data.has("kept_images")).toBe(false);
+    expect(data.getAll("images")).toEqual([image]);
+  });
   it("requires an image when the contest image rule is required", () => {
     expect(
       validatePostDraft({

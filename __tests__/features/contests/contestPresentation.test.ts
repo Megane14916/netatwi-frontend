@@ -1,5 +1,6 @@
 import {
   getContestStatus,
+  getGrandPrixStep,
   getGrandPrixProgress,
   getVisibleDailyContests,
   isContestType,
@@ -36,6 +37,18 @@ describe("contest presentation", () => {
     const finals = contest({ id: 11, type: "grandprix", parentContestId: 10, startTime: "2026-01-03T00:00:00.000Z" });
     const progress = getGrandPrixProgress([finals, qualifier], now);
     expect(progress).toMatchObject({ step: 0, displayContest: qualifier, qualifier, finals });
+  });
+
+  it.each([
+    ["2026-01-01T09:59:59.000Z", 0],
+    ["2026-01-01T10:00:00.000Z", 1],
+    ["2026-01-01T11:00:00.000Z", 2],
+    ["2026-01-01T13:00:00.000Z", 3],
+    ["2026-01-01T14:00:00.000Z", 4],
+  ] as const)("予選・決勝の境界 %s で進行段階 %s を返す", (at, step) => {
+    const qualifier = contest({ id: 10, type: "grandprix", endTime: "2026-01-01T10:00:00.000Z", votingEndTime: "2026-01-01T11:00:00.000Z" });
+    const finals = contest({ id: 11, type: "grandprix", parentContestId: 10, endTime: "2026-01-01T13:00:00.000Z", votingEndTime: "2026-01-01T14:00:00.000Z" });
+    expect(getGrandPrixStep(finals, qualifier, new Date(at))).toBe(step);
   });
 
   it("1時間より先のデイリーを非表示にして状態順に並べる", () => {
