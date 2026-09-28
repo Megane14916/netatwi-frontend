@@ -17,6 +17,14 @@ const customJestConfig = {
     '!**/index.ts',
   ],
   coverageReporters: ['text-summary', 'lcov', 'json-summary'],
+  coverageThreshold: {
+    './features/contest-detail/model/contestStatus.ts': { branches: 80 },
+    './features/contest-detail/model/voting.ts': { branches: 80 },
+    './features/posts/model/postForm.ts': { branches: 80 },
+    './lib/api/browser.ts': { branches: 80 },
+    './lib/api/core.ts': { branches: 80 },
+    './lib/mappers/api.ts': { branches: 80 },
+  },
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
   },
