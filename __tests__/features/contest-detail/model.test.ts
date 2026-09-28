@@ -5,8 +5,9 @@ import {
   createVoteBackup,
   parseVoteBackup,
 } from "@/features/contest-detail/model/voteBackup";
-import { buildVotePayload, createInitialVoteState, voteEditorReducer } from "@/features/contest-detail/model/voting";
+import { buildVotePayload, createInitialVoteState, getJudgeVoteProgress, getVoteValidationMessage, voteEditorReducer } from "@/features/contest-detail/model/voting";
 import type { Post } from "@/types/domain";
+import { freezeTime } from "@/__tests__/support/time";
 
 const post = (id: number, userId = id): Post => ({
   id,
@@ -28,6 +29,16 @@ const schedule = {
 };
 
 describe("contest detail model", () => {
+  it("uses a frozen clock at the posting and voting boundaries", () => {
+    const restore = freezeTime(schedule.endTime);
+    try {
+      expect(getContestTiming(schedule)).toMatchObject({ status: "voting", isPostDeadlineExceeded: true, isVoteDeadlineExceeded: false });
+      jest.setSystemTime(new Date(schedule.votingEndTime));
+      expect(getContestTiming(schedule)).toMatchObject({ status: "closed", isVoteDeadlineExceeded: true });
+    } finally {
+      restore();
+    }
+  });
   it.each([
     ["2026-01-01T09:59:00.000Z", "upcoming"],
     ["2026-01-01T10:30:00.000Z", "ongoing"],
@@ -139,6 +150,45 @@ describe("contest detail model", () => {
     if (!result.ok) {
       expect(result.errors).toEqual([{ code: "INVALID_JUDGE_SCORE", postId: 1 }]);
     }
+  });
+
+  it("rejects self votes, invalid general values and an invalid judge award", () => {
+    const posts = [post(1, 10), post(2, 20)];
+    const state = { votes: { 1: 1, 2: 2 }, judgeAward: { postId: 1, comment: "" } };
+    expect(buildVotePayload({ posts, state, userId: 10, isJudgeMode: false, judgeMaxScore: 10 })).toEqual({
+      ok: false,
+      errors: [{ code: "SELF_VOTE", postId: 1 }, { code: "INVALID_GENERAL_VOTE", postId: 2 }],
+    });
+    expect(buildVotePayload({ posts, state, userId: 10, isJudgeMode: true, judgeMaxScore: 10 })).toEqual({
+      ok: false,
+      errors: [{ code: "SELF_VOTE", postId: 1 }, { code: "INVALID_JUDGE_AWARD", postId: 1 }],
+    });
+    expect(buildVotePayload({ posts, state: { votes: {}, judgeAward: { postId: 99, comment: "" } }, userId: 10, isJudgeMode: true, judgeMaxScore: 10 })).toEqual({
+      ok: false, errors: [{ code: "INVALID_JUDGE_AWARD", postId: 99 }],
+    });
+  });
+
+  it("fills only unvoted posts and reports judge progress", () => {
+    const posts = [post(1, 10), post(2, 20), { ...post(3, 30), hasCommented: true }];
+    let state = createInitialVoteState(posts);
+    state = voteEditorReducer(state, { type: "set-vote", postId: 2, score: 5 });
+    state = voteEditorReducer(state, { type: "fill-unvoted", postIds: [2, 3], score: 0 });
+    state = voteEditorReducer(state, { type: "toggle-judge-award", postId: 2 });
+    state = voteEditorReducer(state, { type: "set-judge-comment", comment: " 選評 " });
+    expect(state.votes).toEqual({ 2: 5, 3: 0 });
+    expect(getJudgeVoteProgress(posts, state, 10, new Set([2]))).toEqual({
+      total: 2, voted: 2, commented: 2, hasCompleteJudgeAward: true,
+    });
+    expect(voteEditorReducer(state, { type: "restore", state: createInitialVoteState([]) })).toEqual(createInitialVoteState([]));
+  });
+
+  it.each([
+    ["SELF_VOTE", "自分の投稿には投票できません。"],
+    ["INVALID_GENERAL_VOTE", "一般投票の値が不正です。"],
+    ["INVALID_JUDGE_SCORE", "審査員の点数が範囲外です。"],
+    ["INVALID_JUDGE_AWARD", "審査員賞の対象が不正です。"],
+  ] as const)("maps %s to an error message", (code, message) => {
+    expect(getVoteValidationMessage({ code })).toBe(message);
   });
 
   it("creates initial vote state from server values", () => {

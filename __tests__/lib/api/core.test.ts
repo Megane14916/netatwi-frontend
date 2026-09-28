@@ -1,4 +1,4 @@
-import { request } from "@/lib/api/core";
+import { ApiError, getApiErrorMessage, request } from "@/lib/api/core";
 
 const response = (
   body: string | null,
@@ -152,5 +152,38 @@ describe("request", () => {
         },
       }),
     ).rejects.toEqual(expect.objectContaining({ kind: "validation" }));
+  });
+
+  it("rejects a request that supplies both JSON and a body before fetching", async () => {
+    await expect(request("/api/example", { body: "raw", json: { id: 1 } })).rejects.toMatchObject({ kind: "validation" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("preserves an ApiError thrown by a response validator", async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ id: 1 }));
+    const error = new ApiError("custom", { kind: "validation" });
+    await expect(request("/api/example", { validate: () => { throw error; } })).rejects.toBe(error);
+  });
+
+  it("uses the server message and falls back to status text for empty errors", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ message: "Unavailable" }, 503));
+    fetchMock.mockResolvedValueOnce(response("", { status: 503, statusText: "Service Unavailable" }));
+    await expect(request("/api/example")).rejects.toMatchObject({ kind: "http", message: "Unavailable" });
+    await expect(request("/api/example")).rejects.toMatchObject({ kind: "http", message: "Service Unavailable" });
+  });
+
+  it("keeps malformed JSON error bodies as text and classifies body read failures", async () => {
+    fetchMock.mockResolvedValueOnce(response("{", { status: 500, contentType: "application/json" }));
+    fetchMock.mockResolvedValueOnce({
+      ok: true, status: 200, headers: { get: () => "application/json" },
+      text: jest.fn().mockRejectedValue(new Error("read failed")),
+    } as unknown as Response);
+    await expect(request("/api/example")).rejects.toMatchObject({ kind: "http", message: "{" });
+    await expect(request("/api/example")).rejects.toMatchObject({ kind: "network" });
+  });
+
+  it("provides a fallback message for non-Error values", () => {
+    expect(getApiErrorMessage(null, "fallback")).toBe("fallback");
+    expect(getApiErrorMessage(new Error("reason"), "fallback")).toBe("reason");
   });
 });
