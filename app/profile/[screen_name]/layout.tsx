@@ -1,19 +1,15 @@
 import type { Metadata } from "next";
+import { getServerProfile } from "@/lib/api/endpoints/server";
+import { resolveMetadata } from "@/lib/metadata";
 
 export async function generateMetadata({ params }: { params: { screen_name: string } }): Promise<Metadata> {
-  const backendUrl = process.env.BACKEND_URL || "http://127.0.0.1:5001";
-  try {
-    const decodedScreenName = decodeURIComponent(params.screen_name);
-    const res = await fetch(`${backendUrl}/api/profile/${decodedScreenName}`, { cache: "no-store" });
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.user && data.user.name) {
-        return { title: { absolute: `${data.user.name}さん | ネタツイグランプリ` } };
-      }
-    }
-  } catch {
-  }
-  return { title: "ユーザー" };
+  const decodedScreenName = decodeURIComponent(params.screen_name);
+  return resolveMetadata(
+    () => getServerProfile(decodedScreenName),
+    (profile) => ({ title: { absolute: `${profile.user.name}さん | ネタツイグランプリ` } }),
+    { title: "ユーザー" },
+    `profile:${decodedScreenName}`,
+  );
 }
 
 export default function Layout({ children }: { children: React.ReactNode }) {

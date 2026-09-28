@@ -190,7 +190,7 @@ Issue番号は `#4`〜`#11` を使用する。実際のIssue作成時には、�
 ### #5 ドメイン型とAPI契約の整理
 
 **Branch:** `refactor/5-domain-types`  
-**Base / PR target:** `refactor` / `refactor`
+**Base / PR target:** `refactor-base` / `refactor-base`
 
 作業内容:
 
@@ -214,7 +214,7 @@ Issue番号は `#4`〜`#11` を使用する。実際のIssue作成時には、�
 ### #6 型付きAPIクライアントとエンドポイント層の整備
 
 **Branch:** `refactor/6-api-client`  
-**Base / PR target:** `refactor` / `refactor`
+**Base / PR target:** `refactor-base` / `refactor-base`
 
 作業内容:
 
@@ -238,7 +238,7 @@ Issue番号は `#4`〜`#11` を使用する。実際のIssue作成時には、�
 ### #7 大会詳細画面の責務分離
 
 **Branch:** `refactor/7-contest-detail`  
-**Base / PR target:** `refactor` / `refactor`
+**Base / PR target:** `refactor-base` / `refactor-base`
 
 主対象は `app/venue/[id]/page.tsx`。投稿部品内部の詳細は #8 に任せ、ここでは大会詳細画面のcompositionと投票・結果表示を整理する。
 
@@ -275,7 +275,7 @@ Issue番号は `#4`〜`#11` を使用する。実際のIssue作成時には、�
 ### #8 投稿・リアクション・コメント部品の整理
 
 **Branch:** `refactor/8-post-components`  
-**Base / PR target:** `refactor` / `refactor`
+**Base / PR target:** `refactor-base` / `refactor-base`
 
 主対象は `PostForm`、`ResultPostCard`、`CommentList`、プロフィール内の投稿操作。
 
@@ -312,7 +312,7 @@ Issue番号は `#4`〜`#11` を使用する。実際のIssue作成時には、�
 ### #9 周辺画面とアプリケーションシェルの整理
 
 **Branch:** `refactor/9-secondary-screens`  
-**Base / PR target:** `refactor` / `refactor`
+**Base / PR target:** `refactor-base` / `refactor-base`
 
 提示された例にはない補完Issue。これを設けないと、トップ、管理画面、一覧画面、認証/Headerの責務混在が残るため追加する。
 
@@ -339,7 +339,7 @@ Issue番号は `#4`〜`#11` を使用する。実際のIssue作成時には、�
 ### #10 テストスイートと品質チェックの整備
 
 **Branch:** `ci/10-quality-checks`  
-**Base / PR target:** refactor統合後の `master` / `master`
+**Base / PR target:** `refactor-base` 統合後の `master` / `master`
 
 作業内容:
 
@@ -408,7 +408,7 @@ READMEに次を記載する。
 - 子Issue一覧と依存関係
 - 現在の基準線
 - 未決事項とリスク
-- refactor統合PRへのリンク
+- `refactor-base` 統合PRへのリンク
 
 個別の実装議論やチェックリストは子Issueへ置き、親Issueを肥大化させない。
 
@@ -453,15 +453,15 @@ master
 ├── chore/4-repository-cleanup
 │       └── PR -> master
 │
-├── refactor                         # 一時的な統合ブランチ
+├── refactor-base                    # 一時的な統合ブランチ
 │   ├── refactor/5-domain-types
 │   ├── refactor/6-api-client
 │   ├── refactor/7-contest-detail
 │   ├── refactor/8-post-components
 │   └── refactor/9-secondary-screens
-│           └── 各PR -> refactor
+│           └── 各PR -> refactor-base
 │
-│   refactor ── 統合PR -> master
+│   refactor-base ── 統合PR -> master
 │
 ├── ci/10-quality-checks
 │       └── PR -> master
@@ -473,28 +473,28 @@ master
 ### 7.2 作成順序
 
 1. `chore/4-repository-cleanup` を現在の `master` から作り、mergeする。
-2. 更新済み `master` から `refactor` を作る。
-3. #5を `refactor` から作成し、PR先を `refactor` にする。
-4. #5 merge後の `refactor` から #6を作成する。
+2. 更新済み `master` から `refactor-base` を作る。
+3. #5を `refactor-base` から作成し、PR先を `refactor-base` にする。
+4. #5 merge後の `refactor-base` から #6を作成する。
 5. #6 merge後、型とAPI境界を固定して #7と #8を作る。変更ファイルが重なる場合は #7を先にmergeし、#8をrebaseする。
 6. #7/#8 merge後に #9を進める。
-7. #5〜#9完了後、`refactor -> master` の統合PRを作る。
+7. #5〜#9完了後、`refactor-base -> master` の統合PRを作る。
 8. 統合後の `master` から #10、#11を順に作る。READMEは最終構成に合わせるため #11を最後にする。
 
 ### 7.3 運用ルール
 
-- `master` と `refactor` への直接pushは禁止する。
+- `master` と `refactor-base` への直接pushは禁止する。
 - 子PRのbaseを誤って `master` にしない。
 - ブランチ名は英語で記述し、`codex/`、個人名、ツール名など作業内容と無関係な接頭辞を付けない。
 - コミットメッセージは英語で記述する。Conventional Commits形式を推奨する（例: `refactor: extract contest status calculation`）。
 - Issueタイトル、PRタイトル、PRの説明文は日本語で記述する。
 - 子PRは原則squash mergeする。統合PRは子Issueの履歴を残せる方法をrepository policyに合わせて選ぶ。
-- `refactor` へmergeした後は、依存する作業ブランチを最新 `refactor` にrebaseする。
-- `master` のhotfixは通常どおり `master` へmergeし、直後に `refactor` へ取り込む。
+- `refactor-base` へmergeした後は、依存する作業ブランチを最新 `refactor-base` にrebaseする。
+- `master` のhotfixは通常どおり `master` へmergeし、直後に `refactor-base` へ取り込む。
 - PR本文に `Closes #xx` またはtracking issueへの関連を明記する。
 - レビューしやすいよう、rename/move、formatter差分、ロジック変更を可能な限り別commitにする。
 - 各PRで「画面仕様を変えたか」を明記する。意図しない仕様変更が見つかった場合は別Issueに分離する。
-- 長期間の並行開発を避け、`refactor` は統合後に削除する。
+- 長期間の並行開発を避け、`refactor-base` は統合後に削除する。
 
 ### 7.4 PRの必須記載事項
 
@@ -515,7 +515,7 @@ master
       -> #6 API boundary
           -> #7 contest detail ─┐
           -> #8 posts/comments ├-> #9 secondary screens
-                                └-> refactor integration PR
+                                └-> refactor-base integration PR
                                       -> #10 tests/CI
                                           -> #11 README
 ```
@@ -534,7 +534,7 @@ master
 | browser/serverのAPI URLを取り違える | entry pointを分け、server-only/client-only依存をレビューする |
 | 画像previewでメモリリークする | object URLの所有者をhookに一本化しcleanupをテストする |
 | 巨大PRになりレビュー不能になる | Issue境界とファイル所有範囲を守り、機械変更を分離する |
-| refactor中のhotfixが欠落する | master merge直後にrefactorへ取り込む運用を徹底する |
+| refactor-baseでの作業中にhotfixが欠落する | master merge直後にrefactor-baseへ取り込む運用を徹底する |
 
 ## 10. 成功指標
 

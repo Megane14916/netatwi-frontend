@@ -2,101 +2,18 @@
 
 import { Calendar, ChevronRight, ExternalLink, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import dayjs from 'dayjs';
-import RippleLink from "@/components/RippleLink";
-import React from 'react';
-import useSWR from 'swr';
-
-interface Contest {
-  id: number;
-  name: string;
-  hasTheme: boolean;
-  theme: string | null;
-  hasQualifier: boolean;
-  parentContestId?: number;
-  type?: string;
-  startTime: string | null;
-  endTime: string | null;
-  votingEndTime: string | null;
-  qualifierStartTime: string | null;
-  qualifierEndTime: string | null;
-  qualifierVotingEndTime: string | null;
-  totalPosters: number;
-  totalVoters: number;
-  totalJudges: number;
-}
-
-interface LatestResult {
-  contest_id: number;
-  contest_name: string;
-  theme: string | null;
-  totalPosters: number;
-  totalVoters: number;
-  totalJudges: number;
-}
-
-interface ContestsResponse {
-  ongoing: Contest[];
-  voting: Contest[];
-  upcoming: Contest[];
-  closed: Contest[];
-  latestResult: LatestResult | null;
-}
-
-const getGPStep = (gpFinals: Contest, gpQualifier: Contest | undefined | null) => {
-  const now = dayjs();
-  
-  if (gpQualifier) {
-    const qEnd = dayjs(gpQualifier.endTime);
-    const qVoteEnd = dayjs(gpQualifier.votingEndTime);
-    
-    // 0. 予選投稿期間
-    if (now.isBefore(qEnd)) return 0;
-    
-    // 1. 予選投票期間
-    if (now.isBefore(qVoteEnd)) return 1;
-  }
-  
-  // 2. 本選投稿(予選結果発表と同時)
-  const end = dayjs(gpFinals.endTime);
-  const voteEnd = dayjs(gpFinals.votingEndTime);
-  
-  if (now.isBefore(end)) return 2;
-  
-  // 3. 本選投票期間
-  if (now.isBefore(voteEnd)) return 3;
-  
-  // 4. 本選結果発表
-  return 4;
-};
-
-const GP_STEPS = [
-  "予選投稿",
-  "予選投票",
-  "決勝投稿",
-  "決勝投票",
-  "決勝結果"
-];
-
-const fetcher = (url: string) => fetch(url).then(res => {
-  if (!res.ok) throw new Error('Failed to fetch');
-  return res.json();
-});
-
-const renderTitle = (name: string) => {
-  if (!name.includes('ネタツイグランプリ')) return name;
-  const parts = name.split('ネタツイグランプリ');
-  return (
-    <>
-      {parts[0] && <span className="block mb-1">{parts[0]}</span>}
-      <span className="block">ネタツイグランプリ</span>
-      {parts[1] && <span className="block mt-1">{parts[1]}</span>}
-    </>
-  );
-};
+import { useContests } from '@/hooks/api/useContests';
+import { ContestCard } from '@/features/contests/components/ContestCard';
+import { ContestTitle } from '@/features/contests/components/ContestTitle';
+import {
+  GRAND_PRIX_STEPS,
+  flattenContests,
+  getGrandPrixProgress,
+  getVisibleDailyContests,
+} from '@/features/contests/model/contestPresentation';
 
 export default function VenuePage() {
-  const { data, isLoading } = useSWR<ContestsResponse>('/api/contests', fetcher);
+  const { data, isLoading } = useContests();
 
   if (isLoading) {
     return (
@@ -108,126 +25,14 @@ export default function VenuePage() {
 
   if (!data) return null;
 
-  const { ongoing, voting, upcoming, closed } = data;
-  const allContests = [...ongoing, ...voting, ...upcoming, ...closed];
-
-  // GPの「本選(決勝)」を取得 (parentContestIdを持っているものが本選)
-  // 最新のものを優先するため、idが最大のものを取得するなどしても良いが、
-  // 現行のグランプリを取得する
-  const gpFinals = allContests.find(c => c.type === 'grandprix' && c.parentContestId != null)
-                || allContests.find(c => c.hasQualifier === true); // フォールバック
-
-  let activeGpId = gpFinals?.id;
-  let activeGpName = gpFinals?.name;
-  let step = 0;
-  let isBeforeStart = false;
-
-  if (gpFinals) {
-    const gpQualifier = gpFinals.parentContestId 
-      ? allContests.find(c => c.id === gpFinals.parentContestId) 
-      : undefined;
-
-    step = getGPStep(gpFinals, gpQualifier);
-    
-    // 予選期間中(0または1)は、親コンテスト(=予選)の情報を表示する
-    if ((step === 0 || step === 1) && gpQualifier) {
-      activeGpId = gpQualifier.id;
-      activeGpName = gpQualifier.name;
-    }
-
-    const nowTime = new Date().getTime();
-    isBeforeStart = gpQualifier
-      ? !!(gpQualifier.startTime && nowTime < new Date(gpQualifier.startTime).getTime())
-      : !!(gpFinals.startTime && nowTime < new Date(gpFinals.startTime).getTime());
-  }
-
-  // デイリー: type === 'daily' のもののみ
-  const dailyContests = allContests.filter(c => {
-    if (c.type !== 'daily') return false;
-    const now = dayjs();
-    if (c.startTime && now.isBefore(dayjs(c.startTime))) {
-      return dayjs(c.startTime).diff(now, 'hour', true) <= 1;
-    }
-    return true;
-  });
-  
-  const categorizeDaily = (c: Contest) => {
-    const now = dayjs();
-    if (c.startTime && now.isBefore(dayjs(c.startTime))) return 'upcoming';
-    if (c.endTime && now.isBefore(dayjs(c.endTime))) return 'ongoing';
-    if (c.votingEndTime && now.isBefore(dayjs(c.votingEndTime))) return 'voting';
-    return 'closed';
-  };
-
-  const dailyUpcoming = dailyContests.filter(c => categorizeDaily(c) === 'upcoming').sort((a,b) => dayjs(b.startTime).unix() - dayjs(a.startTime).unix());
-  const dailyOngoing = dailyContests.filter(c => categorizeDaily(c) === 'ongoing').sort((a,b) => dayjs(b.startTime).unix() - dayjs(a.startTime).unix());
-  const dailyVoting = dailyContests.filter(c => categorizeDaily(c) === 'voting').sort((a,b) => dayjs(b.startTime).unix() - dayjs(a.startTime).unix());
-  const dailyClosed = dailyContests.filter(c => categorizeDaily(c) === 'closed').sort((a,b) => dayjs(b.startTime).unix() - dayjs(a.startTime).unix());
-
-  const categorizedDaily = [
-    ...dailyUpcoming.map(c => ({ contest: c, type: 'upcoming' as const })),
-    ...dailyOngoing.map(c => ({ contest: c, type: 'ongoing' as const })),
-    ...dailyVoting.map(c => ({ contest: c, type: 'voting' as const })),
-    ...dailyClosed.map(c => ({ contest: c, type: 'closed' as const }))
-  ];
-  const visibleDailies = categorizedDaily.slice(0, 5);
-
-  const renderCard = (contest: Contest, type: 'upcoming' | 'ongoing' | 'voting' | 'closed') => {
-    const typeConfig = {
-      upcoming: { label: "準備中", bg: "bg-gray-500" },
-      ongoing: { label: "投稿期間", bg: "bg-[#1DA1F2]" },
-      voting: { label: "投票期間", bg: "bg-green-500" },
-      closed: { label: "結果発表", bg: "bg-yellow-400" },
-    };
-    const config = typeConfig[type];
-
-    let timeText = "";
-    if (type === "upcoming")
-      timeText = `投稿開始: ${dayjs(contest.startTime).format("YYYY年MM月DD日 HH:mm")}`;
-    else if (type === "ongoing")
-      timeText = `投稿締切: ${dayjs(contest.endTime).format("YYYY年MM月DD日 HH:mm")}`;
-    else if (type === "voting")
-      timeText = `投票締切: ${dayjs(contest.votingEndTime).format("YYYY年MM月DD日 HH:mm")}`;
-    else
-      timeText = `開催日時：${dayjs(contest.startTime).format("YYYY年MM月DD日 HH:mm")}`;
-
-    return (
-      <RippleLink
-        key={contest.id}
-        href={`/venue/${contest.id}`}
-        prefetch={false}
-        className="block group relative overflow-hidden bg-white dark:bg-black py-6 px-3 md:p-8 transition-colors duration-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-      >
-        <div className="relative z-10 flex flex-row items-center justify-between gap-2 md:gap-4">
-          <div className="min-w-0 flex-1">
-            <div className="mb-1 md:mb-2">
-              <span
-                className={`inline-block rounded-full px-2 py-0.5 text-[10px] md:px-3 md:py-1 md:text-xs font-bold text-white ${config.bg}`}
-              >
-                {config.label}
-              </span>
-            </div>
-            <h4 className="truncate text-base font-bold text-black dark:text-white md:text-2xl">
-              {contest.name}
-            </h4>
-            <p className="mt-0.5 md:mt-1 truncate text-[10px] md:text-sm text-gray-500 dark:text-gray-400">
-              {timeText}
-            </p>
-          </div>
-          <div className="flex shrink-0 items-center gap-8">
-            <div className="flex flex-col items-end md:items-start">
-              <span className="text-[10px] md:text-xs font-medium text-black/60 dark:text-white/60">
-                投稿数
-              </span>
-              <span className="text-base md:text-xl font-bold text-black dark:text-white">
-                {contest.totalPosters ?? 0}人
-              </span>
-            </div>
-          </div>
-        </div>
-      </RippleLink>
-    );
-  };
+  const allContests = flattenContests(data);
+  const grandPrix = getGrandPrixProgress(allContests);
+  const gpFinals = grandPrix?.finals;
+  const activeGpId = grandPrix?.displayContest.id;
+  const activeGpName = grandPrix?.displayContest.name;
+  const step = grandPrix?.step ?? 0;
+  const isBeforeStart = grandPrix?.isBeforeStart ?? false;
+  const visibleDailies = getVisibleDailyContests(allContests, 5);
 
   return (
     <div className="relative min-h-screen bg-white dark:bg-black text-black dark:text-white flex flex-col overflow-clip pb-20">
@@ -288,7 +93,7 @@ export default function VenuePage() {
               {/* コンテンツ (タイトルとボタン) */}
               <div className="relative z-20 container mx-auto max-w-2xl px-4 flex flex-col justify-center h-full">
                   <h2 className="font-extrabold text-white text-left drop-shadow-md text-4xl md:text-6xl tracking-tight leading-tight mb-8">
-                      {renderTitle(activeGpName || "")}
+                      <ContestTitle name={activeGpName || ""} spaced />
                   </h2>
                   
                   {/* アクションエリア (青背景に合わせて白ボタンに変更、サイズ縮小) */}
@@ -309,9 +114,9 @@ export default function VenuePage() {
             {/* タイムライン */}
             <div className="mt-2 mb-12 w-full flex justify-center overflow-hidden">
               <div className="flex w-full">
-                {GP_STEPS.map((stepName, idx) => {
+                {GRAND_PRIX_STEPS.map((stepName, idx) => {
                   const isFirst = idx === 0;
-                  const isLast = idx === GP_STEPS.length - 1;
+                  const isLast = idx === GRAND_PRIX_STEPS.length - 1;
                   const isActive = step === idx;
                   const isPast = step > idx;
 
@@ -359,7 +164,9 @@ export default function VenuePage() {
           </div>
           
           <div className="flex flex-col border-b border-gray-200 dark:border-gray-800 divide-y divide-gray-200 dark:divide-gray-800 mb-4">
-            {visibleDailies.map(({ contest, type }) => renderCard(contest, type))}
+            {visibleDailies.map(({ contest, status }) => (
+              <ContestCard key={contest.id} contest={contest} status={status} countSuffix="人" />
+            ))}
             
             {visibleDailies.length === 0 && (
               <div className="text-gray-500 dark:text-gray-400 text-center py-10 bg-gray-50 dark:bg-gray-950">
